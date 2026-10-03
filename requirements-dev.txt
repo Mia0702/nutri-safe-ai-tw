@@ -1,0 +1,4 @@
+# 只用於本機測試（不進 production）
+-r requirements.txt
+pgserver      # 本機空白 PostgreSQL + pgvector，驗證 migration
+psycopg[binary]

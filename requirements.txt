@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+openai
+supabase
+neo4j
+line-bot-sdk
+httpx
+beautifulsoup4
+python-multipart
+pytest
+pytest-asyncio
