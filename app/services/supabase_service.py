@@ -204,3 +204,69 @@ class SupabaseRagStore:
                 "p_country_code": country_code,
             },
         )
+
+
+CLAIM_POLICY_MIGRATION_KEY = "migration_0003_claim_policy_corpus"
+CLAIM_POLICY_CACHE_SECONDS = 600.0
+_POLICY_SOURCE_COLUMNS = "source_id,document_title,authority,source_url,retrieved_at,status"
+
+
+class SupabaseClaimPolicyRepository:
+    """ClaimPolicyRepository 的 Supabase 實作（唯讀）。
+
+    corpus 很小（數百列）且只隨匯入批次變動：整表讀取後在 process 內快取，比對在 Tool 端 deterministic 進行。
+    0003 尚未套用時 corpus_available() 為 False（Agent B 略過結構化 policy，不當成資料來源失敗）。
+    """
+
+    def __init__(self, service: SupabaseService, cache_seconds: float = CLAIM_POLICY_CACHE_SECONDS):
+        self._db = service
+        self._ttl = cache_seconds
+        self._cache: dict[str, tuple[float, Any]] = {}
+
+    def _cached(self, key: str, load):
+        import time
+
+        hit = self._cache.get(key)
+        if hit is not None and time.monotonic() - hit[0] < self._ttl:
+            return hit[1]
+        value = load()
+        self._cache[key] = (time.monotonic(), value)
+        return value
+
+    def corpus_available(self) -> bool:
+        def load() -> bool:
+            rows = self._db.select(
+                self._db.table("app_schema_meta").select("value").eq("key", CLAIM_POLICY_MIGRATION_KEY).limit(1)
+            )
+            return bool(rows) and rows[0].get("value") == "applied"
+
+        return self._cached("available", load)
+
+    def list_rules(self) -> list[dict[str, Any]]:
+        def load():
+            return self._db.select(self._db.table("claim_policy_rules").select(
+                "rule_id,rule_category,policy_effect,claim_category,rule_summary_zh,official_text,conditions,legal_basis,"
+                "article_or_attachment,effective_date,status,review_status,evidence_use,quarantine_reasons,"
+                f"source:claim_policy_sources({_POLICY_SOURCE_COLUMNS})"))
+
+        return self._cached("rules", load)
+
+    def list_examples(self) -> list[dict[str, Any]]:
+        def load():
+            rows = self._db.select(self._db.table("claim_policy_examples").select(
+                "example_id,example_text,example_type,claim_category,conditions,article_or_attachment,evidence_use,"
+                f"quarantine_reasons,rule:claim_policy_rules(rule_id),source:claim_policy_sources({_POLICY_SOURCE_COLUMNS})"))
+            for r in rows:
+                r["rule_id"] = (r.pop("rule", None) or {}).get("rule_id", "")
+            return rows
+
+        return self._cached("examples", load)
+
+    def list_health_functions(self) -> list[dict[str, Any]]:
+        def load():
+            return self._db.select(self._db.table("health_function_catalog").select(
+                "function_id,official_function_name,official_definition,evaluation_method_title,legal_basis,"
+                "effective_date,status,review_status,evidence_use,"
+                f"source:claim_policy_sources!catalog_source_id({_POLICY_SOURCE_COLUMNS})"))
+
+        return self._cached("health_functions", load)

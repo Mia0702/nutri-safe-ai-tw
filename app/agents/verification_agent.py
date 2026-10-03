@@ -26,6 +26,16 @@ URL evidence early-stop（planner_mode = url_evidence_early_stop）：使用者�
     只有「證據衝突」或「命題沒有任何內部官方資料可對照（且結論不是由規則直接決定）」才查官方網站。
 官方網頁本身以 provenance（網址 / 網域 / 標題 / 取得時間）作為官方證據，證據範圍依頁面能否對應到已確認產品決定。
 
+Claim-policy evidence priority（被說出來的宣稱；固定順序，每一層都保留 evidence_use）：
+  1. 該產品官方核准功效（product-specific approved claim）——產品 VERIFIED 時永遠先比對，一般例句不能覆蓋。
+  2. 結構化 claim-policy 規則（search_claim_policy_rules）
+  3. 官方例示詞句（search_claim_policy_examples，宣稱原文與例示文字相同才算對應）
+  4. claim-policy RAG（search_rag；只查結構化證據無法決定的宣稱）
+  5. 台灣官方網站 fallback（只在證據衝突或宣稱超出內部證據時）
+  結構化證據已足以決定的宣稱（policy_decided_claims）不查 RAG、不查官方網站。
+  只有 DECISION_ELIGIBLE 的規則 / 例示 / RAG chunk 能參與 deterministic decision；CONTEXT_ONLY /
+  CORROBORATION_REQUIRED 只提供脈絡；EXCLUDED_SUPERSEDED 不出現在 current query。
+
 assess_evidence 去重：同一份證據（沒有新的候選、已確認參考資料沒有變化）不重複評估；
 官方網站只回傳已知頁面（例如使用者貼的同一官方網址）時不算新增證據，不重新評估。
 
@@ -45,7 +55,10 @@ from app.agents.prompts import EVIDENCE_ASSESSMENT_INSTRUCTIONS, PLANNER_INSTRUC
 from app.agents.evidence_tools import (
     EVIDENCE_TOOLS,
     OFFICIAL_WEB_TOOLS,
+    ClaimPolicyRulesArgs,
+    ClaimTextsArgs,
     GraphArgs,
+    HealthFunctionArgs,
     IllegalAdArgs,
     LookupPermitArgs,
     LookupProductArgs,
@@ -62,7 +75,13 @@ from app.risk.assessment_rules import (
     relevance_gate,
     resolve_product_match,
 )
-from app.risk.claim_policy import exact_approved_match, is_asserted_disease_claim
+from app.risk.claim_policy import (
+    EFFECT_PROHIBITED,
+    MEDICAL_EXAMPLE_TYPE,
+    StructuredPolicyContext,
+    exact_approved_match,
+    is_asserted_disease_claim,
+)
 from app.schemas.enums import (
     ClaimAssessmentStatus,
     ClaimEvidenceRelation,
@@ -92,6 +111,7 @@ from app.services.openai_service import LLMClient
 from app.tools.base import ToolCallRecorder
 from app.tools.graph_tools import GraphQueryType, GraphRepository
 from app.tools.product_tools import OfficialDataRepository
+from app.tools.claim_policy_tools import ClaimPolicyRepository
 from app.tools.rag_tools import RagStore
 
 logger = logging.getLogger("nutri_safe_ai.agents.verification")
@@ -114,6 +134,8 @@ PACKAGE_CLAIM_MODE = "package_claim_early_stop"
 CLAIM_COMPARISON_MODE = "approved_claim_comparison"  # 已確認產品 + 官方核准功效：宣稱直接與結構化證據比對
 CLAIMS_PENDING_PRODUCT_MODE = "claims_pending_product_choice"  # 產品待使用者確認：宣稱先不比對核准功效
 URL_EVIDENCE_PREFIX = "url:"  # 使用者提供的官方網頁作為證據時的 evidence_id 前綴
+# corpus 的醫療效能規則類別：被說出的疾病宣稱以這類 PROHIBITED 規則作為法規來源
+MEDICAL_RULE_CATEGORY = "MEDICAL_EFFICACY"
 
 # Agent 內部的 LLM 步驟（不是外部資料來源）
 PLANNER_STEP = "plan_tool_calls"
@@ -155,6 +177,7 @@ class VerificationAgent:
         rag_min_similarity: float = 0.3,
         enable_official_web: bool = True,
         enable_llm_planner: bool = True,
+        claim_policy_repo: ClaimPolicyRepository | None = None,
     ):
         self._repo = official_repo
         self._graph = graph_repo
@@ -164,6 +187,7 @@ class VerificationAgent:
         self._rag_min_similarity = rag_min_similarity
         self._enable_official_web = enable_official_web
         self._enable_llm_planner = enable_llm_planner
+        self._claim_policy = claim_policy_repo
 
     # ================================================================== main
 
@@ -175,7 +199,7 @@ class VerificationAgent:
         )
         state = PlannerState(
             request=request, bundle=bundle, repo=self._repo, graph=self._graph, rag=self._rag, llm=self._llm,
-            rag_top_k=self._rag_top_k, rag_min_similarity=self._rag_min_similarity,
+            rag_top_k=self._rag_top_k, rag_min_similarity=self._rag_min_similarity, claim_policy=self._claim_policy,
         )
         # 前文已查證過的產品 ID 可直接使用
         for entity in request.context_entities_used:
@@ -203,7 +227,8 @@ class VerificationAgent:
         # 6. 命題評估與摘要
         bundle.tools_called = rec.records
         bundle.errors = self._source_errors(rec)
-        self._assess_claims(request, bundle, links, rec)
+        self._attach_claim_policy_evidence(state)
+        self._assess_claims(request, bundle, links, rec, [self._policy_context(state, c) for c in request.claims])
         bundle.evidence_strength = compute_evidence_strength(bundle)
         bundle.conflicts = self._conflicts(bundle)
         bundle.missing_information = self._missing_information(request, bundle)
@@ -248,7 +273,8 @@ class VerificationAgent:
         links = self._assess_and_gate(state, rec)
 
         # 5. 內部證據不足才查官方網站；官方網站有新增證據才重新評估（最多一次）
-        if self._enable_official_web and self._internal_evidence_insufficient(request, bundle, links):
+        if self._enable_official_web and self._internal_evidence_insufficient(
+                request, bundle, links, state.policy_decided_claims):
             links = self._official_web_then_reassess(state, rec, links)
         return links
 
@@ -314,7 +340,7 @@ class VerificationAgent:
             bundle.fast_path_reason = f"{label}_declined:structured_lookup_failed"
             return None
         links = self._assess_and_gate(state, rec)
-        need_web, reason = self._url_claims_need_official_web(request, links)
+        need_web, reason = self._url_claims_need_official_web(request, links, state.policy_decided_claims)
         bundle.fast_path_reason = f"{label}s_assessed:{reason}"
         bundle.planner_trace.append(PlannerStep(round=0, note=f"宣稱已用結構化官方資料評估一次（{reason}）"))
         if need_web and self._enable_official_web:
@@ -332,10 +358,12 @@ class VerificationAgent:
         if not request.claims or not (match.is_ambiguous or match.needs_confirmation) or state.failed:
             return None
         self._guardrail_ads_and_graph(state, rec)
+        self._claim_policy_stage(state, rec)  # 宣稱本身的官方例示 / 規則不需要先確認產品
         links: list[_ClaimLink] = []
         if any(is_asserted_disease_claim(c) for c in request.claims):
             self._guardrail_rag(state, rec)
-            links = self._assess_and_gate(state, rec)
+            if state.candidate_rag:
+                links = self._assess_and_gate(state, rec)
         bundle.planner_mode = CLAIMS_PENDING_PRODUCT_MODE
         bundle.fast_path_reason = f"claims_pending_product_choice:{match.ambiguity_reason.value}"
         bundle.planner_trace.append(PlannerStep(
@@ -389,7 +417,7 @@ class VerificationAgent:
             return decline("structured_lookup_failed")
         bundle.planner_mode = URL_EVIDENCE_MODE
         links = self._assess_and_gate(state, rec)
-        need_web, reason = self._url_claims_need_official_web(request, links)
+        need_web, reason = self._url_claims_need_official_web(request, links, state.policy_decided_claims)
         bundle.fast_path_reason = f"url_claims_assessed:{reason}"
         bundle.planner_trace.append(PlannerStep(
             round=0, note=f"URL 宣稱已用結構化官方資料評估一次（{reason}），不執行多輪規劃"))
@@ -398,13 +426,15 @@ class VerificationAgent:
         return links
 
     @staticmethod
-    def _url_claims_need_official_web(request: NormalizedUserRequest, links) -> tuple[bool, str]:
+    def _url_claims_need_official_web(request: NormalizedUserRequest, links,
+                                      policy_decided: set[int] = frozenset()) -> tuple[bool, str]:
         """URL 宣稱評估後，是否還需要官方網站（只有證據衝突，或命題沒有任何內部官方資料可對照時）。
 
         被說出來的疾病宣稱：已和核准功效比對過，沒有對應時結論由規則直接決定（MEDICAL_TREATMENT_CLAIM），
-        官方網站不會改變結論，因此不查。
+        官方網站不會改變結論，因此不查。結構化 claim-policy 已足以決定的宣稱同理（policy_decided）。
         """
         rule_decided = {i for i, claim in enumerate(request.claims) if is_asserted_disease_claim(claim)}
+        rule_decided |= set(policy_decided)
         # 規則已決定結論的宣稱，被法規文件「反駁」只是與規則一致，不是需要再查的證據衝突
         if any(link.relation == ClaimEvidenceRelation.CONTRADICTS and link.claim_index not in rule_decided
                for link in links):
@@ -759,7 +789,13 @@ class VerificationAgent:
     def _guardrail_rag(self, state: PlannerState, rec: ToolCallRecorder) -> None:
         req = state.request
         if (req.claims or req.needs_rag) and not state.attempted.get("search_rag"):
-            queries = [rag_query_for_claim(c) for c in req.claims[:MAX_CLAIMS_FOR_RAG]] or [req.question or req.normalized_text]
+            self._claim_policy_stage(state, rec)  # evidence priority：結構化 policy 先於 RAG
+            claims = [c for i, c in enumerate(req.claims) if i not in state.policy_decided_claims]
+            if req.claims and not claims:
+                state.bundle.planner_trace.append(PlannerStep(
+                    round=len(state.bundle.planner_trace) + 1, note="宣稱已由核准功效 / 結構化 claim policy 決定，不查 RAG"))
+                return
+            queries = [rag_query_for_claim(c) for c in claims[:MAX_CLAIMS_FOR_RAG]] or [req.question or req.normalized_text]
             for query in queries:
                 self._guardrail_call(state, rec, "search_rag", QueryArgs(query=query))
                 if "search_rag" in state.failed:
@@ -785,18 +821,106 @@ class VerificationAgent:
             if e.query_type == GraphQueryType.INGREDIENT_APPROVED_FUNCTIONS or e.subject_id == pid
         ]
 
+    # ================================================================== 結構化 claim policy
+
+    def _claim_policy_stage(self, state: PlannerState, rec: ToolCallRecorder) -> None:
+        """被說出來的宣稱：依固定 evidence priority 查結構化 claim-policy（每個 request 最多一次）。
+
+        1. 產品 VERIFIED 且宣稱與該產品核准功效文字相同 → 由核准功效決定，不查一般例句。
+        2. 其餘宣稱：官方例示（文字相同）→ 例示所屬規則；被說出的疾病宣稱另查醫療效能禁止規則（法規來源）。
+        3. 已確認產品的核准功效類別 → 保健功效目錄（官方定義，供法規依據明細）。
+        結構化證據已足以決定的宣稱記入 policy_decided_claims（之後不查 RAG / 官方網站）。
+        corpus 尚未套用（0003 marker 不存在）時略過，不算資料來源失敗。
+        """
+        req, bundle = state.request, state.bundle
+        if state.claim_policy_checked or not req.claims:
+            return
+        state.claim_policy_checked = True
+        asserted = [(i, c) for i, c in enumerate(req.claims) if c.is_asserted]
+        if state.claim_policy is None or not asserted:
+            return
+        try:
+            available = state.claim_policy.corpus_available()
+        except Exception:  # noqa: BLE001 - 交給下面的 Tool 呼叫如實記錄失敗
+            available = True
+        if not available:
+            bundle.planner_trace.append(PlannerStep(
+                round=len(bundle.planner_trace) + 1, note="claim policy corpus 尚未套用（0003），略過結構化 policy"))
+            return
+        verified = bundle.product_match.status == ProductVerificationStatus.VERIFIED
+        approved = bundle.approved_claims if verified else []
+        decided: set[int] = set()
+        pending = []
+        for i, c in asserted:
+            if approved and not c.uses_absolute_language and exact_approved_match(c.claim_text, approved):
+                decided.add(i)  # 1. product-specific approved claim 優先
+            else:
+                pending.append((i, c))
+        if pending:
+            self._guardrail_call(state, rec, "search_claim_policy_examples",
+                                 ClaimTextsArgs(claim_texts=[c.claim_text for _, c in pending]))
+        rule_ids = sorted({e.rule_id for e in state.policy_examples.values()})
+        needs_medical = any(is_asserted_disease_claim(c) for _, c in pending)
+        if rule_ids or needs_medical:
+            self._guardrail_call(state, rec, "search_claim_policy_rules", ClaimPolicyRulesArgs(
+                rule_ids=rule_ids,
+                rule_categories=[MEDICAL_RULE_CATEGORY] if needs_medical else [],
+                policy_effects=[EFFECT_PROHIBITED] if needs_medical else [],
+            ))
+        if needs_medical:
+            state.medical_rule_ids = {
+                r.rule_id for r in state.policy_rules.values()
+                if r.rule_category == MEDICAL_RULE_CATEGORY and r.policy_effect == EFFECT_PROHIBITED
+            }
+        function_names = [e.function_name for e in approved if e.function_classified]
+        function_names += [c.target_function for _, c in asserted if c.target_function]
+        if function_names:
+            self._guardrail_call(state, rec, "lookup_health_function",
+                                 HealthFunctionArgs(function_names=list(dict.fromkeys(function_names))))
+        for i, c in pending:
+            ctx = self._policy_context(state, c)
+            decisive = ctx.decisive_example()
+            if decisive is not None and (not approved or decisive[0].example_type == MEDICAL_EXAMPLE_TYPE):
+                decided.add(i)  # 例示所屬規則已決定（通常可使用例示不覆蓋產品核准功效）
+            elif is_asserted_disease_claim(c) and ctx.decision_medical_rules():
+                decided.add(i)  # 疾病宣稱由規則決定，法規來源已由結構化規則提供
+        state.policy_decided_claims = decided
+        bundle.planner_trace.append(PlannerStep(
+            round=len(bundle.planner_trace) + 1,
+            note=f"結構化 claim policy：{len(decided)}/{len(asserted)} 則宣稱已可由核准功效或規則決定"))
+
+    @staticmethod
+    def _policy_context(state: PlannerState, claim) -> StructuredPolicyContext:
+        norm = normalize_name(claim.claim_text)
+        examples = [e for e in state.policy_examples.values()
+                    if norm and any(normalize_name(t) == norm for t in e.matched_claim_texts)]
+        return StructuredPolicyContext(
+            example_matches=sorted(examples, key=lambda e: e.example_id),
+            rules=dict(state.policy_rules),
+            medical_rules=[state.policy_rules[r] for r in sorted(state.medical_rule_ids) if r in state.policy_rules],
+        )
+
+    @staticmethod
+    def _attach_claim_policy_evidence(state: PlannerState) -> None:
+        """查到的結構化 policy 證據放進 EvidenceBundle（evidence_use 原樣保留；superseded 不會被查出）。"""
+        bundle = state.bundle
+        bundle.claim_policy_rules = sorted(state.policy_rules.values(), key=lambda e: e.rule_id)
+        bundle.claim_policy_examples = sorted(state.policy_examples.values(), key=lambda e: e.example_id)
+        bundle.health_functions = sorted(state.health_functions.values(), key=lambda e: e.function_id)
+
     # ================================================================== 官方網站
 
     @classmethod
-    def _internal_evidence_insufficient(cls, request: NormalizedUserRequest, bundle: EvidenceBundle, links) -> bool:
+    def _internal_evidence_insufficient(cls, request: NormalizedUserRequest, bundle: EvidenceBundle, links,
+                                        policy_decided: set[int] = frozenset()) -> bool:
         product_insufficient = request.has_product_identifiers and bundle.product_match.status in (
             ProductVerificationStatus.NOT_FOUND, ProductVerificationStatus.PARTIAL_MATCH,
         )
-        linked = {link.claim_index for link in links}
+        linked = {link.claim_index for link in links} | set(policy_decided)
         claims_insufficient = any(i not in linked for i in range(len(request.claims)))
         if request.url_sources and UrlSourceRole.UNKNOWN_EXTERNAL_SOURCE not in request.url_source_roles:
             # URL 輸入（來源角色已知）：只有證據衝突或命題超出內部證據範圍才查官方網站
-            claims_insufficient = cls._url_claims_need_official_web(request, links)[0]
+            claims_insufficient = cls._url_claims_need_official_web(request, links, policy_decided)[0]
         general_insufficient = (
             request.needs_official_web_search
             and not request.claims
@@ -844,7 +968,8 @@ class VerificationAgent:
                     "text": f"成分「{e.subject_name}」：{e.object_name}（{e.properties.get('product_count')} 項產品）",
                 })
         for e in bundle.rag_evidence:
-            refs.append({"evidence_id": e.evidence_id, "kind": f"官方文件：{e.title}", "text": e.content[:EVIDENCE_TEXT_CHARS]})
+            kind = f"官方文件：{e.title}" if e.decision_eligible else f"官方文件（僅供脈絡，不可單獨作為結論）：{e.title}"
+            refs.append({"evidence_id": e.evidence_id, "kind": kind, "text": e.content[:EVIDENCE_TEXT_CHARS]})
         for e in bundle.official_web_evidence:
             refs.append({"evidence_id": e.evidence_id, "kind": f"官方網站：{e.title}", "text": e.snippet[:EVIDENCE_TEXT_CHARS]})
         return refs
@@ -878,7 +1003,9 @@ class VerificationAgent:
                 },
                 "candidates_to_assess": [
                     {"evidence_id": eid, "kind": "官方文件" if eid.startswith("rag:") else "官方網站",
-                     "title": e.title, "text": (getattr(e, "content", None) or getattr(e, "snippet", ""))[:EVIDENCE_TEXT_CHARS]}
+                     "title": e.title, "text": (getattr(e, "content", None) or getattr(e, "snippet", ""))[:EVIDENCE_TEXT_CHARS],
+                     **({"evidence_use": e.policy_metadata.evidence_use.value}
+                        if getattr(e, "policy_metadata", None) is not None else {})}
                     for eid, e in candidates.items()
                 ],
                 "established_references": established,
@@ -930,14 +1057,17 @@ class VerificationAgent:
         state.last_assessment_links = list(links)
         return links
 
-    def _assess_claims(self, request: NormalizedUserRequest, bundle: EvidenceBundle, links, rec) -> None:
+    def _assess_claims(self, request: NormalizedUserRequest, bundle: EvidenceBundle, links, rec,
+                       policy_contexts: list[StructuredPolicyContext] | None = None) -> None:
         if not request.claims:
             bundle.claim_assessment = []
             return
         approved_ids = {e.evidence_id for e in bundle.approved_claims}
+        # CONTEXT_ONLY / CORROBORATION_REQUIRED 的 corpus chunk 只提供脈絡：不能成為 final legal evidence
+        decision_rag = [e for e in bundle.rag_evidence if e.decision_eligible]
         official_ids = (
             approved_ids
-            | {e.evidence_id for e in bundle.rag_evidence if e.source.is_official}
+            | {e.evidence_id for e in decision_rag if e.source.is_official}
             | {e.evidence_id for e in bundle.official_web_evidence}
             | {e.evidence_id for e in bundle.graph_evidence if e.source.is_official}
         )
@@ -946,7 +1076,7 @@ class VerificationAgent:
         # 語意比對步驟必須成功完成，「沒有比對結果」才能解讀為「不在核准範圍」
         comparison_completed = any(r.ok for r in rec.records if r.tool_name == ASSESSMENT_STEP)
         regulation_sources = {
-            e.evidence_id: e.source for e in bundle.rag_evidence
+            e.evidence_id: e.source for e in decision_rag
             if e.source.is_official and (
                 (e.relevance is not None and e.relevance.evidence_scope == EvidenceScope.CLAIM_REGULATION)
                 or e.document_type == "regulation")
@@ -969,6 +1099,7 @@ class VerificationAgent:
                 regulation_sources=regulation_sources,
                 product_unresolved=product_unresolved,
                 comparison_completed=comparison_completed,
+                structured_policy=policy_contexts[i] if policy_contexts else None,
             )
             for i, claim in enumerate(request.claims)
         ]
@@ -1026,6 +1157,9 @@ _STAGE_OF_TOOL = {
     "lookup_company": "product_resolution_ms",
     "resolve_entity_alias": "product_resolution_ms",
     "search_rag": "rag_ms",
+    "search_claim_policy_rules": "claim_policy_ms",
+    "search_claim_policy_examples": "claim_policy_ms",
+    "lookup_health_function": "claim_policy_ms",
     PLANNER_STEP: "planner_ms",
     ASSESSMENT_STEP: "assessment_ms",
     "search_tw_official_web": "official_web_ms",
@@ -1037,7 +1171,7 @@ _INPUT_STAGE_OF_TOOL = {"fetch_url_content": "fetch_ms", "analyze_image": "visio
 def stage_timings_ms(records: list[ToolCallRecord]) -> dict[str, int]:
     """把 Agent B 的工具紀錄依階段加總（DB / KG 查詢歸在 db_kg_ms）。"""
     out = {"product_resolution_ms": 0, "db_kg_ms": 0, "rag_ms": 0, "planner_ms": 0,
-           "assessment_ms": 0, "official_web_ms": 0}
+           "assessment_ms": 0, "official_web_ms": 0, "claim_policy_ms": 0}
     for r in records:
         if (stage := _INPUT_STAGE_OF_TOOL.get(r.tool_name)) is not None:
             out[stage] = out.get(stage, 0) + r.duration_ms

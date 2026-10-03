@@ -11,9 +11,21 @@
   3. 沒有對應核准功效時：疾病預防 / 改善類 → MEDICAL_TREATMENT_CLAIM；其餘 → UNSUPPORTED_CLAIM。
   4. 判定不了（產品未確認、比對步驟失敗、資料來源失敗）→ INSUFFICIENT_EVIDENCE，不猜。
 
+結構化 claim-policy corpus（StructuredPolicyContext，選填；沒有提供時以上規則完全不變）：
+  * Evidence priority：該產品核准功效 → 結構化規則 / 官方例示 → RAG 法規文件。
+    官方例示只在核准功效比對沒有結果之後才使用，不能覆蓋產品自己的核准功效。
+  * 宣稱文字與官方例示詞句正規化後完全相同、例示與所屬規則都是 DECISION_ELIGIBLE 才能下結論：
+    醫療效能例示（規則 PROHIBITED）→ MEDICAL_TREATMENT_CLAIM；
+    通常可使用例示（規則 PERMITTED，且沒有產品核准功效可比對）→ PERMITTED_GENERAL_WORDING。
+  * CONTEXT_ONLY / CORROBORATION_REQUIRED / 有條件或一般功能例示只提供脈絡：
+    不單獨產生合法 / 違法結論，原本會是「找不到官方支持」時改為 INSUFFICIENT_EVIDENCE。
+  * DECISION_ELIGIBLE 的醫療效能禁止規則作為醫療效能判定的法規來源（取代需要 RAG 才有的來源）。
+
 不使用任何「看到某個字就判高風險」的關鍵字規則：醫療語意來自 Agent A 的結構化抽取（MedicalAssertionType），
 是否在核准範圍內來自 Agent B 的比對步驟（ClaimEvidenceRelation），最終狀態由這裡的規則決定。
 """
+
+from dataclasses import dataclass, field
 
 from app.normalization import normalize_name
 from app.schemas.enums import (
@@ -26,7 +38,14 @@ from app.schemas.enums import (
     EvidenceScope,
     MedicalAssertionType,
 )
-from app.schemas.evidence import ApprovedClaimEvidence, ClaimEvidenceLink, ClaimPolicyDecision, SourceRef
+from app.schemas.evidence import (
+    ApprovedClaimEvidence,
+    ClaimEvidenceLink,
+    ClaimPolicyDecision,
+    ClaimPolicyExampleEvidence,
+    ClaimPolicyRuleEvidence,
+    SourceRef,
+)
 from app.schemas.user_request import ExtractedClaim
 
 # policy result → Claim Assessment status（Risk Engine 的輸入；Risk Engine 規則本身不變）
@@ -37,6 +56,7 @@ POLICY_STATUS = {
     ClaimPolicyResult.MEDICAL_TREATMENT_CLAIM: ClaimAssessmentStatus.MEDICAL_TREATMENT_CLAIM,
     ClaimPolicyResult.UNSUPPORTED_CLAIM: ClaimAssessmentStatus.UNSUPPORTED,
     ClaimPolicyResult.INSUFFICIENT_EVIDENCE: ClaimAssessmentStatus.UNKNOWN,
+    ClaimPolicyResult.PERMITTED_GENERAL_WORDING: ClaimAssessmentStatus.CONSISTENT_WITH_OFFICIAL,
 }
 
 # 固定說明模板（Reporter 直接使用，不交給 LLM 自由發揮法律結論）
@@ -54,6 +74,49 @@ REASON_PRODUCT_UNRESOLVED = "產品身份還沒有確認，無法和官方核准
 REASON_COMPARISON_INCOMPLETE = "和官方核准功效的比對沒有完成，目前無法判斷這項宣稱。"
 REASON_NO_SOURCE = "資料來源暫時無法查詢，無法判斷這項宣稱。"
 NOTE_CLAIM_LEVEL_ONLY = "產品身份尚未完全確認；這個判定只針對宣稱內容，不代表產品真偽。"
+REASON_OFFICIAL_MEDICAL_EXAMPLE = "這項宣稱和官方列舉的醫療效能詞句相同，保健食品不能這樣宣稱。"
+REASON_OFFICIAL_PERMITTED_EXAMPLE = "這項文字和官方列為通常可使用的詞句相同。"
+REASON_POLICY_CONTEXT_ONLY = "官方資料有相關說明，但要看使用條件或仍待官方資料複核，目前不能單獨據此判定合法或違法。"
+
+# 例示類型 × 所屬規則效果：只有這兩種組合可以由「文字相同」直接下結論（其餘只提供脈絡）
+MEDICAL_EXAMPLE_TYPE = "MEDICAL_EFFICACY_EXAMPLE"
+PERMITTED_EXAMPLE_TYPE = "PERMITTED_EXAMPLE"
+EFFECT_PROHIBITED = "PROHIBITED"
+EFFECT_PERMITTED = "PERMITTED"
+
+
+@dataclass
+class StructuredPolicyContext:
+    """單一宣稱可用的結構化 claim-policy 證據（Agent B 由 Evidence Tools 取得，evidence_use 原樣保留）。"""
+
+    example_matches: list[ClaimPolicyExampleEvidence] = field(default_factory=list)  # 與宣稱文字相同的官方例示
+    rules: dict[str, ClaimPolicyRuleEvidence] = field(default_factory=dict)  # rule_id → 規則（含例示所屬規則）
+    medical_rules: list[ClaimPolicyRuleEvidence] = field(default_factory=list)  # 醫療效能禁止規則
+
+    def decisive_example(self) -> tuple[ClaimPolicyExampleEvidence, ClaimPolicyRuleEvidence, ClaimPolicyResult] | None:
+        """可直接下結論的例示：例示與規則都 DECISION_ELIGIBLE，且例示類型與規則效果一致。醫療效能優先。"""
+        found = []
+        for ex in self.example_matches:
+            rule = self.rules.get(ex.rule_id)
+            if rule is None or not (ex.decision_eligible and rule.decision_eligible):
+                continue
+            if ex.example_type == MEDICAL_EXAMPLE_TYPE and rule.policy_effect == EFFECT_PROHIBITED:
+                found.append((0, ex.example_id, ex, rule, ClaimPolicyResult.MEDICAL_TREATMENT_CLAIM))
+            elif ex.example_type == PERMITTED_EXAMPLE_TYPE and rule.policy_effect == EFFECT_PERMITTED:
+                found.append((1, ex.example_id, ex, rule, ClaimPolicyResult.PERMITTED_GENERAL_WORDING))
+        if not found:
+            return None
+        _, _, ex, rule, result = min(found, key=lambda item: item[:2])
+        return ex, rule, result
+
+    def context_evidence_ids(self) -> list[str]:
+        """有對應但不能單獨下結論的官方資料（待複核 / 需佐證 / 有條件例示）。"""
+        decisive = self.decisive_example()
+        decisive_id = decisive[0].evidence_id if decisive else None
+        return [ex.evidence_id for ex in self.example_matches if ex.evidence_id != decisive_id]
+
+    def decision_medical_rules(self) -> list[ClaimPolicyRuleEvidence]:
+        return [r for r in self.medical_rules if r.decision_eligible]
 
 
 def is_explicit_medical_claim(claim: ExtractedClaim) -> bool:
@@ -101,46 +164,71 @@ def classify_claim_policy(
     product_unresolved: bool,
     comparison_completed: bool,
     any_source_succeeded: bool,
+    structured: StructuredPolicyContext | None = None,
 ) -> ClaimPolicyDecision:
     """被說出來的宣稱（非 USER_QUESTION）的 claim-policy 判定。
 
     links：已過濾為「已通過 Relevance Gate 的官方證據」的比對結果。
     approved_claims / approved_claim_evidence_ids：只有已確認產品才會有（Agent B 只附上已確認產品的核准功效）。
     regulation_sources：本次已通過 Relevance Gate 的官方法規文件（evidence_id → SourceRef），作為法規類判定的來源。
+    structured：結構化 claim-policy 證據（選填）；只在核准功效比對之後使用。
     """
     by_id = {e.evidence_id: e for e in approved_claims}
     approved_ids = set(approved_claim_evidence_ids) | set(by_id)
     approved_links = [l for l in links if l.evidence_id in approved_ids]
     reg_ids = list(regulation_sources)
     reg_refs = list(regulation_sources.values())
+    sp = structured or StructuredPolicyContext()
+    decisive = sp.decisive_example()
+    context_ids = sp.context_evidence_ids()
 
     def decide(result, policy_type, rule_id, reason, *, approved: ApprovedClaimEvidence | None = None,
-               approved_id: str | None = None, method=None, difference=None, statutory=False):
+               approved_id: str | None = None, method=None, difference=None, statutory=False, example=None):
         sources: list[SourceRef] = []
         ids: list[str] = []
+        policy_rules: list[ClaimPolicyRuleEvidence] = []
         if approved is not None:
             sources.append(_approved_source(approved))
             ids.append(approved.evidence_id)
         elif approved_id:
             ids.append(approved_id)
-        if statutory:
-            ids += reg_ids
-            seen = {(x.source_name, x.source_url) for x in sources}
-            for ref in reg_refs:  # 同一份法規文件的多個段落只列一次來源
-                if (ref.source_name, ref.source_url) not in seen:
-                    seen.add((ref.source_name, ref.source_url))
-                    sources.append(ref)
+        if example is not None:
+            ids.append(example[0].evidence_id)
+            sources.append(example[0].source)
+            policy_rules.append(example[1])
+        if result == ClaimPolicyResult.MEDICAL_TREATMENT_CLAIM:
+            policy_rules += [r for r in sp.decision_medical_rules() if r not in policy_rules]
+        ids += [r.evidence_id for r in policy_rules] + (reg_ids if statutory else [])
+        seen = {(x.source_name, x.source_url) for x in sources}
+        for ref in [r.source for r in policy_rules] + (reg_refs if statutory else []):
+            if (ref.source_name, ref.source_url) not in seen:  # 同一份法規文件的多個段落 / 規則只列一次來源
+                seen.add((ref.source_name, ref.source_url))
+                sources.append(ref)
+        has_statutory = bool(policy_rules) or (statutory and bool(reg_refs))
         scope = (EvidenceScope.PRODUCT_SPECIFIC if (approved is not None or approved_id)
-                 else EvidenceScope.CLAIM_REGULATION if statutory and reg_refs else None)
+                 else EvidenceScope.CLAIM_REGULATION if has_statutory else None)
         return ClaimPolicyDecision(
             policy_result=result, policy_type=policy_type, rule_id=rule_id, reason=reason, evidence_scope=scope,
             matched_approved_claim_id=approved.approved_claim_id if approved else None,
             matched_approved_evidence_id=approved.evidence_id if approved else approved_id,
             matched_function_name=approved.function_name if approved else None,
             matched_approved_claim_text=approved.claim_text if approved else None,
-            match_method=method, difference=difference, sources=sources, source_evidence_ids=ids,
-            product_identity_unresolved=product_unresolved,
+            match_method=method, difference=difference, sources=sources,
+            source_evidence_ids=list(dict.fromkeys(ids)), product_identity_unresolved=product_unresolved,
+            policy_rule_ids=list(dict.fromkeys(r.rule_id for r in policy_rules)),
+            matched_example_id=example[0].example_id if example else None,
+            matched_example_text=example[0].example_text if example else None,
+            context_evidence_ids=context_ids,
         )
+
+    def decide_by_example():
+        ex, ex_rule, result = decisive
+        if result == ClaimPolicyResult.MEDICAL_TREATMENT_CLAIM:
+            return decide(result, ClaimPolicyType.OFFICIAL_MEDICAL_EFFICACY_EXAMPLE, "POLICY_OFFICIAL_MEDICAL_EXAMPLE",
+                          REASON_OFFICIAL_MEDICAL_EXAMPLE, method="official_example_exact_text", statutory=True,
+                          example=(ex, ex_rule))
+        return decide(result, ClaimPolicyType.OFFICIAL_PERMITTED_EXAMPLE, "POLICY_OFFICIAL_PERMITTED_EXAMPLE",
+                      REASON_OFFICIAL_PERMITTED_EXAMPLE, method="official_example_exact_text", example=(ex, ex_rule))
 
     def first_link(relation):
         return next((l for l in approved_links if l.relation == relation), None)
@@ -181,6 +269,9 @@ def classify_claim_policy(
                 approved=by_id.get(within.evidence_id), approved_id=within.evidence_id,
                 method="semantic_equivalent" if equivalent else "semantic_supported",
             )
+        # 核准功效沒有對應：官方醫療效能例示（文字相同）才使用；通常可使用例示不覆蓋產品自己的核准範圍
+        if decisive is not None and decisive[2] == ClaimPolicyResult.MEDICAL_TREATMENT_CLAIM:
+            return decide_by_example()
         if not comparison_completed:
             return decide(ClaimPolicyResult.INSUFFICIENT_EVIDENCE, ClaimPolicyType.PRODUCT_SPECIFIC_APPROVED_CLAIM,
                           "POLICY_APPROVED_COMPARISON_INCOMPLETE", REASON_COMPARISON_INCOMPLETE)
@@ -192,6 +283,8 @@ def classify_claim_policy(
                       "POLICY_NOT_IN_APPROVED_CLAIMS", REASON_UNSUPPORTED_APPROVED, statutory=True)
 
     # 3. 沒有已確認產品的核准功效可比對
+    if decisive is not None and decisive[2] == ClaimPolicyResult.MEDICAL_TREATMENT_CLAIM:
+        return decide_by_example()  # 只針對宣稱本身（產品未確認時另外標示）
     if is_disease_claim(claim):
         # 宣稱本身就是疾病預防 / 改善：可以對「宣稱」判定（產品身份未確認時另外標示）
         return decide(ClaimPolicyResult.MEDICAL_TREATMENT_CLAIM,
@@ -203,9 +296,14 @@ def classify_claim_policy(
     if not any_source_succeeded:
         return decide(ClaimPolicyResult.INSUFFICIENT_EVIDENCE, ClaimPolicyType.NO_POLICY_EVIDENCE,
                       "POLICY_NO_SOURCE_AVAILABLE", REASON_NO_SOURCE)
+    if decisive is not None:  # 與官方通常可使用例示相同（沒有產品核准功效可比對）
+        return decide_by_example()
     if claim.uses_absolute_language or claim.semantic_category == ClaimSemanticCategory.EXAGGERATED_EFFICACY:
         return decide(ClaimPolicyResult.UNSUPPORTED_CLAIM, ClaimPolicyType.NO_POLICY_EVIDENCE,
                       "POLICY_EXAGGERATED_NO_APPROVED", REASON_EXAGGERATED_NO_APPROVED, statutory=True)
+    if context_ids:  # 只有脈絡 / 有條件 / 待複核的官方資料：不單獨下合法或違法結論
+        return decide(ClaimPolicyResult.INSUFFICIENT_EVIDENCE, ClaimPolicyType.POLICY_CONTEXT_NOT_DECISIVE,
+                      "POLICY_CONTEXT_ONLY_NOT_DECISIVE", REASON_POLICY_CONTEXT_ONLY)
     return decide(ClaimPolicyResult.UNSUPPORTED_CLAIM, ClaimPolicyType.NO_POLICY_EVIDENCE,
                   "POLICY_NO_OFFICIAL_SUPPORT", REASON_UNSUPPORTED)
 

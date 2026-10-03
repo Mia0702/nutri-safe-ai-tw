@@ -361,19 +361,90 @@
   - tests：`tests/unit/test_image_identity_robustness.py`（14，虛構資料）；`test_tool_boundaries` 更新 Input Tool 清單；
     相關 targeted 18 檔 403 passed（未跑 full suite）。
 - **Stability Checkpoint（2026-10-03；未改 production behavior）**：
-  - `docs/FROZEN_CONTRACTS.md`：38 個 frozen contracts（A Agent/Tool 邊界、B Product Verification、C Risk/Claim、
+  - `docs/FROZEN_CONTRACTS.md`：39 個 frozen contracts（A Agent/Tool 邊界、B Product Verification、C Risk/Claim、
     D Sources/URL、E Response/LINE、F Task Context、G Data/Ingestion/Security），每項皆對應既有 regression test（名稱已逐一驗證存在）。
   - 補測試（虛構資料）：`tests/unit/test_frozen_contracts.py`（6）：production code 不含 fixture 產品 / 字號 / 公司 / TEST_ONLY、
     `.env` 被 ignore 且 `.env.example` 無 secret 值、查無產品時 Agent C 不產生官方結論（假貨只出現在否定句）。
   - CLAUDE.md §17 Stability Rules（extend via interfaces / frozen 需同意 / 實測失敗只當 regression case / 新功能先修或撤 /
     改 frozen 檔前說明 extension point 不足）。
-  - **Baseline full pytest（含 live integration、db）：754 passed / 1 skipped / 1 failed（570s）**。
-    - FAILED `tests/integration/test_line_demo_live.py::test_input_to_line_flex[image]`：root cause = Image Identity Robustness
-      新增的局部二次 Vision。live 測試用的虛構品名在正式 DB 查無 → 身份未確認 → 依 FC-B6 做一次 `reinspect_image_identity`，
-      但此 live 測試仍斷言 `input_tools_called == ["analyze_image"]`（寫於二次 Vision 之前）。**待使用者決定**：
-      (a) 更新 live 測試斷言（首個 Input Tool 為 analyze_image、reinspect 最多一次）或 (b) 調整二次 Vision 觸發條件。尚未修改。
-    - SKIPPED：live「查看資料來源」（第一題無官方來源，unit test 已覆蓋）。
+  - **正式 Baseline full pytest（2026-10-03，含 live integration、db）：762 passed / 0 skipped / 0 failed（672s）**。
+    - 首次 checkpoint run 的 1 failed（live image 測試寫死 `["analyze_image"]`）已依使用者選擇 (a) 只更新測試：
+      analyze_image 必須第一、身份未確認才允許最多 1 次 `reinspect_image_identity`、未重讀時首次結果必須不需重讀（FC-B6）。
+      未改 production code。先前的 1 skipped（live 來源卡）本次通過（依 live 結果而定）。
+  - `FROZEN_CONTRACTS.md` 新增 FC-E8（Primary Flex card = 摘要，不是資料 dump），共 39 項；UI production code 未改。
   - Frozen modules / Safe extension points：見 `docs/FROZEN_CONTRACTS.md` 末段。
+- **TFDA Claim Policy Corpus Data Layer（2026-10-04；只有 migration + importer + dry-run，未寫 production；
+  Agent / Risk / Claim policy runtime 行為未動）**：
+  - Corpus：`data/tfda_claim_policy/`（`2026-10-03/` 子目錄為空，結構化檔案在上一層；版本取 validation.json
+    `research_reference_date` = 2026-10-03）。
+  - Migration `0003_claim_policy_corpus.sql`（additive、idempotent、需 0001 marker）：`claim_policy_import_batches` /
+    `claim_policy_sources` / `claim_policy_rules` / `claim_policy_examples` / `health_function_catalog`，
+    另加 `health_function_historical_sources`（舊評估方法陣列改關聯表才能有 FK）。id = uuid5(corpus 原始 ID)，
+    原始 ID / status / review_status / 日期 / raw_data / raw manifest（sha256）全保留；RLS＋只授權 service_role（同 0001）。
+    每個 corpus 來源也登記到 `source_registry`（`tfda_claim_policy:<source_id>`），Neo4j Source 與 integrity gate 共用同一 ID。
+  - Quarantine（`evidence_use`，`app/ingestion/claim_policy_corpus.py`，只看 status / review_status / policy_effect /
+    extraction_method 欄位）：SUPERSEDED（本身或來源）→ `EXCLUDED_SUPERSEDED`；NEEDS_REVIEW（status / review_status /
+    policy_effect / 來源）→ `CONTEXT_ONLY`；OCR_UNVERIFIED / PDF_TEXT_LEGACY_UNCONFIRMED → `CORROBORATION_REQUIRED`（不得作唯一證據）；
+    例示不比所屬規則更可信。DB CHECK 擋下「SUPERSEDED / NEEDS_REVIEW 卻 DECISION_ELIGIBLE」。
+  - RAG：沿用 `rag_documents` / `rag_chunks`。一個（來源, 網址）= 一份文件（124；current 110 / superseded 14），
+    976 區段 → 1317 chunks（> 700 字的區段用既有 `chunk_text` 切）；區段 metadata（corpus_document_id / source_id / status /
+    review_status / article_or_section / effective_date / extraction_method / evidence_use）存在 chunk metadata。
+    SUPERSEDED → `is_current = false`，既有 `match_rag_chunks` 不檢索（本機已驗證）。與既有非 corpus RAG 文件同網址 → blocker。
+  - Neo4j（`migrations/neo4j/0002_claim_policy_constraints.cypher`；`ALLOWED_LABELS` 加 ClaimPolicyRule / HealthFunction）：
+    ClaimPolicyRule 163、HealthFunction 14、Source 71；`SUPPORTED_BY` 163、`DEFINED_BY {role: CATALOG|EVALUATION_METHOD}` 28、
+    `HAS_HISTORICAL_METHOD` 4；`(Claim)-[:MAPS_TO_HEALTH_FUNCTION]` 只在 approved_claims.function_name 正規化後與官方功效名稱完全相同時建立
+    （唯讀預覽：12；「促進鐵吸收」與未分類宣稱不連）。例示 / RAG chunk 不做成 node。
+  - Importer：`python -m scripts.import_claim_policy_corpus --dry-run`（預設，不連線）；`--compare-supabase --read-approved-claims`
+    唯讀比對；`--apply --confirm-project nutri_safe_ai` 才寫入（需 0003 marker）。fail closed（FK / ID / enum / 日期 / 官方網域 /
+    validation.json 筆數）、idempotent（content_hash；相同 corpus 重跑全部 unchanged、只更新批次 run_count）、version-aware
+    （拒絕降版；變更 → record_version+1；區段文字變更 → 新 RAG 版本、舊版 is_current=false；只改狀態 → 不重新 embedding）。
+    illegal_ad_cases 不寫入；open-data inventory 只存 metadata（5 個資料集來源）。
+  - Full corpus dry-run：sources 71 / rules 163 / examples 267 / health functions 14 / historical links 4 / RAG 區段 976，errors 0；
+    quarantine：sources 61 eligible / 9 superseded / 1 context-only、rules 134 / 29 context-only、examples 260 / 7、functions 11 / 3、
+    RAG 區段 876 / 69 superseded / 31 context-only。
+  - **正式 Supabase 已由使用者套用 0003 並完成匯入**（2026-10-04 唯讀確認：`migration_0003_claim_policy_corpus = applied`、
+    import batch 1、sources 71 / rules 163 / examples 267 / health_function_catalog 14 / historical 4、
+    corpus RAG 124 documents（current 110）/ 1317 chunks；Neo4j ClaimPolicyRule 163 / HealthFunction 14 / Source 71 為使用者回報）。
+  - runtime 接入：見下方 Claim Policy Runtime Integration。
+  - tests：`tests/unit/test_claim_policy_corpus.py`（28）、`tests/db/test_claim_policy_migration.py`（7，本機 0001→0002→0003＋完整 corpus
+    寫入本機 DB、重跑 unchanged）；連同 frozen / migration / closeout 相關共 93 passed（未跑 full suite）。
+- **Claim Policy Runtime Integration（2026-10-04；DATA schema / Risk Engine 規則 / Resolver / LINE handler / primary Flex 未動；
+  程式以虛構資料測試；正式 corpus 的唯讀 smoke 見本節最後一點）**：
+  - Evidence Tools（`app/tools/claim_policy_tools.py`，於 `evidence_tools.py` 註冊）：`search_claim_policy_rules`（rule_id，
+    或規則類別＋效果交集）、`search_claim_policy_examples`（宣稱原文與官方例示正規化後完全相同才算對應，不推測語意、無關鍵字清單）、
+    `lookup_health_function`（官方功效名稱完全相同）。`SupabaseClaimPolicyRepository`（唯讀、整表讀取、process 內快取 10 分鐘）；
+    `app_schema_meta.migration_0003_claim_policy_corpus` 不存在 → `corpus_available() = False`，Agent B 略過且不記成資料來源失敗。
+  - Evidence priority（Agent B `_claim_policy_stage`，被說出的宣稱、每題一次，在 RAG 之前）：該產品核准功效（VERIFIED 且文字相同即決定）
+    → 結構化規則 → 官方例示 → claim-policy RAG → 官方網站。結構化證據已足以決定的宣稱（`policy_decided_claims`）不查 RAG、
+    不觸發官方網站（URL / 包裝 / 完整流程三處判斷皆納入）。已確認產品的核准功效類別另查保健功效目錄（法規依據明細用）。
+  - Claim policy（`classify_claim_policy(structured=...)`，未提供時行為完全不變）：核准功效比對永遠在前；之後宣稱與
+    DECISION_ELIGIBLE 的醫療效能例示（規則 PROHIBITED）相同 → MEDICAL_TREATMENT_CLAIM（`OFFICIAL_MEDICAL_EFFICACY_EXAMPLE`）；
+    沒有產品核准功效時與 DECISION_ELIGIBLE 的通常可使用例示（規則 PERMITTED）相同 → 新結果 `PERMITTED_GENERAL_WORDING`
+    （→ CONSISTENT）；產品有核准功效時通常可用例示不覆蓋核准範圍。醫療效能判定附上 DECISION_ELIGIBLE 醫療效能禁止規則作為法規來源。
+    CONTEXT_ONLY / CORROBORATION_REQUIRED / 有條件或一般功能例示 / RESTRICTED 規則的例示只提供脈絡：原本會是「找不到官方支持」時改為
+    INSUFFICIENT_EVIDENCE（`POLICY_CONTEXT_ONLY_NOT_DECISIVE`），不單獨產生合法 / 違法結論。
+  - Quarantine：`PolicyEvidenceUse`（與 importer `EvidenceUse` 同值，有測試）在規則 / 例示 / 保健功效 / RAG chunk 上一路保留到
+    EvidenceBundle（新欄位 `claim_policy_rules` / `claim_policy_examples` / `health_functions`，納入 `all_sources()` / `evidence_ids()`）。
+    EXCLUDED_SUPERSEDED 預設不查出（tools 與 search_rag 皆是）。
+  - `search_rag`：corpus chunk 帶 `RagEvidence.policy_metadata`（source_id / status / review_status / evidence_use / article_or_section /
+    effective_date / source_url / extraction_method）；metadata 無法解析 → CONTEXT_ONLY。非 DECISION_ELIGIBLE 的 chunk 不進
+    `official_reference_ids` / `regulation_sources`（不能成為 final legal evidence，也不能讓宣稱變 CONFLICT）；assess payload 標示 evidence_use。
+  - Reporter / UI：primary card 只用 policy 固定模板 reason（FC-E8 不變）。「為什麼？」卡在有結構化 policy 證據時才出現下一層
+    [查看法規依據]（新 `ResponseAction.POLICY_BASIS`，deterministic：判定用到的規則在前、條次＋摘要＋來源名稱、待複核標示「不單獨作為結論」、
+    保健功效官方說明）與既有 [查看資料來源]（可點擊官方來源卡，現在含法規來源）。沒有新增「查看官方來源」獨立 action，沿用既有來源卡。
+  - Frozen 檔案變更（extension point 不足的原因：`classify_claim_policy` 原本沒有「官方例示 / 結構化規則」輸入）：
+    `claim_policy.py`（新選填參數＋新 enum 值）、`assessment_rules.assess_claim`（透傳＋新結果對應 CONSISTENT）、
+    `verification_agent.py`（新 stage；fast path / early-stop 條件未改，只把 policy 已決定的宣稱納入 web 判斷）、`actions.py`（新 label / follow-up）。
+  - tests：`tests/unit/test_claim_policy_runtime.py`（22，虛構規則 / 例示）；targeted 23 檔 524 passed（未跑 full suite）。
+  - **Production READ-ONLY smoke（2026-10-04，無任何寫入）**：連線 project marker = nutri_safe_ai；
+    `SupabaseClaimPolicyRepository` 對正式 0003 schema 查詢成功（rules 163 / examples 267 / functions 14，`corpus_available()=True`）。
+    醫療效能 PROHIBITED 規則 5 條（DECISION_ELIGIBLE）、官方醫療效能例示原文 → 對應 1 筆 DECISION_ELIGIBLE 例示、保健功效含官方定義與來源網址。
+    `search_rag`（只做查詢 embedding）：DECISION_ELIGIBLE chunk 回傳 source_id / status / review_status / evidence_use /
+    article_or_section / effective_date / source_url 完整；superseded 文件的 chunk 不在 `match_rag_chunks` 結果，current 文件內
+    EXCLUDED_SUPERSEDED chunk 0 筆。CONTEXT_ONLY 例示（所屬規則 NEEDS_REVIEW）可讀到，`assess_claim` → INSUFFICIENT_EVIDENCE
+    （`POLICY_CONTEXT_ONLY_NOT_DECISIVE`）；CONTEXT_ONLY / NEEDS_REVIEW RAG chunk 可檢索但 `decision_eligible=False`。
+    正式 rules 表沒有 SUPERSEDED 規則（superseded 只在 sources / RAG），規則層的 superseded 排除只由虛構資料測試覆蓋。
+    尚未跑完整 pipeline（Agent A → C）live regression。
 - 最新完整 pytest（2026-10-03，LINE 整合後）：466 passed / 7 skipped / 0 failed（當時 DB 尚未 seed）。
 - 2026-10-03 seed 後（未改 production code，未重跑完整 suite）：`test_data_stores_live.py` 6 passed（原本 skip）、
   `test_line_demo_live.py` 6 passed。
@@ -384,13 +455,14 @@
 ## 注意事項
 
 - DB 目前為正式 565 筆 seed（DATA FREEZE）；寫入 / reset 需使用者同意。
-- Migration：新 Supabase 已套用 0001 + 0002。全新 DB：0001 → 0002（no-op）。`tests/db/test_migration_0002_upgrade.py` 以本機 PostgreSQL 驗證
+- Migration：新 Supabase 已套用 0001 + 0002 + 0003（claim policy corpus，已匯入）。全新 DB：0001 → 0002（no-op）→ 0003。`tests/db/test_migration_0002_upgrade.py` 以本機 PostgreSQL 驗證
   舊 0001 等價 schema → 0002 → 0002 與全新安裝 schema 一致。
 
 ## 下一步（依序）
 
-**Next module = TFDA Claim Policy Corpus**（經 RAG extension point 加入醫療效能認定準則、保健功效公告等官方文件；寫入 DB 需使用者同意）。
-先決：決定 baseline 中 live image 測試的處理方式。
+**TFDA Claim Policy Corpus：0003 已套用、corpus 已匯入、runtime 已接入、唯讀 smoke 通過**。
+下一步：完整 pipeline live regression（核准功效原文廣告、官方醫療效能例示原文、待複核例示、無產品一般可用詞句、URL / 圖片宣稱），
+確認延遲與 web fallback 次數；不需要再 migration / import / embedding。
 
 
 0. 手機重測 image identity：有字號但品名 / 標章小字易誤讀的包裝、字號被擋住只看到品名、同名多公司包裝（含公司名）

@@ -22,6 +22,9 @@ from pydantic import BaseModel, Field
 from app.schemas.enums import EntityType, ErrorCode
 from app.schemas.evidence import (
     ApprovedClaimEvidence,
+    ClaimPolicyExampleEvidence,
+    ClaimPolicyRuleEvidence,
+    HealthFunctionEvidence,
     EvidenceBundle,
     InferredEntityLink,
     ProductMatch,
@@ -34,7 +37,7 @@ from app.schemas.evidence import (
 )
 from app.schemas.user_request import NormalizedUserRequest
 from app.services.errors import ServiceError
-from app.tools import graph_tools, official_web_tools, product_tools, rag_tools
+from app.tools import claim_policy_tools, graph_tools, official_web_tools, product_tools, rag_tools
 from app.tools.graph_tools import GraphQueryType
 
 MAX_LIST_ITEMS = 8
@@ -51,6 +54,7 @@ class PlannerState:
     graph: Any = None
     rag: Any = None
     llm: Any = None
+    claim_policy: Any = None  # ClaimPolicyRepository（TFDA 宣稱法規 corpus）
     rag_top_k: int = 5
     rag_min_similarity: float = 0.3
     known_product_ids: set[str] = field(default_factory=set)
@@ -76,6 +80,13 @@ class PlannerState:
     last_assessment_refs: frozenset[str] | None = None
     last_assessment_links: list[Any] = field(default_factory=list)
     assessment_count: int = 0
+    # 結構化 claim-policy：查到的規則 / 例示 / 保健功效（evidence_use 原樣保留）
+    policy_rules: dict[str, ClaimPolicyRuleEvidence] = field(default_factory=dict)  # rule_id →
+    policy_examples: dict[str, ClaimPolicyExampleEvidence] = field(default_factory=dict)  # example_id →
+    health_functions: dict[str, HealthFunctionEvidence] = field(default_factory=dict)  # function_id →
+    medical_rule_ids: set[str] = field(default_factory=set)  # 醫療效能禁止規則（statutory 來源）
+    claim_policy_checked: bool = False
+    policy_decided_claims: set[int] = field(default_factory=set)  # 結構化證據已足以決定的宣稱（不需 RAG / web）
 
 
 def _require(dep: Any, source: str) -> Any:
@@ -129,6 +140,20 @@ class QueryArgs(BaseModel):
     query: str = Field(description="繁體中文查詢語句")
 
 
+class ClaimPolicyRulesArgs(BaseModel):
+    rule_ids: list[str] = Field(description="規則 ID（例如官方例示所屬的 rule_id），沒有就給空陣列")
+    rule_categories: list[str] = Field(description="規則類別（例如 MEDICAL_EFFICACY），需與 policy_effects 同時提供")
+    policy_effects: list[str] = Field(description="PERMITTED / RESTRICTED / PROHIBITED / REQUIRES_EVIDENCE / PRODUCT_SPECIFIC_ONLY")
+
+
+class ClaimTextsArgs(BaseModel):
+    claim_texts: list[str] = Field(description="要比對的宣稱原文（逐條）")
+
+
+class HealthFunctionArgs(BaseModel):
+    function_names: list[str] = Field(description="官方保健功效名稱，例如「調節血脂」")
+
+
 # ---------------------------------------------------------------------------
 # guards（回傳錯誤訊息代表拒絕執行）
 # ---------------------------------------------------------------------------
@@ -155,6 +180,12 @@ def _guard_graph(state: PlannerState, args: GraphArgs) -> str | None:
 
 def _guard_nonempty_query(state: PlannerState, args: QueryArgs) -> str | None:
     return None if args.query.strip() else "query 不可為空"
+
+
+def _guard_rule_filter(state: PlannerState, args: ClaimPolicyRulesArgs) -> str | None:
+    if args.rule_ids or (args.rule_categories and args.policy_effects):
+        return None
+    return "需要 rule_ids，或同時提供 rule_categories 與 policy_effects"
 
 
 # ---------------------------------------------------------------------------
@@ -292,7 +323,54 @@ def h_rag(state: PlannerState, args: QueryArgs):
     )
     for e in out:
         state.candidate_rag.setdefault(e.evidence_id, e)
-    return out, {"chunks": [{"title": e.title, "similarity": round(e.similarity, 3), "excerpt": e.content[:150]} for e in out]}
+    return out, {"chunks": [
+        {"title": e.title, "similarity": round(e.similarity, 3), "excerpt": e.content[:150],
+         "evidence_use": e.policy_metadata.evidence_use.value if e.policy_metadata else None}
+        for e in out
+    ]}
+
+
+def _policy_repo(state: PlannerState):
+    return _require(state.claim_policy, "claim_policy")
+
+
+def h_policy_rules(state: PlannerState, args: ClaimPolicyRulesArgs):
+    out = claim_policy_tools.search_claim_policy_rules(
+        _policy_repo(state), rule_ids=_trim_list(args.rule_ids), rule_categories=_trim_list(args.rule_categories),
+        policy_effects=_trim_list(args.policy_effects),
+    )
+    for e in out:
+        state.policy_rules[e.rule_id] = e
+    return out, {"rules": [
+        {"rule_id": e.rule_id, "policy_effect": e.policy_effect, "article": e.article_or_section,
+         "summary": (e.rule_summary_zh or "")[:120], "evidence_use": e.evidence_use.value}
+        for e in out[:MAX_LIST_ITEMS]
+    ]}
+
+
+def h_policy_examples(state: PlannerState, args: ClaimTextsArgs):
+    out = claim_policy_tools.search_claim_policy_examples(_policy_repo(state), _trim_list(args.claim_texts))
+    for e in out:
+        cur = state.policy_examples.get(e.example_id)
+        if cur is not None:  # 同一例示被多次查詢：合併對應到的宣稱文字
+            e = e.model_copy(update={"matched_claim_texts": list(dict.fromkeys(cur.matched_claim_texts + e.matched_claim_texts))})
+        state.policy_examples[e.example_id] = e
+    return out, {"examples": [
+        {"example_id": e.example_id, "rule_id": e.rule_id, "example_type": e.example_type,
+         "text": e.example_text[:120], "evidence_use": e.evidence_use.value}
+        for e in out[:MAX_LIST_ITEMS]
+    ]}
+
+
+def h_health_function(state: PlannerState, args: HealthFunctionArgs):
+    out = claim_policy_tools.lookup_health_function(_policy_repo(state), _trim_list(args.function_names))
+    for e in out:
+        state.health_functions[e.function_id] = e
+    return out, {"health_functions": [
+        {"function_id": e.function_id, "name": e.official_function_name,
+         "definition": (e.official_definition or "")[:150], "evidence_use": e.evidence_use.value}
+        for e in out
+    ]}
 
 
 def h_web(state: PlannerState, args: QueryArgs):
@@ -340,6 +418,11 @@ EVIDENCE_TOOLS: dict[str, ToolSpec] = {
         ToolSpec("lookup_product_ingredients", "查產品官方登記的保健功效相關成分。", ProductIdsArgs, h_product_ingredients, _guard_product_ids),
         ToolSpec("search_illegal_ad_cases", "查官方公布的違規廣告紀錄（依產品 / 公司名稱）。", IllegalAdArgs, h_illegal_ads),
         ToolSpec("query_knowledge_graph", "查知識圖譜：產品→成分、產品→核准功效、成分→含此成分產品的核准功效。", GraphArgs, h_graph, _guard_graph),
+        ToolSpec("search_claim_policy_rules", "查 TFDA 宣稱法規的結構化規則（依 rule_id，或規則類別＋效果）。",
+                 ClaimPolicyRulesArgs, h_policy_rules, _guard_rule_filter),
+        ToolSpec("search_claim_policy_examples", "比對宣稱原文是否與 TFDA 官方例示詞句（可用 / 醫療效能 / 有條件）文字相同。",
+                 ClaimTextsArgs, h_policy_examples),
+        ToolSpec("lookup_health_function", "查健康食品保健功效項目的官方定義與評估方法。", HealthFunctionArgs, h_health_function),
         ToolSpec("search_rag", "在台灣官方法規 / 指引文件中做語意檢索。", QueryArgs, h_rag, _guard_nonempty_query),
     ]
 }

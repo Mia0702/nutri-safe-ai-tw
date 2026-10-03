@@ -143,6 +143,7 @@ class ClaimPolicyResult(StrEnum):
     MEDICAL_TREATMENT_CLAIM = "MEDICAL_TREATMENT_CLAIM"  # 疾病治療 / 預防 / 診斷 / 取代醫療等醫療效能
     UNSUPPORTED_CLAIM = "UNSUPPORTED_CLAIM"  # 有可對照的官方資料，但沒有任何官方資料支持
     INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"  # 無法判定（產品未確認、比對未完成、來源失敗），不猜
+    PERMITTED_GENERAL_WORDING = "PERMITTED_GENERAL_WORDING"  # 與官方列為「通常可使用」的例示詞句相同（無產品核准功效時）
 
 
 class ClaimPolicyType(StrEnum):
@@ -152,6 +153,18 @@ class ClaimPolicyType(StrEnum):
     STATUTORY_APPROVED_SCOPE_LIMIT = "STATUTORY_APPROVED_SCOPE_LIMIT"  # 宣稱不得超過許可範圍（健康食品管理法 §14 I）
     STATUTORY_MEDICAL_EFFICACY_PROHIBITION = "STATUTORY_MEDICAL_EFFICACY_PROHIBITION"  # 不得涉及醫療效能（§2、§14 II）
     NO_POLICY_EVIDENCE = "NO_POLICY_EVIDENCE"  # 沒有可用的官方政策 / 核准資料
+    OFFICIAL_MEDICAL_EFFICACY_EXAMPLE = "OFFICIAL_MEDICAL_EFFICACY_EXAMPLE"  # 與官方列舉的醫療效能例示詞句相同
+    OFFICIAL_PERMITTED_EXAMPLE = "OFFICIAL_PERMITTED_EXAMPLE"  # 與官方列舉的通常可使用例示詞句相同
+    POLICY_CONTEXT_NOT_DECISIVE = "POLICY_CONTEXT_NOT_DECISIVE"  # 只有脈絡 / 有條件 / 待複核的官方資料，不單獨下結論
+
+
+class PolicyEvidenceUse(StrEnum):
+    """官方 claim-policy corpus 證據可以怎麼用（值與 app/ingestion/claim_policy_corpus.py EvidenceUse 一致）。"""
+
+    DECISION_ELIGIBLE = "DECISION_ELIGIBLE"  # 可參與 deterministic decision
+    CORROBORATION_REQUIRED = "CORROBORATION_REQUIRED"  # 例如 OCR 未逐字校對：不得作唯一決策證據
+    CONTEXT_ONLY = "CONTEXT_ONLY"  # NEEDS_REVIEW 等：只能提供脈絡，不可單獨產生合法 / 違法結論
+    EXCLUDED_SUPERSEDED = "EXCLUDED_SUPERSEDED"  # 已被取代：current query 預設不使用
 
 
 class ProductVerificationStatus(StrEnum):
@@ -331,3 +344,4 @@ class ResponseAction(StrEnum):
     FULL_EFFICACY = "efficacy"  # 官方資訊卡 → 完整核准功效原文
     WARNINGS = "warnings"  # 官方資訊卡 → 警語與注意事項
     CHECK_PACKAGE_CLAIMS = "check_claims"  # 查驗圖片中觀察到的包裝宣稱（使用原 request 保存的內容）
+    POLICY_BASIS = "policy_basis"  # 為什麼 → 法規依據（結構化 claim-policy 規則 / 例示 / 保健功效定義）

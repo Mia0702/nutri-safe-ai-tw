@@ -16,6 +16,7 @@ from app.schemas.enums import (
     ClaimPolicyType,
     ErrorCode,
     EvidenceScope,
+    PolicyEvidenceUse,
     EvidenceStrength,
     ProductAmbiguityReason,
     ProductIdentityFlag,
@@ -214,6 +215,24 @@ class GraphEvidence(BaseModel):
     source: SourceRef
 
 
+class RagPolicyMetadata(BaseModel):
+    """claim-policy corpus chunk 的 provenance 與 quarantine（取自 rag_chunks.metadata，不由 LLM 產生）。"""
+
+    source_id: str  # corpus 原始來源 ID（SRC_xxx）
+    status: str  # CURRENT | SUPERSEDED | NEEDS_REVIEW
+    review_status: str | None = None
+    evidence_use: PolicyEvidenceUse
+    article_or_section: str | None = None
+    effective_date: str | None = None
+    source_url: str | None = None
+    extraction_method: str | None = None
+    corpus_version: str | None = None
+
+    @property
+    def decision_eligible(self) -> bool:
+        return self.evidence_use == PolicyEvidenceUse.DECISION_ELIGIBLE
+
+
 class RagEvidence(BaseModel):
     evidence_id: str
     relevance: EvidenceRelevance | None = None  # 尚未通過 Relevance Gate 時為 None
@@ -223,6 +242,80 @@ class RagEvidence(BaseModel):
     content: str
     similarity: float
     document_type: str | None = None
+    source: SourceRef
+    policy_metadata: RagPolicyMetadata | None = None  # 只有 claim-policy corpus chunk 才有
+
+    @property
+    def decision_eligible(self) -> bool:
+        """可否作為 final legal evidence：非 corpus 文件沿用原規則；corpus chunk 只有 DECISION_ELIGIBLE 可以。"""
+        return self.policy_metadata is None or self.policy_metadata.decision_eligible
+
+
+# ---------- 結構化 claim-policy（TFDA 宣稱法規 corpus，migration 0003） ----------
+
+
+class ClaimPolicyRuleEvidence(BaseModel):
+    """一條官方條文 / 附件項目的適用判斷（claim_policy_rules）。"""
+
+    evidence_id: str  # policy_rule:<rule_id>
+    rule_id: str
+    source_id: str  # corpus 原始來源 ID
+    rule_category: str
+    policy_effect: str  # PERMITTED | RESTRICTED | PROHIBITED | REQUIRES_EVIDENCE | PRODUCT_SPECIFIC_ONLY | NEEDS_REVIEW
+    claim_category: str
+    rule_summary_zh: str | None = None
+    official_text: str
+    conditions: str | None = None
+    legal_basis: str | None = None
+    article_or_section: str
+    effective_date: str | None = None
+    status: str
+    review_status: str
+    evidence_use: PolicyEvidenceUse
+    quarantine_reasons: list[str] = Field(default_factory=list)
+    source: SourceRef
+
+    @property
+    def decision_eligible(self) -> bool:
+        return self.evidence_use == PolicyEvidenceUse.DECISION_ELIGIBLE
+
+
+class ClaimPolicyExampleEvidence(BaseModel):
+    """官方例示詞句（claim_policy_examples）以及它與哪一則宣稱文字相同。"""
+
+    evidence_id: str  # policy_example:<example_id>
+    example_id: str
+    rule_id: str
+    source_id: str
+    example_text: str
+    example_type: str  # PERMITTED_EXAMPLE | GENERAL_FUNCTION_EXAMPLE | CONDITIONAL_EXAMPLE | MEDICAL_EFFICACY_EXAMPLE | PROHIBITED_EXAMPLE
+    claim_category: str
+    conditions: str | None = None
+    article_or_section: str | None = None
+    evidence_use: PolicyEvidenceUse
+    quarantine_reasons: list[str] = Field(default_factory=list)
+    matched_claim_texts: list[str] = Field(default_factory=list)
+    match_method: str = "exact_text"  # 正規化後文字完全相同（不推測語意）
+    source: SourceRef
+
+    @property
+    def decision_eligible(self) -> bool:
+        return self.evidence_use == PolicyEvidenceUse.DECISION_ELIGIBLE
+
+
+class HealthFunctionEvidence(BaseModel):
+    """健康食品保健功效目錄的一個功效項目（health_function_catalog）。"""
+
+    evidence_id: str  # health_function:<function_id>
+    function_id: str
+    official_function_name: str
+    official_definition: str | None = None  # 官方未提供時為 None，不自行補寫
+    evaluation_method_title: str | None = None
+    legal_basis: str | None = None
+    effective_date: str | None = None
+    status: str
+    review_status: str
+    evidence_use: PolicyEvidenceUse
     source: SourceRef
 
 
@@ -298,6 +391,12 @@ class ClaimPolicyDecision(BaseModel):
     sources: list[SourceRef] = Field(default_factory=list)
     source_evidence_ids: list[str] = Field(default_factory=list)
     product_identity_unresolved: bool = False  # 判定只針對宣稱本身，產品身份尚未確認
+    # 結構化 claim-policy corpus 的依據（Reporter 的「法規依據」明細使用；primary card 只用 reason）
+    policy_rule_ids: list[str] = Field(default_factory=list)
+    matched_example_id: str | None = None
+    matched_example_text: str | None = None
+    # 有對應但不能單獨下結論的官方資料（CONTEXT_ONLY / CORROBORATION_REQUIRED / 有條件例示）
+    context_evidence_ids: list[str] = Field(default_factory=list)
 
 
 class ClaimAssessment(BaseModel):
@@ -323,6 +422,10 @@ class EvidenceBundle(BaseModel):
     graph_evidence: list[GraphEvidence] = Field(default_factory=list)
     rag_evidence: list[RagEvidence] = Field(default_factory=list)
     official_web_evidence: list[OfficialWebEvidence] = Field(default_factory=list)
+    # 結構化 claim-policy（evidence_use 一路保留；EXCLUDED_SUPERSEDED 不會出現在 current query）
+    claim_policy_rules: list[ClaimPolicyRuleEvidence] = Field(default_factory=list)
+    claim_policy_examples: list[ClaimPolicyExampleEvidence] = Field(default_factory=list)
+    health_functions: list[HealthFunctionEvidence] = Field(default_factory=list)
     claim_assessment: list[ClaimAssessment] = Field(default_factory=list)
     evidence_strength: EvidenceStrength = EvidenceStrength.NONE
     conflicts: list[str] = Field(default_factory=list)
@@ -349,6 +452,9 @@ class EvidenceBundle(BaseModel):
             self.graph_evidence,
             self.rag_evidence,
             self.official_web_evidence,
+            self.claim_policy_rules,
+            self.claim_policy_examples,
+            self.health_functions,
         ):
             items.extend(item.source for item in group)
         seen: set[tuple[str, str | None]] = set()
@@ -369,6 +475,9 @@ class EvidenceBundle(BaseModel):
             self.graph_evidence,
             self.rag_evidence,
             self.official_web_evidence,
+            self.claim_policy_rules,
+            self.claim_policy_examples,
+            self.health_functions,
         ):
             ids.update(item.evidence_id for item in group)
         return ids

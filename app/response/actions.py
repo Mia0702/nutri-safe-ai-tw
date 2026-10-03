@@ -31,11 +31,14 @@ ACTION_LABELS = {
     ResponseAction.CHECK_PACKAGE_CLAIMS: "查驗包裝宣稱",
     ResponseAction.FULL_EFFICACY: "查看完整功效",
     ResponseAction.WARNINGS: "警語與注意事項",
+    ResponseAction.POLICY_BASIS: "查看法規依據",
 }
 
 # 詳細卡片上的下一層按鈕：只有 primary card 提供了上一層，才允許按下一層（仍是同一個 request_id）
 DETAIL_FOLLOW_UPS: dict[ResponseAction, tuple[ResponseAction, ...]] = {
     ResponseAction.OFFICIAL_INFO: (ResponseAction.FULL_EFFICACY, ResponseAction.WARNINGS, ResponseAction.SOURCES),
+    # 為什麼 → 法規依據（結構化 claim policy 的條次 / 摘要）→ 官方來源（既有可點擊來源卡）
+    ResponseAction.WHY: (ResponseAction.POLICY_BASIS, ResponseAction.SOURCES),
 }
 
 

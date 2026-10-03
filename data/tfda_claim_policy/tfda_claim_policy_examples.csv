@@ -1,0 +1,677 @@
+﻿example_id,rule_id,example_text,example_type,claim_category,conditions,notes,source_id,article_or_attachment
+EX_0001,RULE_0012,幫助牙齒骨骼正常發育。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／ㄧ
+EX_0002,RULE_0012,幫助消化。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／二
+EX_0003,RULE_0012,幫助維持消化道機能。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／三
+EX_0004,RULE_0012,改變細菌叢生態。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／四
+EX_0005,RULE_0012,使排便順暢。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／五
+EX_0006,RULE_0012,調整體質。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／六
+EX_0007,RULE_0012,調節生理機能。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／七
+EX_0008,RULE_0012,滋補強身。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／八
+EX_0009,RULE_0012,增強體力。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／九
+EX_0010,RULE_0012,精神旺盛。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／十
+EX_0011,RULE_0012,養顏美容。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／十ㄧ
+EX_0012,RULE_0012,幫助入睡。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／十二
+EX_0013,RULE_0012,營養補給。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／十三
+EX_0014,RULE_0012,健康維持。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／十四
+EX_0015,RULE_0012,青春美麗。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／十五
+EX_0016,RULE_0012,產前產後或病後之補養。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／十六
+EX_0017,RULE_0012,促進新陳代謝。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／十七
+EX_0018,RULE_0012,清涼解渴。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／十八
+EX_0019,RULE_0012,生津止渴。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／十九
+EX_0020,RULE_0012,促進食慾。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／二十
+EX_0021,RULE_0012,開胃。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／二十ㄧ
+EX_0022,RULE_0012,退火。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／二十二
+EX_0023,RULE_0012,降火氣。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／二十三
+EX_0024,RULE_0012,使口氣芬芳。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／二十四
+EX_0025,RULE_0012,促進唾液分泌。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／二十五
+EX_0026,RULE_0012,潤喉。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／二十六
+EX_0027,RULE_0012,生津解渴。,PERMITTED_EXAMPLE,GENERAL_WELLNESS,通常可用或類似詞句；不能以疾病語境擴大解讀。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX1,附件一／二十七
+EX_0028,RULE_0013,有助於維持在暗處的視覺。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素A或β-胡蘿蔔素；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素A或β-胡蘿蔔素／第1句
+EX_0029,RULE_0013,增進皮膚與黏膜的健康。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素A或β-胡蘿蔔素；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素A或β-胡蘿蔔素／第2句
+EX_0030,RULE_0013,幫助牙齒和骨骼的發育與生長。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素A或β-胡蘿蔔素；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素A或β-胡蘿蔔素／第3句
+EX_0031,RULE_0013,增進鈣吸收。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素D；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素D／第1句
+EX_0032,RULE_0013,幫助骨骼與牙齒的生長發育。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素D；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素D／第2句
+EX_0033,RULE_0013,促進釋放骨鈣，以維持血鈣平衡。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素D；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素D／第3句
+EX_0034,RULE_0013,有助於維持神經、肌肉的正常生理。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素D；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素D／第4句
+EX_0035,RULE_0013,減少不飽和脂肪酸的氧化。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素E；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素E／第1句
+EX_0036,RULE_0013,有助於維持細胞膜的完整性。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素E；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素E／第2句
+EX_0037,RULE_0013,具抗氧化作用。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素E；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素E／第3句
+EX_0038,RULE_0013,增進皮膚與血球的健康。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素E；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素E／第4句
+EX_0039,RULE_0013,有助於減少自由基的產生。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素E；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素E／第5句
+EX_0040,RULE_0013,有助血液正常的凝固功能。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素K；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素K／第1句
+EX_0041,RULE_0013,促進骨質的鈣化。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素K；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素K／第2句
+EX_0042,RULE_0013,活化肝臟與血液中的凝血蛋白質。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素K；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素K／第3句
+EX_0043,RULE_0013,促進膠原蛋白的形成，有助於傷口癒合。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素C；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素C／第1句
+EX_0044,RULE_0013,有助於維持細胞排列的緊密性。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素C；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素C／第2句
+EX_0045,RULE_0013,增進體內結締組織、骨骼及牙齒的生長。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素C；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素C／第3句
+EX_0046,RULE_0013,促進鐵的吸收。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素C；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素C／第4句
+EX_0047,RULE_0013,具抗氧化作用。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素C；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素C／第5句
+EX_0048,RULE_0013,有助於維持牙齦與皮膚的正常功能。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素C；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素C／第6句
+EX_0049,RULE_0013,有助於維持能量正常代謝。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素B1；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素B1／第1句
+EX_0050,RULE_0013,幫助維持皮膚、心臟及神經系統的正常功能。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素B1；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素B1／第2句
+EX_0051,RULE_0013,有助於維持正常的食慾。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素B1；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素B1／第3句
+EX_0052,RULE_0013,有助於維持能量正常代謝。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素B2；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素B2／第1句
+EX_0053,RULE_0013,有助於維持皮膚的健康。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素B2；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素B2／第2句
+EX_0054,RULE_0013,有助於維持能量正常代謝。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：菸鹼素；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／菸鹼素／第1句
+EX_0055,RULE_0013,增進皮膚、神經系統、黏膜及消化系統的健康。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：菸鹼素；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／菸鹼素／第2句
+EX_0056,RULE_0013,有助於維持胺基酸正常代謝。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素B6；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素B6／第1句
+EX_0057,RULE_0013,有助於紅血球中紫質的形成。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素B6；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素B6／第2句
+EX_0058,RULE_0013,幫助色胺酸轉變成菸鹼素。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素B6；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素B6／第3句
+EX_0059,RULE_0013,有助於紅血球維持正常型態。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素B6；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素B6／第4句
+EX_0060,RULE_0013,增進神經系統的健康。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素B6；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素B6／第5句
+EX_0061,RULE_0013,有助於紅血球的形成。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：葉酸；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／葉酸／第1句
+EX_0062,RULE_0013,有助於核酸與核蛋白的形成。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：葉酸；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／葉酸／第2句
+EX_0063,RULE_0013,有助胎兒的正常發育與生長。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：葉酸；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／葉酸／第3句
+EX_0064,RULE_0013,有助於紅血球的形成。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素B12；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素B12／第1句
+EX_0065,RULE_0013,增進神經系統的健康。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：維生素B12；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／維生素B12／第2句
+EX_0066,RULE_0013,有助於維持能量與胺基酸的正常代謝。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：生物素；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／生物素／第1句
+EX_0067,RULE_0013,有助於脂肪與肝醣的合成。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：生物素；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／生物素／第2句
+EX_0068,RULE_0013,有助於嘌呤的合成。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：生物素；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／生物素／第3句
+EX_0069,RULE_0013,增進皮膚和黏膜的健康。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：生物素；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／生物素／第4句
+EX_0070,RULE_0013,有助於維持能量正常代謝。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：泛酸；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／泛酸／第1句
+EX_0071,RULE_0013,增進皮膚和黏膜的健康。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：泛酸；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／泛酸／第2句
+EX_0072,RULE_0013,有助於體脂肪、膽固醇的合成及胺基酸的代謝。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：泛酸；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／泛酸／第3句
+EX_0073,RULE_0013,有助於維持骨骼與牙齒的正常發育及健康。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：鈣；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／鈣／第1句
+EX_0074,RULE_0013,幫助血液正常的凝固功能。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：鈣；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／鈣／第2句
+EX_0075,RULE_0013,有助於肌肉與心臟的正常收縮及神經的感應性。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：鈣；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／鈣／第3句
+EX_0076,RULE_0013,活化凝血酶元轉變為凝血酶，幫助血液凝固。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：鈣；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／鈣／第4句
+EX_0077,RULE_0013,調控細胞的通透性。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：鈣；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／鈣／第5句
+EX_0078,RULE_0013,有助於正常紅血球的形成。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：鐵；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／鐵／第1句
+EX_0079,RULE_0013,構成血紅素與肌紅素的重要成分。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：鐵；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／鐵／第2句
+EX_0080,RULE_0013,有助於氧氣的輸送與利用。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：鐵；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／鐵／第3句
+EX_0081,RULE_0013,合成甲狀腺激素的主要成分。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：碘；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／碘／第1句
+EX_0082,RULE_0013,有助於維持正常生長、發育、神經肌肉的功能。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：碘；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／碘／第2句
+EX_0083,RULE_0013,調節細胞的氧化作用。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：碘；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／碘／第3句
+EX_0084,RULE_0013,有助於維持甲狀腺激素的正常分泌。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：碘；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／碘／第4句
+EX_0085,RULE_0013,有助於維持正常基礎代謝。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：碘；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／碘／第5句
+EX_0086,RULE_0013,有助於骨骼與牙齒的正常發育。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：鎂；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／鎂／第1句
+EX_0087,RULE_0013,有助於維持醣類的正常代謝。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：鎂；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／鎂／第2句
+EX_0088,RULE_0013,有助於心臟、肌肉及神經的正常功能。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：鎂；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／鎂／第3句
+EX_0089,RULE_0013,有助於身體正常代謝。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：鎂；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／鎂／第4句
+EX_0090,RULE_0013,為胰島素及多種酵素的成分。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：鋅；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／鋅／第1句
+EX_0091,RULE_0013,有助於維持能量、醣類、蛋白質與核酸的正常代謝。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：鋅；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／鋅／第2句
+EX_0092,RULE_0013,增進皮膚健康。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：鋅；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／鋅／第3句
+EX_0093,RULE_0013,有助於維持正常味覺與食慾。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：鋅；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／鋅／第4句
+EX_0094,RULE_0013,有助於維持生長發育與生殖機能。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：鋅；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／鋅／第5句
+EX_0095,RULE_0013,有助於皮膚組織蛋白質的合成。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：鋅；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／鋅／第6句
+EX_0096,RULE_0013,有助於抗氧化。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：鋅；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／鋅／第7句
+EX_0097,RULE_0013,人體細胞、組織、器官的主要構成物質。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：蛋白質；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／蛋白質／第1句
+EX_0098,RULE_0013,幫助生長發育。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：蛋白質；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／蛋白質／第2句
+EX_0099,RULE_0013,有助於組織的修復。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：蛋白質；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／蛋白質／第3句
+EX_0100,RULE_0013,為肌肉合成的來源之一。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：蛋白質；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／蛋白質／第4句
+EX_0101,RULE_0013,可用於肌肉生長。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：蛋白質；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／蛋白質／第5句
+EX_0102,RULE_0013,可促進腸道蠕動。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：膳食纖維；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／膳食纖維／第1句
+EX_0103,RULE_0013,增加飽足感。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：膳食纖維；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／膳食纖維／第2句
+EX_0104,RULE_0013,使糞便比較柔軟而易於排出。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：膳食纖維；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／膳食纖維／第3句
+EX_0105,RULE_0013,膳食中有適量的膳食纖維時，可增加糞便量。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：膳食纖維；符合附件註一至註三；部分營養宣稱門檻於2026-01-01生效。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／膳食纖維／第4句
+EX_0106,RULE_0013,有助於維持醣類正常代謝。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：鉻；附件註一至註三；鉻每日最低攝取量6μg。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／鉻
+EX_0107,RULE_0013,有助於抗氧化，抵抗氧化壓力。,GENERAL_FUNCTION_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,成分：硒；附件註一至註三；鉻每日最低攝取量6μg。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_CLAIM_ANNEX2,附件二／硒
+EX_0108,RULE_0044,功效由學理得知，非由實驗確認。,CONDITIONAL_EXAMPLE,EVIDENCE_QUALIFIER,規格標準途徑核准者須載明功效由學理得知非實驗確認,主管機關要求的限定語，可用等同字義文字；不是額外核准功效。,SRC_HEALTH_LABELS,第三點第一款
+EX_0109,RULE_0045,"經動物實驗結果，有助
+     於該特定保健功效敘述",CONDITIONAL_EXAMPLE,EVIDENCE_QUALIFIER,動物評估核准者須載明經動物實驗之限定,主管機關要求的限定語，可用等同字義文字；不是額外核准功效。,SRC_HEALTH_LABELS,第三點第二款
+EX_0110,RULE_0046,"
+    1. 本產品非藥品，供保健用，罹病者仍需就醫。",CONDITIONAL_EXAMPLE,NOT_A_MEDICINE,膠囊錠狀健康食品須載明非藥品與勿過量注意事項,法定注意事項，包含就醫語句不等同食品醫療功效宣稱。,SRC_HEALTH_LABELS,第四點第一款
+EX_0111,RULE_0046,請依建議攝取量食用，勿過量。,CONDITIONAL_EXAMPLE,NOT_A_MEDICINE,膠囊錠狀健康食品須載明非藥品與勿過量注意事項,法定注意事項，包含就醫語句不等同食品醫療功效宣稱。,SRC_HEALTH_LABELS,第四點第一款
+EX_0112,RULE_0047,本產品供保健用，請依建議攝取量食用。,CONDITIONAL_EXAMPLE,NOT_A_MEDICINE,非膠囊錠狀健康食品須載明供保健用與依攝取量食用,法定注意事項，包含就醫語句不等同食品醫療功效宣稱。,SRC_HEALTH_LABELS,第四點第二款
+EX_0113,RULE_0048,"本品依每日建議攝取量○○公克/毫升，所含外加精緻糖量達○○公克，
+  請注意熱量攝取。",CONDITIONAL_EXAMPLE,ADDED_SUGAR_WARNING,每日建議攝取量含外加精緻糖17g以上。,須用此警語或等同字義；警告疾病或藥名不是宣稱治療疾病。,SRC_HEALTH_LABELS,第五點
+EX_0114,RULE_0049,"嬰幼兒、孕婦、
+  糖尿病患者或正在服用抗凝血劑之凝血功能不全者，食用前請先徵詢
+  醫師意見。",CONDITIONAL_EXAMPLE,FISH_OIL_WARNING,健康食品含魚油原料。,須用此警語或等同字義；警告疾病或藥名不是宣稱治療疾病。,SRC_HEALTH_LABELS,第六點
+EX_0115,RULE_0050,"本品與降血脂藥
+  （statin 及 fibrate 類藥物）
+                       、葡萄柚合併使用，恐會造成肝、腎損傷、橫
+  紋肌溶解症。",CONDITIONAL_EXAMPLE,RED_YEAST_WARNING,健康食品含紅麴原料。,須用此警語或等同字義；警告疾病或藥名不是宣稱治療疾病。,SRC_HEALTH_LABELS,第七點
+EX_0116,RULE_0077,"更正後文字                       原列文字
+-額外使用營養添加劑之零食類食品            -零食類食品
+ 米果、膨發及擠壓類                   米果、膨發及擠壓類
+ 蜜餞及脫水蔬果類                    蜜餞及脫水蔬果類
+ 種子類                         種子類
+ 核果類                         核果類
+ 豆類製品                        豆類製品
+ 水產休閒食品                      水產休閒食品
+-碳酸飲料(不包含符合表一之無糖宣稱者)        -碳酸飲料(不包含符合表一之無糖宣稱者)
+
+-額外使用營養添加劑之糖果類食品(不包含符合表一之   -額外使用營養添加劑之糖果類食品(不包含符合表一之
+無糖宣稱且未使用甜味劑者)                無糖宣稱且未使用甜味劑者)
+硬糖                          硬糖
+軟糖類                         軟糖類
+冬瓜糖、木瓜糖、蜜甘薯                 冬瓜糖、木瓜糖、蜜甘薯
+巧克力                         巧克力
+口齒芳香糖、口香糖、泡泡糖               口齒芳香糖、口香糖、泡泡糖
+其他糖果                        其他糖果
+-調味料類                       -調味料類
+ 乾粉類                         乾粉類
+ 味增、豆豉                       味增、豆豉
+ 調味油類                        調味油類
+ 調味醬（用量較大）                   調味醬（用量較大）
+沾醬（用量較小）             沾醬（用量較小）
+蘑菇醬、黑胡椒醬             蘑菇醬、黑胡椒醬
+義大利麵醬                義大利麵醬
+糖類（固體、液體）            糖類（固體、液體）
+鮮味劑                  鮮味劑
+蒜頭酥、紅蔥頭              蒜頭酥、紅蔥頭
+八角粒、粉狀香料             八角粒、粉狀香料
+桂花醬                  桂花醬
+其他調味料                其他調味料
+-醃漬醬菜類               註：碳酸飲料係指添加二氧化碳之飲料。
+註：碳酸飲料係指添加二氧化碳之飲料。",CONDITIONAL_EXAMPLE,FOOD_CATEGORY_RESTRICTION,只能採更正後欄作現行分類；原列欄只供歷史比對。,官方勘誤對照原文；兩欄不得混合。,SRC_NUTRITION_CURRENT_ATT4,表七勘誤表／更正後與原列對照
+EX_0117,RULE_0080,本產品為低脂、高纖維,CONDITIONAL_EXAMPLE,MULTIPLE_NUTRITION_CLAIMS,同型態衡量且達個別營養素門檻。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_NUTRITION_CURRENT,第六點
+EX_0118,RULE_0080,本產品為高鈣、高纖維、零膽固醇,CONDITIONAL_EXAMPLE,MULTIPLE_NUTRITION_CLAIMS,同型態衡量且達個別營養素門檻。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_NUTRITION_CURRENT,第六點
+EX_0119,RULE_0084,一日請勿超過○顆（或錠、粒）,CONDITIONAL_EXAMPLE,DAILY_INTAKE_WARNING,符合本公告適用範圍。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_VITAMIN_CURRENT,第十點
+EX_0120,RULE_0084,多食無益,CONDITIONAL_EXAMPLE,DAILY_INTAKE_WARNING,符合本公告適用範圍。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_VITAMIN_CURRENT,第十點
+EX_0121,RULE_0100,"本品屬特定疾病配方食品，不適合一般人食用，須經醫師或營養師
+    指導使用",CONDITIONAL_EXAMPLE,DISEASE_FORMULA_LABEL,依核定之特殊營養食品身份及公告標示條件。,法定標示詞句，非一般食品宣稱許可。,SRC_SPECIAL_LABEL,第二點第四款
+EX_0122,RULE_0101,多食對改善此類疾病並無幫助,CONDITIONAL_EXAMPLE,DISEASE_FORMULA_LABEL,依核定之特殊營養食品身份及公告標示條件。,法定標示詞句，非一般食品宣稱許可。,SRC_SPECIAL_LABEL,第二點第五款
+EX_0123,RULE_0102,本品非供靜脈注射用,CONDITIONAL_EXAMPLE,DISEASE_FORMULA_LABEL,依核定之特殊營養食品身份及公告標示條件。,法定標示詞句，非一般食品宣稱許可。,SRC_SPECIAL_LABEL,第二點第六款
+EX_0124,RULE_0104,本產品所含鈣質之生物利用率較一般鈣質來源優良,CONDITIONAL_EXAMPLE,骨質保健,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_48774,肆、 保健功效敘述之宣稱
+EX_0125,RULE_0104,有助於維持骨密度,CONDITIONAL_EXAMPLE,骨質保健,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_48774,肆、 保健功效敘述之宣稱
+EX_0126,RULE_0104,有助於調節骨代謝指標,CONDITIONAL_EXAMPLE,骨質保健,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_48774,肆、 保健功效敘述之宣稱
+EX_0127,RULE_0106,有助於降低低密度脂蛋白膽固醇,CONDITIONAL_EXAMPLE,調節血脂,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_51765,肆、保健功效宣稱
+EX_0128,RULE_0106,有助於降低總膽固醇,CONDITIONAL_EXAMPLE,調節血脂,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_51765,肆、保健功效宣稱
+EX_0129,RULE_0106,有助於降低三酸甘油酯,CONDITIONAL_EXAMPLE,調節血脂,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_51765,肆、保健功效宣稱
+EX_0130,RULE_0108,有助於輔助胃運動,CONDITIONAL_EXAMPLE,胃腸功能改善,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_50276,肆、保健功效敘述之宣稱
+EX_0131,RULE_0108,有助於輔助腸運動,CONDITIONAL_EXAMPLE,胃腸功能改善,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_50276,肆、保健功效敘述之宣稱
+EX_0132,RULE_0108,有助於輔助胃腸運動,CONDITIONAL_EXAMPLE,胃腸功能改善,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_50276,肆、保健功效敘述之宣稱
+EX_0133,RULE_0108,有助於調節腸內益生菌菌相,CONDITIONAL_EXAMPLE,胃腸功能改善,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_50276,肆、保健功效敘述之宣稱
+EX_0134,RULE_0108,有助於減少胃幽門螺旋桿菌數量,CONDITIONAL_EXAMPLE,胃腸功能改善,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_50276,肆、保健功效敘述之宣稱
+EX_0135,RULE_0111,有助於提升口腔內牙菌斑酸鹼值,CONDITIONAL_EXAMPLE,牙齒保健,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_42702,伍、 保健功效之宣稱
+EX_0136,RULE_0111,有助於減少口腔內牙菌斑堆積量,CONDITIONAL_EXAMPLE,牙齒保健,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_42702,伍、 保健功效之宣稱
+EX_0137,RULE_0111,有助於減少口腔內牙菌斑內突變形鏈球菌數量,CONDITIONAL_EXAMPLE,牙齒保健,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_42702,伍、 保健功效之宣稱
+EX_0138,RULE_0113,經動物實驗，攝取本產品有助於延緩四氯化碳誘導之化學性肝損傷或降低其危險因子,CONDITIONAL_EXAMPLE,護肝,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_20319,五、宣稱、廣告與產品標示
+EX_0139,RULE_0114,經動物實驗，攝取本產品有助於延緩乙醯胺基苯酚誘導之化學性肝炎損傷或降低其危險因子,CONDITIONAL_EXAMPLE,護肝,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_20319,五、宣稱、廣告與產品標示
+EX_0140,RULE_0115,經動物實驗，攝取本產品有助於延緩硫代乙醯胺誘導之肝纖維化或降低其危險因子,CONDITIONAL_EXAMPLE,護肝,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_20319,五、宣稱、廣告與產品標示
+EX_0141,RULE_0116,經動物實驗，攝取本產品有助於延緩經酒精誘導所引起之脂肪肝或降低其危險因子,CONDITIONAL_EXAMPLE,護肝,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_20319,五、宣稱、廣告與產品標示
+EX_0142,RULE_0117,經動物實驗，攝取本產品有助於延緩經高脂飼料誘導所引起之脂肪肝或降低其危險因子,CONDITIONAL_EXAMPLE,護肝,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_20319,五、宣稱、廣告與產品標示
+EX_0143,RULE_0119,有助於降低空腹血糖值,CONDITIONAL_EXAMPLE,調節血糖,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_51766,肆、保健功效敘述之宣稱
+EX_0144,RULE_0119,有助於降低糖化血色素,CONDITIONAL_EXAMPLE,調節血糖,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_51766,肆、保健功效敘述之宣稱
+EX_0145,RULE_0119,有助於調節葡萄糖耐受性,CONDITIONAL_EXAMPLE,調節血糖,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_51766,肆、保健功效敘述之宣稱
+EX_0146,RULE_0122,有助於延緩運動疲勞發生,CONDITIONAL_EXAMPLE,抗疲勞,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_20318,參、 保健功效之宣稱
+EX_0147,RULE_0122,有助於促進運動後疲勞消除,CONDITIONAL_EXAMPLE,抗疲勞,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_20318,參、 保健功效之宣稱
+EX_0148,RULE_0124,有助於提高鐵利用率並調節缺鐵狀態,CONDITIONAL_EXAMPLE,輔助調節血鐵,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_46200,肆、 保健功效之宣稱
+EX_0149,RULE_0124,有助於增加血紅素,CONDITIONAL_EXAMPLE,輔助調節血鐵,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_46200,肆、 保健功效之宣稱
+EX_0150,RULE_0126,有助於調節血壓,CONDITIONAL_EXAMPLE,輔助調節血壓,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_40068,肆、 保健功效之宣稱
+EX_0151,RULE_0126,有助於調節收縮壓,CONDITIONAL_EXAMPLE,輔助調節血壓,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_40068,肆、 保健功效之宣稱
+EX_0152,RULE_0126,有助於調節舒張壓,CONDITIONAL_EXAMPLE,輔助調節血壓,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_40068,肆、 保健功效之宣稱
+EX_0153,RULE_0128,在嚴謹的營養均衡與熱量控制，以及適當的運動條件下，適量攝取本產品有助於不易形成體脂肪,CONDITIONAL_EXAMPLE,不易形成體脂肪,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_20325,參、保健功效之宣稱
+EX_0154,RULE_0131,有助於緩和輕度膝關節不適,CONDITIONAL_EXAMPLE,膝關節保健,符合該方法各別指標及結果條件，並經個別產品健康食品許可核可。,官方方法提供之核可句式；有助於／檢測項目／實驗限定均應保留。,SRC_FUNC_49249,肆、 保健功效敘述之宣稱
+EX_0155,RULE_0136,根據動物實驗，本產品有助於延緩衰老之功效,CONDITIONAL_EXAMPLE,延緩衰老,依原方法試驗設計與指標統計結果，取得主管機關核准。,此句已視覺核對原PDF第30頁；其餘全文OCR仍NEEDS_REVIEW。,SRC_FUNC_20324,PDF第30頁／參：人工校對
+EX_0156,RULE_0009,全面取代6種骨外科治療手術 玻尿酸注射、PRP再生,MEDICAL_EFFICACY_EXAMPLE,REPLACES_MEDICAL_TREATMENT,原案例具體商品、宣傳及機關查處脈絡；勿外推其他產品。,官方公開查處例句，非本研究自行判定；非大量下載處分資料。,SRC_REPLACEMENT_CASE,食品廣告累計罰鍰案例段落
+EX_0157,RULE_0011,"【輔導說明】
+
+  1. 倘廣告強調產品含有特定成分或特定含量，其產品本質及標
+      示內容應足以支持該宣稱。
+  2. 倘廣告宣稱含某分子量之「小分子」成分，其產品中該成分
+      分子大小應符合宣稱範圍。
+
+
+
+三、不得涉及醫療效能宣稱原則
+
+  (一) 判斷原則：食品廣告以直接宣稱，或以文字、圖像、案例
+       分享、前後文脈絡等方式，或以暗示，或以隱喻手法，使
+       消費者將食品功效與疾病產生不當連結，認為該食品具下
+       列效果者，即涉及宣稱醫療效能：
+       1. 預防、改善、減輕、診斷或治療疾病、疾病症候群或
+         症狀。
+       2. 減輕或降低導致疾病有關之體內成分。
+       3. 中藥材之效能。
+  (二) 凡廣告中出現類似意涵，無論其以錯別字、同意字、同音
+       字、諧音等方式呈現，或搭配科學研究資料、專利、案例
+       分享、見證或專家說法，均有違規之虞。
+  (三) 常見涉及醫療效能詞句如下，所列僅為例示，非負面表列：
+
+ 疾病別       涉及醫療效能之詞句          違規原因
+ 心 臟 、  預防腦中風、心肌梗塞、高血壓、 涉 及 預 防 心 血 管
+ 血液循     高血脂、動脈硬化等心血管疾 或代謝疾病、疾病
+ 環與相     病。                症候群、症狀之宣
+ 關 代 謝  避免罹患第二型糖尿病。       稱。
+ 疾病     防止貧血。
+
+
+
+                    5",MEDICAL_EFFICACY_EXAMPLE,DISEASE_OR_TCM_EFFICACY,一般食品廣告；表內類型、例句與違規原因為完整脈絡。,整頁官方表格原文，含多個例句及原因；僅例示、非負面表列；核准健康食品及法定營養例句仍須另比對。,SRC_GUIDANCE,伍三／PDF第7頁表格
+EX_0158,RULE_0009," 改善腦中風、心肌梗塞、高血壓、 涉及改善、減輕、
+       高血脂、動脈硬化等心血管疾 治 療 心 血 管 或 代
+       病。                 謝疾病、疾病症候
+       逆轉糖尿病、降低糖化血色素。 群、症狀，及調整
+       幫助阻糖、降糖、控糖。       血壓、血脂、血糖
+       清除血油、血脂、血糖。       等醫療指標之宣
+       降低三高指數、降血壓。       稱。
+       改善血濁、清血。
+       清除管路脂肪和內臟脂肪、降肝
+       脂。
+       消除心律不整。
+
+眼 部 疾  降低青光眼、白內障發生率。     涉及預防眼部疾
+病                         病、疾病症候群、
+                          症狀。
+       治療近視。             涉及改善、減輕、
+       改善夜盲症、青光眼、乾眼症、 或治療眼部疾病、
+       視網膜裂孔、飛蚊症和黃斑部病 疾 病 症 候 群 、 症
+       變。                 狀，及修復眼部組
+       修復視神經、視網膜細胞。      織或恢復視力之
+       協助角膜組織修復。         宣稱。
+
+肌 肉 骨  治療五十肩、退化性關節炎、類 涉及改善、減輕或
+骼疾病    風濕性關節炎、坐骨神經痛、骨 治療骨骼、關節及
+       刺、僵直性脊椎炎、椎間盤突出 神經系統疾病、疾
+       等骨關節病症。            病症候群、症狀，
+       提升骨質密度、修復骨裂創傷、 及 修 復 組 織 或 恢
+       修復脊椎神經、椎間盤復位。      復功能之宣稱。
+       軟骨修復再生、遠離人工關節。
+
+
+
+
+                  6",MEDICAL_EFFICACY_EXAMPLE,DISEASE_OR_TCM_EFFICACY,一般食品廣告；表內類型、例句與違規原因為完整脈絡。,整頁官方表格原文，含多個例句及原因；僅例示、非負面表列；核准健康食品及法定營養例句仍須另比對。,SRC_GUIDANCE,伍三／PDF第8頁表格
+EX_0159,RULE_0009,"消 化 道  預防消化性潰瘍。          涉及預防消化道
+系 統 疾  降低胃癌風險。           疾病、疾病症候
+病      防止便秘、消滯。          群、症狀。
+
+       修護胃黏膜、胃潰瘍。        涉及改善、減輕治
+       消滅幽門桿菌。           療消化道疾病、疾
+       根除胃疾、胃痛。          病症候群、症狀，
+                          及修復組織或消
+                          滅病原之宣稱。
+
+癌症     預防癌症、具有抗腫瘤效果。     涉及預防或治療
+                          癌症之宣稱。
+
+       抑制病變/癌細胞增生。       涉及改善、減輕、
+       促使癌/腫瘤細胞凋亡。       診斷或治療癌症、
+       抑制腫瘤血管新生、抑制發炎。 抑 制 癌 細 胞 或 腫
+       治療癌症。             瘤相關機制之宣
+       減少化療副作用。          稱。
+
+呼 吸 系  降低肺部發炎、氣道炎症。     涉及預防呼吸系
+統疾病    預防肺栓塞。           統疾病或感染症
+                         候群、症狀，及阻
+                         斷病原體感染之
+                         宣稱。
+
+       治療呼吸道疾病。          涉及改善、減輕或
+       修復肺部組織、肺纖維化，改善 治 療 發 炎 反 應 及
+       肺功能。               呼吸道疾病、疾病
+       對抗新冠病毒，遠離長新冠。     症候群、症狀，及
+       清肺、止咳、化痰。         修復肺部功能之
+                          宣稱。
+
+
+
+                  7",MEDICAL_EFFICACY_EXAMPLE,DISEASE_OR_TCM_EFFICACY,一般食品廣告；表內類型、例句與違規原因為完整脈絡。,整頁官方表格原文，含多個例句及原因；僅例示、非負面表列；核准健康食品及法定營養例句仍須另比對。,SRC_GUIDANCE,伍三／PDF第9頁表格
+EX_0160,RULE_0009,"神 經 系  預防腦神經退化/老化，預防阿 涉 及 預 防 神 經 退
+統疾病    茲海默症，減少認知退化風險。 化性疾病、疾病症
+                          候群、症狀之宣
+                          稱。
+
+       修復神經，改善神經性疼痛、帶 涉及改善、減輕或
+       狀疱疹、腦細胞損傷、修復自律 治 療 神 經 系 統 損
+       神經失調。             傷或疾病、疾病症
+       治失眠。             候群、症狀之宣
+                         稱。
+
+泌 尿 系  恢復膀胱功能，改善括約肌鬆 涉及改善、減輕或
+統疾病    弛、膀胱過動或無力。         治療泌尿系統疾
+       治療泌尿道感染、改善漏尿。     病、疾病症候群、
+       改善尿路阻塞。           症狀之宣稱。
+       逆轉腎臟功能，改善尿毒堆積，
+       利尿。
+生 殖 系  治療子宮脫垂。           涉及改善、減輕或
+統疾病    改善更年期症狀、改善內分泌失 治 療 生 殖 系 統 或
+       調、改善分泌物過多、改善月經 內分泌相關疾病、
+       疼痛。                疾病症候群、症狀
+       改善性功能。            之宣稱。
+
+其 他 疾  改善過敏體質。           涉及改善、減輕或
+病      減輕過敏性皮膚病。         治療過敏性疾病、
+       改善喉嚨發炎。           發炎反應或相關
+       消腫止痛。             症狀之宣稱。
+       降肝火、解毒、解肝毒。
+
+
+
+
+                  8",MEDICAL_EFFICACY_EXAMPLE,DISEASE_OR_TCM_EFFICACY,一般食品廣告；表內類型、例句與違規原因為完整脈絡。,整頁官方表格原文，含多個例句及原因；僅例示、非負面表列；核准健康食品及法定營養例句仍須另比對。,SRC_GUIDANCE,伍三／PDF第10頁表格
+EX_0161,RULE_0005,"字敘述、圖案、符號、影像、聲音或其他訊息，依整體
+       表現，綜合判斷。
+(二) 常見高風險違規詞句案例如下，所列僅為例示，非負面表
+      列：
+
+ 類型          高風險違規之詞句          違規原因
+抗老、美  機能回春、逆轉肌齡。           延遲或逆轉皮膚
+容、美體  修復肌膚屏障、彈力蛋白增 外觀老化，已超出
+           生、膠原再生、激活膠原蛋白、 一 般 食 品 提 供 營
+           肌膚澎潤彈。           養之功能，涉及維
+        生髮、髮量增多。           持或改變人體器
+        使頭髮烏黑。             官、組織、生理或
+        改善皺紋。              外觀。
+
+        豐胸、預防乳房下垂、乳房組 美 容 美 體 功 效 已
+           織重構。             超出一般食品提
+        美白、減少黑色素沉澱、抑制 供營養之功能，涉
+           黑色素生成。           及改變人體器官、
+        增高、促進身高發育。         組織、生理或外觀
+                            之功能。
+
+減肥塑身  減肥、塑身、纖體、瘦身、回 透 過 調 整 生 理 機
+           復 S 曲線。          制減肥塑身，已超
+        誘發腸泌素、延緩胃排空。       出一般食品提供
+        促進脂肪代謝、加速燃燒脂 營養之功能，涉及
+           肪、降低體脂。          維持或改變人體
+        阻油、溶油、排油。          器官、組織、生理
+                            或外觀。
+
+
+
+
+                     10",PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品，高風險表現仍須整體認定及核准範圍比對。,官方高風險例示，例句與理由合併保存；非命中字詞即可處罰。,SRC_GUIDANCE,伍四／PDF第12頁表格
+EX_0162,RULE_0005,"免疫系統  增強抵抗力、增加防禦能力。 已 超 出 一 般 食 品
+       免疫提升、升級防禦屏障。     提供營養之功能，
+                         涉及維持或改變
+                         人體器官、組織、
+                         生理或外觀。
+眼睛     有效對抗藍光傷害、阻擋光傷 已 超 出 一 般 食 品
+       害、抗 UV。           提供營養之功能，
+       減少眼睛乾澀、緩解眼睛疲 涉 及 維 持 或 改 變
+       勞。                人體器官、組織、
+       改善視力模糊、夜間視力。     生理或外觀。
+神經系統  增強認知、補腦、增強記憶力、 已 超 出 一 般 食 品
+       延緩記憶退化。           提供營養之功能，
+       促進腦部發育。          涉及維持或改變
+                         人體器官、組織、
+                         生理或外觀。
+泌尿系統  減少夜尿、頻尿。          已超出一般食品
+       降低泌尿道感染。         提供營養之功能，
+                         涉及維持或改變
+                         人體器官、組織、
+                         生理或外觀。
+生殖系統  專攻私密調理、舒緩私密搔 已 超 出 一 般 食 品
+       癢、降低私密感染。         提供營養之功能，
+       壯陽、恢復男性雄風、提升睪 涉 及 維 持 或 改 變
+       固酮濃度。             人體器官、組織、
+                         生理或外觀。
+
+
+
+
+                 11",PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品，高風險表現仍須整體認定及核准範圍比對。,官方高風險例示，例句與理由合併保存；非命中字詞即可處罰。,SRC_GUIDANCE,伍四／PDF第13頁表格
+EX_0163,RULE_0005,"其他      低 GI、生酮。        已涉及維持或改
+         強化細胞功能、清除自由基、 變人體生理功能，
+         排毒素、分解有害物質。      非單一食品或其
+         平胃氣、防止口臭。       成分所能達成。
+         解酒。
+ 引用機關  本產品經衛署食字第◎◎◎ 除 依 法 令 規 定 應
+ 公文書字    號配方審查認定為食品。      標示之核准公文
+ 號或類似  部授食字第◎◎◎號。衛署食 書字號之外，不得
+ 詞句      字第◎◎◎號。署授衛食字第 任 意 引 用 機 關 公
+         ◎◎◎號。FDA◎字第◎◎◎ 文 書 字 號 或 類 似
+         號許可。審查合格。        意義詞句，使消費
+                          者產生誤解。
+
+
+
+ 【輔導說明】
+
+  宣稱內容應避免使用誇張或絕對性之用語，例如「唯一」
+                          、「100%
+  有效」
+    、「第一」
+        、「首創」
+            、「最高」等，亦不宜使用涉及快速見效
+  之表述，如「速效」
+          、「立即見效」
+                、「○天／○小時有效」
+                          。前述用
+  語或具相同意涵之表述，倘未具備充分佐證資料，則具高違規風
+  險，且相關宣稱內容亦不得涉及醫療效能。
+
+
+
+五、不得涉及健康食品保健功效項目宣稱原則
+
+  (一) 依據健康食品管理法第 6 條第 1 項：
+                         「食品非依本法之規
+      定，不得標示或廣告為健康食品。」一般食品未經許可，
+      不得標示或廣告為健康食品，宣稱內容亦不得涉及健康食
+      品保健功效項目。
+
+
+                     12",PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品，高風險表現仍須整體認定及核准範圍比對。,官方高風險例示，例句與理由合併保存；非命中字詞即可處罰。,SRC_GUIDANCE,伍四／PDF第14頁表格
+EX_0164,RULE_0147,傷口癒合 維生素 C,PROHIBITED_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,須達營養門檻，歸屬對應營養素，保留全句與整體語境。,官方適當／不適當示例；不能將傷口癒合一律設為禁語。,SRC_GUIDANCE,伍六／適當與不適當宣稱對照表
+EX_0165,RULE_0149,"其包裝標籤不應使用「健康食品（國家）認證或驗證」
+       等相關文字，以避免誤導。
+
+
+  【輔導說明】
+  廣告中專利、科學資料引用內容涉及違規宣稱之案例，如下：
+
+        廣告宣稱詞句            違規原因
+    ○○成分獲得國際專利…國際自 涉及改善、減輕、治療
+    然醫學期刊刊登…能夠逆轉視神 疾病、疾病症候群、症
+    經損傷。                狀之宣稱。
+    生醫專利○○(產品名)有效阻糖、
+    斷糖、溶糖、排糖。
+    26 張世界功效專利，抑制尿酸形
+    成，修復神經病變。
+    ○○專利成分能大幅減少有毒蛋
+    白沉積，○○(產品名)取得延緩衰
+    老國家認證。
+
+
+
+八、避免以廣告見證或使用者分享誤導消費者原則
+
+  (一) 無論以影片、圖片、文字或聲音等方式呈現消費者、使用
+    者或見證人的分享內容，例如：電視、電台節目開放觀眾
+    或聽眾 Call in 分享，或在網頁留言評論，或在社群平台粉
+    絲頁留言或貼文，皆屬於廣告的一部分，即使為個人使用
+    感受或經驗分享，亦不得涉及不實、誇張或易生誤解，或
+    宣稱醫療效能。
+  (二) 基於廣告主對其廣告、節目、網站/網頁內容負有管理責任，
+    應積極阻止、修正、刪除或屏蔽相關違規內容。
+
+                 16",MEDICAL_EFFICACY_EXAMPLE,PATENT_OR_CERTIFICATION,完整保留官方表格及違規原因。,官方例示；須同時適用所屬規則，不是關鍵字黑名單。,SRC_GUIDANCE,伍七／PDF第18頁
+EX_0166,RULE_0147,"(二) 倘產品已依健康食品管理法規定，完成查驗登記為健康食
+    品，其廣告相關輔導原則請參閱本指引第陸章「健康食品
+    廣告輔導原則」。
+
+
+
+六、營養素或特定成分生理功能詞句或類似詞句使用原則
+
+  (一) 廣告使用「食品及相關產品標示宣傳廣告涉及不實誇張易
+    生誤解或醫療效能認定準則」附件二所列的營養素或特定
+    成分之生理功能詞句或類似詞句時，應完整敘述，不得以
+    片段詞句作為產品名稱或宣稱內容，亦應清楚說明該宣稱
+    係針對「產品中所含的某一營養素或成分」具有的生理功
+    能，不得誤導、暗示或影射消費者該效果為「產品本身」
+    或「產品成分複方」之功效。案例如下：
+
+            案例            合規/違規原因
+   正確   ○○產品含有豐富維 完整說明產品中之維生素 C
+   宣稱   生素 C 及 E 成分，具 及維生素 E 成分具抗氧化作
+        抗氧化作用。         用，且依據附件二兩者都可以
+                       宣稱「具抗氧化作用」。
+
+  不適當 產品名稱：「傷口癒合 維生素 C 得敘述之生理功能
+   宣稱   維生素 C」。        詞句為「促進膠原蛋白的形
+                       成，有助於傷口癒合」，不可
+                       擷取片段用於產品名稱，以免
+                       使消費者產生誤解。
+
+
+
+
+                  13",CONDITIONAL_EXAMPLE,NUTRIENT_PHYSIOLOGICAL_FUNCTION,完整保留適當與不適當詞句及原因，依對應成分與含量及全句判斷。,官方雙欄對照表；原文排版及詞句保留於本列及PDF，不能只看表內某一詞片。,SRC_GUIDANCE,伍六／PDF第15頁對照表
+EX_0167,RULE_0034,"陸、       健康食品廣告輔導原則
+
+一、一般食品未經許可，不得標示或廣告為健康食品
+
+     健康食品管理法第 6 條第 1 項：「食品非依本法之規定，不得標
+     示或廣告為健康食品。」
+
+二、廣告宣稱內容不得超過核准之保健功效範圍
+
+     (一) 經許可之健康食品，其標示或廣告內容應與核准事項一致，
+          不得宣稱未經核准之保健功效。
+     (二) 已核准之保健功效內容，不得以不實、誇大、易生誤解或
+          涉及醫療效能之方式呈現，亦不得自行延伸或擴大解釋，
+          否則即屬超出核准範圍。
+     (三) 14 項保健功效之不當延伸詞句如下，所列僅為例示，非負
+          面表列：
+
+ 項次        公告項目           不當延伸詞句案例
+     1    骨質保健     可改善骨骼佝僂的情況、治療骨質疏鬆
+                   症、預防骨折、消除骨刺
+     2    調節血脂     清除血管沉積物、清理膽固醇、降低膽固
+                   醇、清除血栓、治療高血脂、預防中風
+     3    胃腸功能改善   抑制有害腸道細菌、抵抗害菌、消除便
+                   秘、治療便秘、治療胃潰瘍、止瀉、整腸
+     4    免疫調節     可幫助人體抗菌功能、提高免疫力、抗
+                   癌、防癌、殺死病毒、抗病毒
+     5    牙齒保健     幫助除牙結石、預防蛀牙、改善牙周病、
+                   預防牙齦萎縮
+     6    護肝       增強肝功能、治療肝病、預防肝硬化、解
+                   肝毒、改善肝炎
+
+
+                     18",PROHIBITED_EXAMPLE,APPROVED_FUNCTION_OVEREXTENSION,必須與個別核准功效全文及最新版方法比對；14項不當延伸例示。,官方例示非負面表列。2026-08-20新方法晚於2026-05指引；不得僅憑「降低膽固醇」詞片否定個別核准「有助於降低總膽固醇」。,SRC_GUIDANCE,陸二(三)／PDF第20頁表格
+EX_0168,RULE_0034,"7    調節血糖     降血糖、尿糖、治療糖尿病、降低胰島素、
+                降低胰島素
+  8    延緩衰老     預防老人痴呆、青春永駐、延年益壽、排
+                毒、除皺、預防失智、預防阿茲海默症、
+                阻斷老化
+  9    抗疲勞      壯陽、消除疲勞、補腎、治療失眠
+  10   輔助調節血鐵   補血、造血、改善貧血、治療貧血、解決
+                手腳冰冷、補氣補血、調經、改善經痛
+  11   輔助調節血壓   降血壓、治療高血壓、預防中風
+  12   不易形成體脂 減肥、瘦身、燃燒脂肪、減重、消脂、油
+       肪        切、減少體脂肪
+  13   輔助調整過敏 有效對抗過敏、預防過敏、止咳、治療過
+       體質       敏、治療氣喘
+  14   膝關節保健    治療退化性關節炎、預防關節炎、預防痛
+                風、軟骨再生
+
+
+
+  (四) 保健功效評估報告所包含之實驗數據，若未能於廣告中完
+       整呈現實驗架構及結果，則不宜斷章取義做為廣告宣傳內
+       容，以避免誤導消費者。
+
+
+
+三、廣告宣稱內容不得涉及不實、誇張、易生誤解或宣稱醫療效能
+
+       健康食品之廣告內容仍應依循一般食品廣告之通用輔導
+  原則，並符合健康食品管理法第 14 條規定，不得涉及不實、誇
+  張、易生誤解，或宣稱醫療效能。
+
+
+
+
+                  19",PROHIBITED_EXAMPLE,APPROVED_FUNCTION_OVEREXTENSION,必須與個別核准功效全文及最新版方法比對；14項不當延伸例示。,官方例示非負面表列。2026-08-20新方法晚於2026-05指引；不得僅憑「降低膽固醇」詞片否定個別核准「有助於降低總膽固醇」。,SRC_GUIDANCE,陸二(三)／PDF第21頁表格
+EX_0169,RULE_0005,保護眼睛。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0170,RULE_0005,增加血管彈性。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0171,RULE_0005,增強抵抗力。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0172,RULE_0005,強化細胞功能。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0173,RULE_0005,增智。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0174,RULE_0005,補腦。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0175,RULE_0005,增強記憶力。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0176,RULE_0005,改善體質。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0177,RULE_0005,解酒。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0178,RULE_0005,清除自由基。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0179,RULE_0005,排毒素。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0180,RULE_0005,分解有害物質。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0181,RULE_0005,改善更年期障礙。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0182,RULE_0005,平胃氣。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0183,RULE_0005,防止口臭。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0184,RULE_0005,豐胸。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0185,RULE_0005,預防乳房下垂。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0186,RULE_0005,減肥。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0187,RULE_0005,塑身。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0188,RULE_0005,增高。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0189,RULE_0005,使頭髮烏黑。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0190,RULE_0005,延遲衰老。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0191,RULE_0005,防止老化。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0192,RULE_0005,改善皺紋。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0193,RULE_0005,美白。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0194,RULE_0005,纖體(瘦身)。,PROHIBITED_EXAMPLE,ORGAN_PHYSIOLOGY_APPEARANCE,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q1／A1
+EX_0195,RULE_0006,部授食字第◎◎◎◎◎◎◎◎◎◎號。,PROHIBITED_EXAMPLE,GOVERNMENT_ENDORSEMENT,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q2／A2
+EX_0196,RULE_0006,衛署食字第◎◎◎◎◎◎◎◎◎◎號。,PROHIBITED_EXAMPLE,GOVERNMENT_ENDORSEMENT,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q2／A2
+EX_0197,RULE_0006,署授衛食字第◎◎◎◎◎◎◎◎◎◎號。,PROHIBITED_EXAMPLE,GOVERNMENT_ENDORSEMENT,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q2／A2
+EX_0198,RULE_0006,FDA◎字第◎◎◎◎◎◎◎◎◎◎號。,PROHIBITED_EXAMPLE,GOVERNMENT_ENDORSEMENT,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q2／A2
+EX_0199,RULE_0006,衛署食字第◎◎◎◎◎◎◎◎◎◎號許可。,PROHIBITED_EXAMPLE,GOVERNMENT_ENDORSEMENT,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q2／A2
+EX_0200,RULE_0006,衛署食字第◎◎◎◎◎◎◎◎◎◎號審查合格。,PROHIBITED_EXAMPLE,GOVERNMENT_ENDORSEMENT,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q2／A2
+EX_0201,RULE_0006,領有衛生署食字號。,PROHIBITED_EXAMPLE,GOVERNMENT_ENDORSEMENT,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q2／A2
+EX_0202,RULE_0006,獲得衛生署食字號許可。,PROHIBITED_EXAMPLE,GOVERNMENT_ENDORSEMENT,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q2／A2
+EX_0203,RULE_0006,通過衛生署配方審查。,PROHIBITED_EXAMPLE,GOVERNMENT_ENDORSEMENT,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q2／A2
+EX_0204,RULE_0006,本產品經衛署食字第◎◎◎◎◎◎◎◎◎◎號配方審查認定為食品。,PROHIBITED_EXAMPLE,GOVERNMENT_ENDORSEMENT,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q2／A2
+EX_0205,RULE_0006,本產品經衛署食字第◎◎◎◎◎◎◎◎◎◎號查驗登記認定為食品。,PROHIBITED_EXAMPLE,GOVERNMENT_ENDORSEMENT,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q2／A2
+EX_0206,RULE_0009,治療近視。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0207,RULE_0009,恢復視力。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0208,RULE_0009,防止便秘。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0209,RULE_0009,利尿。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0210,RULE_0009,改善過敏體質。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0211,RULE_0009,壯陽。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0212,RULE_0009,強精。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0213,RULE_0009,減輕過敏性皮膚病。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0214,RULE_0009,治失眠。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0215,RULE_0009,防止貧血。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0216,RULE_0009,降血壓。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0217,RULE_0009,改善血濁。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0218,RULE_0009,清血。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0219,RULE_0009,調整內分泌。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0220,RULE_0009,防止更年期的提早。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0221,RULE_0009,消滯。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0222,RULE_0009,降肝火。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0223,RULE_0009,改善喉嚨發炎。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0224,RULE_0009,祛痰止喘。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0225,RULE_0009,消腫止痛。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0226,RULE_0009,消除心律不整。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0227,RULE_0009,解毒。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q3／A3
+EX_0228,RULE_0010,解肝毒。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q4／A4
+EX_0229,RULE_0010,降肝脂。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q4／A4
+EX_0230,RULE_0011,補腎。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0231,RULE_0011,溫腎（化氣）。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0232,RULE_0011,滋腎。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0233,RULE_0011,固腎。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0234,RULE_0011,健脾。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0235,RULE_0011,補脾。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0236,RULE_0011,益脾。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0237,RULE_0011,溫脾。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0238,RULE_0011,和胃。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0239,RULE_0011,養胃。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0240,RULE_0011,補胃。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0241,RULE_0011,益胃。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0242,RULE_0011,溫胃（建中）。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0243,RULE_0011,翻胃。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0244,RULE_0011,養心。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0245,RULE_0011,清心火。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0246,RULE_0011,補心。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0247,RULE_0011,寧心。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0248,RULE_0011,瀉心。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0249,RULE_0011,鎮心。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0250,RULE_0011,強心。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0251,RULE_0011,清肺。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0252,RULE_0011,宣肺。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0253,RULE_0011,潤肺。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0254,RULE_0011,傷肺。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0255,RULE_0011,溫肺（化痰）。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0256,RULE_0011,補肺。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0257,RULE_0011,瀉肺。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0258,RULE_0011,疏肝。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0259,RULE_0011,養肝。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0260,RULE_0011,瀉肝。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0261,RULE_0011,鎮肝（熄風）。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0262,RULE_0011,澀腸。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0263,RULE_0011,潤腸。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0264,RULE_0011,活血。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0265,RULE_0011,化瘀。,MEDICAL_EFFICACY_EXAMPLE,MEDICAL_EFFICACY,一般食品且符合所屬判斷類型；健康食品個別許可及2024附件二等較新特別規則須優先核對。,2019官方QA例示；非禁止關鍵字名單。,SRC_CLAIM_QA,Q5／A5
+EX_0266,RULE_0153,"（2）前置詞：
+            產品之前加「健康」二字，名詞整體非「健康食
+            品」字樣。
+           例：健康茶、健康醋、健康肉品、健康飲料、健康食
+             用油、健康優酪乳、健康魚油、健康大蒜精、健
+             康靈芝茶。",CONDITIONAL_EXAMPLE,HEALTH_IN_PRODUCT_NAME,HISTORICAL_UNCONFIRMED；須對照SRC_CLAIM_REG及2022-07-01生效條款。,官方舊例示保存，不標PERMITTED_EXAMPLE；來源非現行准許依據。,SRC_LEGACY_HEALTH_WORDING,附錄八／名詞宣稱3(2)
+EX_0267,RULE_0163,本產品不額外添加砂糖，糖主要來自乳原料及異麥芽寡糖，原料中砂糖係由柑橘果膠夾帶而來,CONDITIONAL_EXAMPLE,NO_ADDED_SUCROSE,確實未額外添加砂糖、所述糖來源及原料夾帶事實為真；不是無糖宣稱。,只收官方答覆所准許的句子；不收題目多出的含量低於0.5%。,SRC_SUGAR_QA,官方答覆第1點

@@ -56,6 +56,7 @@ LOG_FIELDS = (
     "planner_ms",
     "assessment_ms",
     "official_web_ms",
+    "claim_policy_ms",
     # pending clarification（只有代碼）
     "dialogue_act",
 )

@@ -38,10 +38,11 @@ def build_pipeline(settings: Settings) -> AnalysisPipeline:
     if settings.openai_configured:
         llm = OpenAIService(settings)
 
-    official_repo = rag_store = log_writer = None
+    official_repo = rag_store = log_writer = claim_policy_repo = None
     if settings.supabase_configured:
         from app.services.analysis_log import SupabaseAnalysisLogWriter
         from app.services.supabase_service import (
+            SupabaseClaimPolicyRepository,
             SupabaseOfficialDataRepository,
             SupabaseRagStore,
             SupabaseService,
@@ -50,6 +51,7 @@ def build_pipeline(settings: Settings) -> AnalysisPipeline:
         supabase = SupabaseService(settings)
         official_repo = SupabaseOfficialDataRepository(supabase)
         rag_store = SupabaseRagStore(supabase)
+        claim_policy_repo = SupabaseClaimPolicyRepository(supabase)
         log_writer = SupabaseAnalysisLogWriter(supabase)
 
     graph_repo = None
@@ -69,6 +71,7 @@ def build_pipeline(settings: Settings) -> AnalysisPipeline:
             llm=llm,
             rag_top_k=settings.rag_top_k,
             rag_min_similarity=settings.rag_min_similarity,
+            claim_policy_repo=claim_policy_repo,
         ),
         risk_engine=RiskEngine(),
         reporter=reporter,

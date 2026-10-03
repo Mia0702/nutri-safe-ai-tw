@@ -20,7 +20,12 @@ from app.schemas.enums import (
     ProductVerificationStatus,
 )
 from app.normalization import base_product_name, extract_permit_code, name_match_score, normalize_name
-from app.risk.claim_policy import approved_support_decision, classify_claim_policy, is_disease_claim
+from app.risk.claim_policy import (
+    StructuredPolicyContext,
+    approved_support_decision,
+    classify_claim_policy,
+    is_disease_claim,
+)
 from app.schemas.evidence import (
     OFFICIAL_ALIAS_MATCHED_BY,
     ApprovedClaimEvidence,
@@ -303,6 +308,7 @@ def assess_claim(
     regulation_sources: dict[str, SourceRef] | None = None,
     product_unresolved: bool = False,
     comparison_completed: bool = True,
+    structured_policy: StructuredPolicyContext | None = None,
 ) -> ClaimAssessment:
     """依 statement role 與固定優先順序判定單一命題的狀態。
 
@@ -316,6 +322,7 @@ def assess_claim(
     regulation_sources：已通過 Relevance Gate 的官方法規文件，作為法規類判定的來源。
     product_unresolved：產品有多個 / 低信心候選，尚未確認。
     comparison_completed：與官方資料的語意比對步驟是否成功完成（失敗時不能把「沒有比對結果」當成「不在核准範圍」）。
+    structured_policy：結構化 claim-policy 證據（官方規則 / 例示，evidence_use 原樣保留；只用於被說出來的宣稱）。
     """
     official_links = [link for link in links if link.evidence_id in official_reference_ids]
     relations = {link.relation for link in official_links}
@@ -344,10 +351,14 @@ def assess_claim(
             approved_claim_evidence_ids=approved_claim_evidence_ids,
             regulation_sources=regulation_sources or {}, product_unresolved=product_unresolved,
             comparison_completed=comparison_completed, any_source_succeeded=any_source_succeeded,
+            structured=structured_policy,
         )
         result = policy.policy_result
         if result in (ClaimPolicyResult.APPROVED_MATCH, ClaimPolicyResult.APPROVED_SCOPE_CONSISTENT):
             return build(ClaimAssessmentStatus.CONSISTENT_WITH_OFFICIAL, "CLAIM_MATCHES_APPROVED", policy.reason, policy)
+        if result == ClaimPolicyResult.PERMITTED_GENERAL_WORDING:
+            return build(ClaimAssessmentStatus.CONSISTENT_WITH_OFFICIAL, "CLAIM_MATCHES_PERMITTED_WORDING",
+                         policy.reason, policy)
         if result == ClaimPolicyResult.MEDICAL_TREATMENT_CLAIM:
             return build(ClaimAssessmentStatus.MEDICAL_TREATMENT_CLAIM, "CLAIM_MEDICAL_EFFICACY_ASSERTED",
                          policy.reason, policy)

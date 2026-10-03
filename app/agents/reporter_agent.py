@@ -26,6 +26,7 @@ from app.schemas.enums import (
     ClaimOrigin,
     ClaimPolicyResult,
     Intent,
+    PolicyEvidenceUse,
     ProductVerificationStatus,
     ResponseAction,
     ResponseType,
@@ -153,6 +154,12 @@ def build_evidence_summary(
                     "difference": c.policy.difference,
                     "product_identity_unresolved": c.policy.product_identity_unresolved,
                     "sources": [src.source_name for src in c.policy.sources],
+                    "matched_official_example": c.policy.matched_example_text,
+                    "policy_rules": [
+                        {"article": r.article_or_section, "summary": r.rule_summary_zh,
+                         "evidence_use": r.evidence_use.value}
+                        for r in bundle.claim_policy_rules if r.rule_id in c.policy.policy_rule_ids
+                    ],
                 },
             }
             for c in bundle.claim_assessment
@@ -265,8 +272,15 @@ DETAIL_TITLES = {
     ResponseAction.WHY: "為什麼是這個結果？",
     ResponseAction.FULL_EFFICACY: "完整核准功效",
     ResponseAction.WARNINGS: "警語與注意事項",
+    ResponseAction.POLICY_BASIS: "法規依據",
 }
 MAX_EFFICACY_SUMMARY_CHARS = 40
+MAX_POLICY_BASIS_RULES = 5
+MAX_POLICY_TEXT_CHARS = 80
+POLICY_USE_NOTE = {
+    PolicyEvidenceUse.CORROBORATION_REQUIRED: "（需其他官方資料佐證，不單獨作為結論）",
+    PolicyEvidenceUse.CONTEXT_ONLY: "（僅供參考，仍待官方資料複核，不單獨作為結論）",
+}
 CLAIM_STATUS_SUMMARY = {
     ClaimAssessmentStatus.CONSISTENT_WITH_OFFICIAL: "這個說法與官方核准的保健功效一致。",
     ClaimAssessmentStatus.UNSUPPORTED: "目前找不到官方資料支持這個說法。",
@@ -673,6 +687,39 @@ def _split_sentences(text: str) -> list[str]:
     return [p for p in parts if p and p.rstrip("：:") and len(p.rstrip("：:。；;")) > 1]
 
 
+def has_policy_basis(bundle: EvidenceBundle) -> bool:
+    return bool(bundle.claim_policy_rules or bundle.claim_policy_examples or bundle.health_functions)
+
+
+def policy_basis_lines(bundle: EvidenceBundle) -> list[str]:
+    """「法規依據」明細：只整理 EvidenceBundle 中的結構化規則 / 例示 / 保健功效定義（摘要 + 條次 + 來源名稱）。
+
+    判定本身沒有用到的規則排在後面；待複核 / 需佐證的資料一律標示「不單獨作為結論」。
+    """
+    lines: list[str] = []
+    cited: list[str] = []
+    for c in bundle.claim_assessment:
+        policy = c.policy
+        if policy is None:
+            continue
+        cited += [r for r in policy.policy_rule_ids if r not in cited]
+        if policy.matched_example_text:
+            lines.append(f"「{c.claim_text}」與官方例示詞句「{policy.matched_example_text}」相同。")
+    rules = sorted(bundle.claim_policy_rules,
+                   key=lambda r: (r.rule_id not in cited, cited.index(r.rule_id) if r.rule_id in cited else 0, r.rule_id))
+    for r in rules[:MAX_POLICY_BASIS_RULES]:
+        summary = r.rule_summary_zh or _clip_text(r.official_text, MAX_POLICY_TEXT_CHARS)
+        lines.append(f"【{r.article_or_section}】{summary}{POLICY_USE_NOTE.get(r.evidence_use, '')}\n{r.source.source_name}")
+    pending = [e for e in bundle.claim_policy_examples if e.evidence_use != PolicyEvidenceUse.DECISION_ELIGIBLE]
+    if pending:
+        lines.append(f"另有 {len(pending)} 筆相關官方例示仍待複核或需佐證，只作參考，不單獨作為結論。")
+    for hf in bundle.health_functions:
+        if hf.official_definition:
+            lines.append(f"保健功效「{hf.official_function_name}」官方說明：{_clip_text(hf.official_definition, MAX_POLICY_TEXT_CHARS)}"
+                         f"{POLICY_USE_NOTE.get(hf.evidence_use, '')}")
+    return _dedupe(lines)
+
+
 def detail_payload(
     action: ResponseAction, request: NormalizedUserRequest, bundle: EvidenceBundle, risk: RiskAssessment
 ) -> DetailPayload:
@@ -721,6 +768,15 @@ def detail_payload(
                        + bundle.product_match.notes
                        + (["有資料來源查詢失敗，結果可能不完整。"] if risk.data_incomplete else []))
         body = body or ["這次沒有觸發特別的判斷規則。"]
+        if has_policy_basis(bundle):  # 法規詳細內容放下一層，不塞進卡片
+            follow_ups = [ResponseAction.POLICY_BASIS] + ([ResponseAction.SOURCES] if bundle.all_sources() else [])
+            return DetailPayload(request_id=request.request_id, action=action, title=DETAIL_TITLES[action],
+                                 query_text=request.normalized_text, body=body, available_actions=follow_ups)
+    elif action == ResponseAction.POLICY_BASIS:
+        body = policy_basis_lines(bundle) or ["這次沒有使用結構化的官方法規資料。"]
+        return DetailPayload(request_id=request.request_id, action=action, title=DETAIL_TITLES[action],
+                             query_text=request.normalized_text, body=body,
+                             available_actions=[ResponseAction.SOURCES] if bundle.all_sources() else [])
     else:
         raise ValueError(f"{action.value} 不是 detail action")
     return DetailPayload(request_id=request.request_id, action=action, title=DETAIL_TITLES[action],

@@ -19,6 +19,8 @@ PROJECT_MARKER = PROJECT_ID
 SCHEMA_FILE = Path(__file__).resolve().parents[2] / "migrations" / "neo4j" / "0001_constraints.cypher"
 ALLOWED_LABELS = {
     "AppSchemaMeta", "Product", "Ingredient", "Company", "Brand", "Permit", "Claim", "Warning", "Source",
+    # 0002_claim_policy_constraints.cypher（TFDA Claim Policy Corpus）
+    "ClaimPolicyRule", "HealthFunction",
 }
 
 

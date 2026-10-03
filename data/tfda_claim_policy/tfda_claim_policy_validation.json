@@ -1,0 +1,62 @@
+{
+  "checked_at": "2026-10-03T15:29:47.768360+00:00",
+  "research_reference_date": "2026-10-03",
+  "passed": true,
+  "errors": [],
+  "duplicate_rules": [],
+  "checks": [
+    "all_source_ids_exist",
+    "all_rules_have_official_source_and_exact_text",
+    "all_examples_have_rule_and_official_source_and_exact_text",
+    "all_functions_have_catalog_and_method_source_and_original_scope_quote",
+    "all_document_source_ids_exist",
+    "official_government_domains_only",
+    "policy_effect_enum",
+    "date_iso_format",
+    "version_status_explicit",
+    "no_duplicate_same_source_section_predicate_condition",
+    "UTF-8_BOM_CSV_and_UTF-8_JSONL",
+    "no_case_bulk_download",
+    "no_production_database_or_repository_changes",
+    "all_record_ids_unique",
+    "nonempty_document_content",
+    "function_scope_quote_original_match",
+    "official_Azure_attachment_provenance_from_TFDA_API",
+    "consistent_document_authority_to_source",
+    "all_rules_have_scope_condition_exception_location_and_legal_basis"
+  ],
+  "counts": {
+    "sources": 71,
+    "rules": 163,
+    "examples": 267,
+    "health_functions": 14,
+    "documents": 976,
+    "current_official_documents": 61,
+    "superseded_documents": 9,
+    "source_version_needs_review": 1,
+    "needs_review_rules": 29,
+    "needs_review_effect_rules": 11,
+    "needs_review_function_rows": 3,
+    "sources_with_unconfirmed_or_nonstatutory_dates": 26,
+    "ocr_unverified_chunks": 30,
+    "open_data_sources_found": 5,
+    "official_query_portals": 1
+  },
+  "policy_effect_counts": {
+    "RESTRICTED": 75,
+    "NEEDS_REVIEW": 11,
+    "PROHIBITED": 19,
+    "REQUIRES_EVIDENCE": 9,
+    "PERMITTED": 16,
+    "PRODUCT_SPECIFIC_ONLY": 33
+  },
+  "example_type_counts": {
+    "PERMITTED_EXAMPLE": 27,
+    "GENERAL_FUNCTION_EXAMPLE": 80,
+    "CONDITIONAL_EXAMPLE": 51,
+    "MEDICAL_EFFICACY_EXAMPLE": 66,
+    "PROHIBITED_EXAMPLE": 43
+  },
+  "raw_evidence_manifest_rows": 362,
+  "raw_unique_files": 354
+}
