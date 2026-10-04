@@ -20,6 +20,7 @@ from pydantic import BaseModel
 
 from app.agents.prompts import REPORTER_INSTRUCTIONS
 from app.schemas.analysis import ReporterOutput
+from app.risk.assessment_rules import QUESTION_MEDICAL_PROPOSITION
 from app.risk.claim_policy import NOTE_CLAIM_LEVEL_ONLY
 from app.schemas.enums import (
     ClaimAssessmentStatus,
@@ -34,7 +35,7 @@ from app.schemas.enums import (
 )
 from app.normalization import extract_permit_code, normalize_name
 from app.schemas.evidence import ApprovedClaimEvidence, ClaimAssessment, EvidenceBundle, SourceRef
-from app.schemas.response import RISK_EMOJI, DetailPayload, ProductChoice, ResponsePayload
+from app.schemas.response import CLAIM_RISK_LABEL, RISK_EMOJI, DetailPayload, ProductChoice, ResponsePayload
 from app.schemas.risk import RiskAssessment
 from app.schemas.user_request import NormalizedUserRequest
 from app.services.errors import ServiceError
@@ -51,7 +52,7 @@ RISK_TITLES = {
     RiskLevel.HIGH: "高風險，請特別小心",
 }
 INCONCLUSIVE_TITLE = "目前資訊不足，暫時無法確認（先以中風險看待）"
-VERIFIED_LOW_TITLE = "這項產品有官方紀錄，產品本身目前看起來屬於低風險"
+VERIFIED_LOW_TITLE = "查有官方紀錄，目前沒有發現不當宣稱"  # 只描述查證結果，不推論產品整體安全性
 RISK_HEADERS = {level: f"{RISK_EMOJI[level]} {title}" for level, title in RISK_TITLES.items()}
 INCONCLUSIVE_HEADER = f"{RISK_EMOJI[RiskLevel.MEDIUM]} {INCONCLUSIVE_TITLE}"
 VERIFIED_LOW_HEADER = f"{RISK_EMOJI[RiskLevel.LOW]} {VERIFIED_LOW_TITLE}"
@@ -164,6 +165,12 @@ def build_evidence_summary(
             }
             for c in bundle.claim_assessment
         ],
+        "response_type": select_response_type(request, bundle, risk).value,
+        "claim_verdicts": [
+            {"claim_text": c.claim_text, "claim_role": c.origin.value,
+             "claim_risk": c.claim_risk.value if c.claim_risk else None, "verdict": claim_verdict_line(c)}
+            for c in bundle.claim_assessment
+        ],
         "risk": {
             "risk_level": risk.risk_level.value,
             "reasons": [h.reason for h in risk.triggered_rules],
@@ -221,11 +228,19 @@ class ReporterAgent:
                 extra={"request_id": request.request_id, "agent": "reporter"},
             )
             body = ""
+        if body and (verdict_contradiction(body, bundle)
+                     or product_info_overclaims(body, select_response_type(request, bundle, risk))):
+            logger.warning("reporter_verdict_contradiction", extra={"request_id": request.request_id, "agent": "reporter"})
+            body = ""
         if not body:
             used_fallback = True
             body = fallback_body(request, bundle, risk)
 
-        parts = [build_header(risk), body.strip()]
+        verdict = verdict_block(bundle)
+        product = _verified_product(bundle)
+        approved = _approved_claim_lines(bundle, product) if product is not None and bundle.claim_assessment else []
+        approved_block = "官方核准內容：\n" + "\n".join(f"・{line}" for line in approved) if approved else ""
+        parts = [full_analysis_header(request, bundle, risk), verdict, approved_block, body.strip()]
         disclaimers = [d for d in risk.required_disclaimers if d not in body]
         if bundle.inferred_links and INFERRED_LINK_NOTE not in body:
             disclaimers.append(INFERRED_LINK_NOTE)
@@ -295,6 +310,7 @@ PRODUCT_STATUS_TEXT = {
     "CANCELLED": "許可證已註銷", "REVOKED": "許可證已廢止", "UNKNOWN": "許可證狀態不明",
 }
 ASK_MORE_INFO = "可以提供產品全名、包裝照片或許可證字號，我再幫你查。"
+REGISTRATION_NOT_SAFETY_NOTE = "官方紀錄代表產品有登記，不代表對每個人都安全；有疾病、懷孕或正在用藥，請先諮詢醫師或藥師。"
 ASK_IMAGE_MORE_INFO = "可以補充許可證字號，或拍清楚包裝正面的產品名稱，我再幫你查。"
 NOT_FOUND_NOT_FAKE = "查不到不代表是假貨或違法。"
 ASK_WHICH_PRODUCT = "請回覆你要查的是哪一項（可直接傳完整品名或許可證字號）。"
@@ -339,6 +355,91 @@ def _asserted_claim_lines(bundle: EvidenceBundle) -> list[str]:
     return [claim_policy_line(c) for c in bundle.claim_assessment if c.origin != ClaimOrigin.USER_QUESTION]
 
 
+_RISK_ORDER = {RiskLevel.LOW: 0, RiskLevel.MEDIUM: 1, RiskLevel.HIGH: 2}
+
+
+def claim_verdict_line(c: ClaimAssessment) -> str:
+    """單一命題的判定文字（primary card / 為什麼 / 完整分析共用，只讀 ClaimAssessment，不重新推論）。
+
+    USER_QUESTION 寫成「你問的…」；醫療效能命題只說「若當成產品功效宣稱屬高風險說法」，不說使用者違法、不說產品危險。
+    """
+    mark = f"{RISK_EMOJI[c.claim_risk]} " if c.claim_risk else ""
+    if c.origin != ClaimOrigin.USER_QUESTION:
+        return mark + claim_policy_line(c)
+    policy = c.policy
+    if c.status == ClaimAssessmentStatus.MEDICAL_TREATMENT_CLAIM:
+        return f"{mark}你問的「{c.claim_text}」：{QUESTION_MEDICAL_PROPOSITION}"
+    reason = (policy.reason if policy else c.explanation) or CLAIM_STATUS_SUMMARY[c.status]
+    line = f"{mark}你問的「{c.claim_text}」：{reason}"
+    if c.status == ClaimAssessmentStatus.CONSISTENT_WITH_OFFICIAL and policy is not None:
+        if policy.matched_function_name:  # 摘要只標功效類別；完整核准原文在完整分析 / 完整功效明細
+            line += f"（官方核准功效：{policy.matched_function_name}）"
+        elif policy.matched_approved_claim_text:
+            line += f"（官方核准：{policy.matched_approved_claim_text}）"
+    return line
+
+
+def worst_claim(bundle: EvidenceBundle) -> ClaimAssessment | None:
+    rated = [c for c in bundle.claim_assessment if c.claim_risk is not None]
+    return max(rated, key=lambda c: _RISK_ORDER[c.claim_risk], default=None)
+
+
+def claim_verdict_summary(bundle: EvidenceBundle, product) -> str:
+    """說法查證的一句結論：取風險最高的命題（與重點列、為什麼、完整分析使用同一份 ClaimAssessment）。"""
+    worst = worst_claim(bundle)
+    if worst is None:
+        return "目前無法確認這個說法。"
+    if worst.claim_risk == RiskLevel.HIGH:
+        if worst.origin == ClaimOrigin.USER_QUESTION:
+            return "你問的這句話若當成產品功效宣稱，屬高風險說法（不是指你違法，也不是指產品本身危險）。"
+        return "這項宣稱屬高風險說法，保健食品不能這樣宣稱。"
+    if worst.claim_risk == RiskLevel.LOW:
+        policy = worst.policy
+        if product is not None and policy is not None and policy.matched_approved_evidence_id:
+            return f"這個說法在「{product.product_name_zh}」官方核准的保健功效範圍內。"
+        return "這個說法與官方資料一致。"
+    return CLAIM_STATUS_SUMMARY[worst.status]
+
+
+def verdict_block(bundle: EvidenceBundle) -> str:
+    if not bundle.claim_assessment:
+        return ""
+    return "查證結論：\n" + "\n".join(claim_verdict_line(c) for c in bundle.claim_assessment)
+
+
+def full_analysis_header(request: NormalizedUserRequest, bundle: EvidenceBundle, risk: RiskAssessment) -> str:
+    """完整分析標題與 primary card 一致：說法查證顯示宣稱風險，其他型態顯示原本的風險標題。"""
+    worst = worst_claim(bundle)
+    rtype = select_response_type(request, bundle, risk)
+    if rtype == ResponseType.CLAIM_RESULT and worst is not None:
+        return f"{TYPE_TITLES[ResponseType.CLAIM_RESULT]}｜{CLAIM_RISK_LABEL[worst.claim_risk]}"
+    if rtype == ResponseType.RISK:
+        return build_header(risk)
+    return TYPE_TITLES.get(rtype, build_header(risk))
+
+
+# 完整分析（LLM）不得與 deterministic verdict 相反；矛盾時改用固定模板
+_SAYS_UNSUPPORTED_RE = re.compile(r"找不到[^。，\n]{0,6}官方[^。，\n]{0,4}支持|沒有[^。，\n]{0,4}官方[^。，\n]{0,4}支持|不在[^。，\n]{0,4}核准[^。，\n]{0,2}範圍")
+_SAYS_APPROVED_RE = re.compile(r"(?<!不)(?:在|屬於)[^。，\n]{0,6}核准[^。，\n]{0,4}範圍|與[^。，\n]{0,8}核准[^。，\n]{0,6}一致")
+
+
+_SAYS_PRODUCT_SAFE_RE = re.compile(r"(?<!不是)(?<!不算)低風險|風險(?:很|較|偏)低|(?:很|相當|非常|十分)安全")
+
+
+def product_info_overclaims(body: str, rtype: ResponseType) -> bool:
+    """產品資訊 / 成分類回答只能描述官方紀錄，不可推論產品本身低風險或安全。"""
+    return rtype in (ResponseType.PRODUCT_INFO, ResponseType.INGREDIENT_LIST) and bool(_SAYS_PRODUCT_SAFE_RE.search(body))
+
+
+def verdict_contradiction(body: str, bundle: EvidenceBundle) -> bool:
+    risks = {c.claim_risk for c in bundle.claim_assessment if c.claim_risk is not None}
+    if risks == {RiskLevel.LOW}:
+        return bool(_SAYS_UNSUPPORTED_RE.search(body))
+    if risks == {RiskLevel.HIGH}:
+        return bool(_SAYS_APPROVED_RE.search(body))
+    return False
+
+
 def identity_unresolved(request: NormalizedUserRequest, bundle: EvidenceBundle) -> bool:
     """還不知道要查的是哪一項產品（不是產品本身有風險）：
     指稱無法解析、多個 / 低信心候選、只找到名稱相似或只對應到公司、只傳圖片但沒有確認產品、
@@ -379,6 +480,11 @@ def select_response_type(request: NormalizedUserRequest, bundle: EvidenceBundle,
         # 只傳圖片且產品已確認：無風險 → 產品資訊；有風險（例如許可證失效）→ 風險卡
         return ResponseType.PRODUCT_INFO if risk.risk_level == RiskLevel.LOW else ResponseType.RISK
     if request.intent in (Intent.PRODUCT_VERIFICATION, Intent.SAFETY_INQUIRY):
+        # 查有官方紀錄不等於「產品本身低風險」：沒有命題、也沒有任何風險發現（LOW）時只呈現官方紀錄；
+        # 許可證失效、違規廣告紀錄、資訊衝突、查無紀錄等實際發現才用風險卡
+        if (not request.claims and risk.risk_level == RiskLevel.LOW
+                and bundle.product_match.status == ProductVerificationStatus.VERIFIED):
+            return ResponseType.PRODUCT_INFO
         return ResponseType.RISK
     if request.claims:
         return ResponseType.CLAIM_RESULT
@@ -447,6 +553,11 @@ def dedupe_approved_claims(claims: list[ApprovedClaimEvidence]) -> list[Approved
     return list(lines.values())
 
 
+def _approved_function_names(bundle: EvidenceBundle, product) -> list[str]:
+    return _dedupe([f for line in dedupe_approved_claims(
+        [e for e in bundle.approved_claims if e.product_id == product.product_id]) for f in line.function_names])
+
+
 def _approved_claim_lines(bundle: EvidenceBundle, product) -> list[str]:
     """已確認產品的官方核准功效（功效類別：核准敘述），只取自 EvidenceBundle；相同敘述只出現一次。"""
     return _dedupe([line.display() for line in dedupe_approved_claims(
@@ -508,7 +619,7 @@ def _summary_and_points(
             summary = "目前資訊不足，暫時無法確認。"
         else:
             summary = risk.triggered_rules[0].reason if risk.triggered_rules else risk_title(risk) + "。"
-        points = _asserted_claim_lines(bundle) + [h.reason for h in risk.triggered_rules]
+        points = [claim_verdict_line(c) for c in bundle.claim_assessment] + [h.reason for h in risk.triggered_rules]
         if not risk.is_conclusive:
             points.append(ASK_MORE_INFO)
         return summary, _dedupe(points)
@@ -523,6 +634,10 @@ def _summary_and_points(
                   f"官方核准的保健功效：{functions}" if functions else ""]
         if request.observed_package_claims:
             points.append(f"包裝上另有 {len(request.observed_package_claims)} 項宣稱文字，需要的話可按「查驗包裝宣稱」。")
+        if request.intent == Intent.SAFETY_INQUIRY:
+            warning_count = sum(1 for w in bundle.warnings if w.product_id == product.product_id)
+            points[:0] = [REGISTRATION_NOT_SAFETY_NOTE] + (
+                [f"官方登記的警語與注意事項有 {warning_count} 則，可在「查看官方資訊」中查看。"] if warning_count else [])
         return f"官方紀錄中有「{product.product_name_zh}」，許可證字號 {product.permit_number or '無'}。", _dedupe(points)
     if rtype == ResponseType.INGREDIENT_LIST:
         names = _product_ingredients(bundle)
@@ -532,12 +647,18 @@ def _summary_and_points(
             return "官方資料中找到以下成分。", names
         return "官方資料中目前查不到這個成分。", [ASK_MORE_INFO]
     if rtype == ResponseType.CLAIM_RESULT:
-        first = bundle.claim_assessment[0] if bundle.claim_assessment else None
-        summary = CLAIM_STATUS_SUMMARY[first.status] if first else "目前無法確認這個說法。"
-        points = [claim_policy_line(c) if c.origin != ClaimOrigin.USER_QUESTION
-                  else (f"「{c.claim_text}」：{c.explanation}" if c.explanation else "") for c in bundle.claim_assessment]
-        if product is not None and (approved := _approved_claim_lines(bundle, product)):
-            points.append(f"「{product.product_name_zh}」官方核准的保健功效：" + "；".join(approved))
+        summary = claim_verdict_summary(bundle, product)
+        names = _approved_function_names(bundle, product) if product is not None else []
+        claims = bundle.claim_assessment
+        if names and claims and all(
+                c.origin == ClaimOrigin.USER_QUESTION and c.status == ClaimAssessmentStatus.CONSISTENT_WITH_OFFICIAL
+                and c.policy is not None and c.policy.matched_function_name in names for c in claims):
+            # 所問的功效都在核准範圍內：結論已在摘要，重點只列官方核准功效一次（逐條判定在「為什麼」/ 完整分析）
+            return summary, ["官方核准功效：" + "、".join(names)]
+        points = [claim_verdict_line(c) for c in claims]
+        if names:
+            # 只列功效類別名稱；完整核准原文（含 1. 2. 3. 項目）放完整分析，不在卡片上重複整段原文
+            points.append("官方核准功效：" + "、".join(names))
         return summary, _dedupe(points)
     if rtype == ResponseType.SOURCE_SUMMARY:
         titles = [r.title for r in bundle.rag_evidence] + [w.title for w in bundle.official_web_evidence]
@@ -624,6 +745,8 @@ def compose_payload(request: NormalizedUserRequest, bundle: EvidenceBundle, risk
         request_id=request.request_id,
         response_type=rtype,
         risk_level=risk.risk_level if rtype == ResponseType.RISK else None,
+        claim_risk_level=(worst.claim_risk if rtype == ResponseType.CLAIM_RESULT and (worst := worst_claim(bundle))
+                          else None),
         is_conclusive=risk.is_conclusive,
         title=risk_title(risk) if rtype == ResponseType.RISK else TYPE_TITLES[rtype],
         summary=summary,
@@ -761,10 +884,8 @@ def detail_payload(
         body = _dedupe([f"・{part}" for w in bundle.warnings if product and w.product_id == product.product_id
                         for part in _split_sentences(w.text)]) or ["官方資料中沒有登記警語。"]
     elif action == ResponseAction.WHY:
-        body = _dedupe([h.reason for h in risk.triggered_rules]
-                       + [claim_policy_line(c) if c.policy is not None
-                          else f"「{c.claim_text}」：{CLAIM_STATUS_SUMMARY[c.status]}{c.explanation}"
-                          for c in bundle.claim_assessment]
+        body = _dedupe([claim_verdict_line(c) for c in bundle.claim_assessment]
+                       + [h.reason for h in risk.triggered_rules]
                        + bundle.product_match.notes
                        + (["有資料來源查詢失敗，結果可能不完整。"] if risk.data_incomplete else []))
         body = body or ["這次沒有觸發特別的判斷規則。"]

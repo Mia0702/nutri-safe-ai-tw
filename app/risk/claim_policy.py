@@ -37,6 +37,7 @@ from app.schemas.enums import (
     ClaimSemanticCategory,
     EvidenceScope,
     MedicalAssertionType,
+    RiskLevel,
 )
 from app.schemas.evidence import (
     ApprovedClaimEvidence,
@@ -76,6 +77,8 @@ REASON_NO_SOURCE = "資料來源暫時無法查詢，無法判斷這項宣稱。
 NOTE_CLAIM_LEVEL_ONLY = "產品身份尚未完全確認；這個判定只針對宣稱內容，不代表產品真偽。"
 REASON_OFFICIAL_MEDICAL_EXAMPLE = "這項宣稱和官方列舉的醫療效能詞句相同，保健食品不能這樣宣稱。"
 REASON_OFFICIAL_PERMITTED_EXAMPLE = "這項文字和官方列為通常可使用的詞句相同。"
+REASON_APPROVED_FUNCTION = "這項功效屬於該產品官方核准的保健功效類別。"
+REASON_FUNCTION_AMBIGUOUS = "這項說法和該產品官方核准的保健功效只有部分相近，無法確認是否在核准範圍內。"
 REASON_POLICY_CONTEXT_ONLY = "官方資料有相關說明，但要看使用條件或仍待官方資料複核，目前不能單獨據此判定合法或違法。"
 
 # 例示類型 × 所屬規則效果：只有這兩種組合可以由「文字相同」直接下結論（其餘只提供脈絡）
@@ -92,6 +95,8 @@ class StructuredPolicyContext:
     example_matches: list[ClaimPolicyExampleEvidence] = field(default_factory=list)  # 與宣稱文字相同的官方例示
     rules: dict[str, ClaimPolicyRuleEvidence] = field(default_factory=dict)  # rule_id → 規則（含例示所屬規則）
     medical_rules: list[ClaimPolicyRuleEvidence] = field(default_factory=list)  # 醫療效能禁止規則
+    # 提問中逐字出現、且唯一的官方功效名稱（保健功效目錄），並已確認是該產品的核准功效類別
+    question_function: str | None = None
 
     def decisive_example(self) -> tuple[ClaimPolicyExampleEvidence, ClaimPolicyRuleEvidence, ClaimPolicyResult] | None:
         """可直接下結論的例示：例示與規則都 DECISION_ELIGIBLE，且例示類型與規則效果一致。醫療效能優先。"""
@@ -306,6 +311,92 @@ def classify_claim_policy(
                       "POLICY_CONTEXT_ONLY_NOT_DECISIVE", REASON_POLICY_CONTEXT_ONLY)
     return decide(ClaimPolicyResult.UNSUPPORTED_CLAIM, ClaimPolicyType.NO_POLICY_EVIDENCE,
                   "POLICY_NO_OFFICIAL_SUPPORT", REASON_UNSUPPORTED)
+
+
+def match_approved_function(
+    claim: ExtractedClaim, approved_claims: list[ApprovedClaimEvidence],
+) -> tuple[ApprovedClaimEvidence | None, bool]:
+    """命題所問的功效是否就是該產品某個官方核准的保健功效類別（ApprovedClaim → 官方功效名稱 → 命題）。
+
+    回傳 (唯一對應的核准功效, ambiguous)。只比正規化後的官方功效名稱（即保健功效目錄的官方名稱），不推測語意：
+    * Agent A 有抽出 target_function：必須與某個官方功效名稱完全相同；只有部分重疊（較廣 / 較窄）→ ambiguous。
+    * 沒有 target_function：只看產品核准功效無法知道問句是否還提到其他（未核准的）功效，因此不在這裡決定對應
+      （由 Agent B 以完整保健功效目錄判斷，見 canonical_function）；問句中出現多個核准功效 → ambiguous。
+    未分類（無功效類別）的核准宣稱不參與。
+    """
+    by_function: dict[str, ApprovedClaimEvidence] = {}
+    for e in approved_claims:
+        name = normalize_name(e.function_name) if e.function_classified else ""
+        if len(name) >= 2:
+            by_function.setdefault(name, e)
+    if not by_function:
+        return None, False
+    target = normalize_name(claim.target_function or "")
+    if target:
+        if target in by_function:
+            return by_function[target], False
+        partial = any(target in name or name in target for name in by_function) and len(target) >= 2
+        return None, partial
+    text = normalize_name(claim.claim_text)
+    hits = [name for name in by_function if name in text]
+    return None, len(hits) > 1
+
+
+def approved_function_decision(
+    claim: ExtractedClaim, approved_claims: list[ApprovedClaimEvidence], canonical_function: str | None = None,
+) -> ClaimPolicyDecision | None:
+    """使用者提問的命題落在已確認產品的核准功效類別內 → APPROVED_SCOPE_CONSISTENT；部分重疊 → INSUFFICIENT_EVIDENCE。
+
+    只用於沒有疾病語意、沒有絕對化用語的提問（呼叫端負責檢查），不放寬官方例示的 exact-match 規則。
+    canonical_function：Agent B 由保健功效目錄確認、問句中逐字出現的唯一官方功效名稱（優先使用，不用 LLM 的 target 改寫）。
+    """
+    if canonical_function:
+        key = normalize_name(canonical_function)
+        approved = next((e for e in approved_claims if e.function_classified and normalize_name(e.function_name) == key), None)
+        if approved is not None:
+            return ClaimPolicyDecision(
+                policy_result=ClaimPolicyResult.APPROVED_SCOPE_CONSISTENT,
+                policy_type=ClaimPolicyType.PRODUCT_SPECIFIC_APPROVED_CLAIM,
+                rule_id="POLICY_QUESTION_WITHIN_APPROVED_FUNCTION", reason=REASON_APPROVED_FUNCTION,
+                evidence_scope=EvidenceScope.PRODUCT_SPECIFIC,
+                matched_approved_claim_id=approved.approved_claim_id, matched_approved_evidence_id=approved.evidence_id,
+                matched_function_name=approved.function_name, matched_approved_claim_text=approved.claim_text,
+                match_method="health_function_catalog", sources=[_approved_source(approved)],
+                source_evidence_ids=[approved.evidence_id],
+            )
+    approved, ambiguous = match_approved_function(claim, approved_claims)
+    if approved is not None:
+        return ClaimPolicyDecision(
+            policy_result=ClaimPolicyResult.APPROVED_SCOPE_CONSISTENT,
+            policy_type=ClaimPolicyType.PRODUCT_SPECIFIC_APPROVED_CLAIM,
+            rule_id="POLICY_QUESTION_WITHIN_APPROVED_FUNCTION", reason=REASON_APPROVED_FUNCTION,
+            evidence_scope=EvidenceScope.PRODUCT_SPECIFIC,
+            matched_approved_claim_id=approved.approved_claim_id, matched_approved_evidence_id=approved.evidence_id,
+            matched_function_name=approved.function_name, matched_approved_claim_text=approved.claim_text,
+            match_method="health_function_name", sources=[_approved_source(approved)],
+            source_evidence_ids=[approved.evidence_id],
+        )
+    if ambiguous:
+        return ClaimPolicyDecision(
+            policy_result=ClaimPolicyResult.INSUFFICIENT_EVIDENCE,
+            policy_type=ClaimPolicyType.PRODUCT_SPECIFIC_APPROVED_CLAIM,
+            rule_id="POLICY_FUNCTION_MATCH_AMBIGUOUS", reason=REASON_FUNCTION_AMBIGUOUS,
+        )
+    return None
+
+
+def claim_risk_level(status: ClaimAssessmentStatus, *, product_side: bool) -> RiskLevel | None:
+    """命題「若作為產品功效宣稱」的風險：醫療效能 → HIGH；產品方宣稱與官方矛盾 → HIGH；
+    與官方一致 → LOW；其餘（找不到支持、誇大、無法判斷、非產品方的矛盾）→ MEDIUM。"""
+    if status == ClaimAssessmentStatus.NOT_APPLICABLE:
+        return None
+    if status == ClaimAssessmentStatus.MEDICAL_TREATMENT_CLAIM:
+        return RiskLevel.HIGH
+    if status == ClaimAssessmentStatus.CONFLICT_WITH_OFFICIAL and product_side:
+        return RiskLevel.HIGH
+    if status == ClaimAssessmentStatus.CONSISTENT_WITH_OFFICIAL:
+        return RiskLevel.LOW
+    return RiskLevel.MEDIUM
 
 
 def approved_support_decision(

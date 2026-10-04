@@ -157,11 +157,13 @@ def test_3b_disease_claim_not_in_approved_claims_is_medical_after_comparison():
     assert assess(c, []).policy.policy_result == ClaimPolicyResult.MEDICAL_TREATMENT_CLAIM
 
 
-def test_4_user_question_about_treatment_is_not_medical_claim():
+def test_4_user_question_about_treatment_keeps_role_with_high_proposition_risk():
     c = ad("TEST_ONLY 可以治療虛構病嗎", MED, M.TREATS_OR_CURES_DISEASE, origin=ClaimOrigin.USER_QUESTION,
            condition="虛構病")
     result = assess(c, [])
-    assert result.status == ClaimAssessmentStatus.UNSUPPORTED and result.policy is None
+    assert result.origin == ClaimOrigin.USER_QUESTION and not result.is_product_side_assertion
+    assert result.status == ClaimAssessmentStatus.MEDICAL_TREATMENT_CLAIM and result.claim_risk == RiskLevel.HIGH
+    assert result.policy.policy_result == ClaimPolicyResult.MEDICAL_TREATMENT_CLAIM
 
 
 def test_5_unresolved_product_ordinary_claim_is_insufficient_not_high():

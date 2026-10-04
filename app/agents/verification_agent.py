@@ -81,6 +81,9 @@ from app.risk.claim_policy import (
     StructuredPolicyContext,
     exact_approved_match,
     is_asserted_disease_claim,
+    is_disease_claim,
+    is_explicit_medical_claim,
+    match_approved_function,
 )
 from app.schemas.enums import (
     ClaimAssessmentStatus,
@@ -89,6 +92,7 @@ from app.schemas.enums import (
     ErrorCode,
     EvidenceScope,
     Intent,
+    ProductMatchType,
     ProductVerificationStatus,
     SourceType,
     UrlSourceRole,
@@ -335,6 +339,13 @@ class VerificationAgent:
             bundle.fast_path_reason = f"{label}s_assessed:approved_exact_text"
             bundle.planner_trace.append(PlannerStep(round=0, note="宣稱與官方核准功效文字完全相同，不需要語意比對"))
             return []
+        # 宣稱與使用者提問的命題共用同一條結構化 claim-policy evidence path
+        self._claim_policy_stage(state, rec)
+        if not state.failed and state.policy_final_claims >= set(range(len(request.claims))):
+            bundle.fast_path_reason = f"{label}s_assessed:structured_policy_deterministic"
+            bundle.planner_trace.append(PlannerStep(
+                round=0, note="所有命題已由核准功效 / 結構化規則決定，不查 RAG / 官方網站、不做語意比對"))
+            return []
         self._guardrail_rag(state, rec)
         if state.failed - {"search_rag"}:
             bundle.fast_path_reason = f"{label}_declined:structured_lookup_failed"
@@ -548,6 +559,13 @@ class VerificationAgent:
         """deterministic 查結構化官方資料；證據充分才停止，否則回到完整流程（已查過的工具不會重複呼叫）。"""
         request, bundle = state.request, state.bundle
         eligible, reason = self.fast_path_decision(request)
+        name_only = not eligible and self._product_name_only_candidate(request)
+        if name_only:
+            # intent 不明、沒有命題、整則訊息就是一個產品名稱：只有官方品名 / 官方別名「完全相同」才走 fast path
+            if not self._product_name_only_exact(state):
+                bundle.fast_path_reason = "product_name_only_not_exact"
+                return False
+            eligible, reason = True, None
         bundle.fast_path_eligible = eligible
         if not eligible:
             bundle.fast_path_reason = reason
@@ -576,9 +594,32 @@ class VerificationAgent:
             bundle.fast_path_reason = "structured_lookup_failed"
             return False
         bundle.planner_mode = FAST_PATH_MODE
-        bundle.fast_path_reason = "verified_structured_evidence_sufficient"
+        bundle.fast_path_reason = "product_name_only_exact" if name_only else "verified_structured_evidence_sufficient"
         bundle.planner_trace.append(PlannerStep(round=0, note="結構化官方資料已足夠（產品已確認、無衝突、無待查證命題），停止規劃"))
         return True
+
+    @staticmethod
+    def _product_name_only_candidate(request: NormalizedUserRequest) -> bool:
+        """intent=unclear 的純產品名稱查詢候選（之後還要確認 resolver exact 且整則文字就是該名稱）。"""
+        return (
+            request.intent == Intent.UNCLEAR
+            and not request.claims
+            and bool(request.product_candidates)
+            and not (request.permit_number_candidates or request.ingredient_candidates or request.url_sources
+                     or request.observed_package_claims or request.missing_product_context
+                     or request.foreign_country_codes or request.image_identification)
+        )
+
+    @staticmethod
+    def _product_name_only_exact(state: PlannerState) -> bool:
+        """resolver 以官方品名 / 官方別名完全相同確認（VERIFIED），且使用者原始訊息正規化後就只是這個名稱。"""
+        match = state.bundle.product_match
+        best = match.best_match
+        if (match.status != ProductVerificationStatus.VERIFIED or best is None
+                or match.match_type not in (ProductMatchType.CANONICAL_EXACT, ProductMatchType.OFFICIAL_ALIAS_EXACT)):
+            return False
+        text = normalize_name(state.request.original_text)
+        return bool(text) and text in {normalize_name(best.product.product_name_zh), normalize_name(best.query)}
 
     @staticmethod
     def _product_sufficient(state: PlannerState) -> bool:
@@ -824,20 +865,42 @@ class VerificationAgent:
     # ================================================================== 結構化 claim policy
 
     def _claim_policy_stage(self, state: PlannerState, rec: ToolCallRecorder) -> None:
-        """被說出來的宣稱：依固定 evidence priority 查結構化 claim-policy（每個 request 最多一次）。
+        """所有命題（被說出的宣稱與使用者提問的命題）依固定 evidence priority 查結構化 claim-policy（每個 request 最多一次）。
 
-        1. 產品 VERIFIED 且宣稱與該產品核准功效文字相同 → 由核准功效決定，不查一般例句。
-        2. 其餘宣稱：官方例示（文字相同）→ 例示所屬規則；被說出的疾病宣稱另查醫療效能禁止規則（法規來源）。
+        1. 產品 VERIFIED：命題與該產品核准功效文字相同，或提問所問的功效就是核准功效類別 → 由核准功效決定。
+        2. 其餘命題：官方例示（文字相同）→ 例示所屬規則；疾病命題另查醫療效能禁止規則（法規來源）。
         3. 已確認產品的核准功效類別 → 保健功效目錄（官方定義，供法規依據明細）。
-        結構化證據已足以決定的宣稱記入 policy_decided_claims（之後不查 RAG / 官方網站）。
+        結構化證據已足以決定的命題記入 policy_decided_claims（之後不查 RAG / 官方網站）；
+        其中不需要語意比對的（核准原文 / 核准功效類別、明確醫療效能＋結構化醫療效能規則、沒有核准功效時的決定性例示）
+        另記入 policy_final_claims。claim_role 不變：提問仍是 USER_QUESTION，產品風險不因此升級（Risk Engine 規則）。
         corpus 尚未套用（0003 marker 不存在）時略過，不算資料來源失敗。
         """
         req, bundle = state.request, state.bundle
         if state.claim_policy_checked or not req.claims:
             return
         state.claim_policy_checked = True
-        asserted = [(i, c) for i, c in enumerate(req.claims) if c.is_asserted]
-        if state.claim_policy is None or not asserted:
+        propositions = list(enumerate(req.claims))
+        verified = bundle.product_match.status == ProductVerificationStatus.VERIFIED
+        approved = bundle.approved_claims if verified else []
+        decided: set[int] = set()
+        final: set[int] = set()
+        pending = []
+        function_questions = []  # 可用保健功效目錄 deterministic 對應的提問
+        for i, c in propositions:
+            if approved and not c.uses_absolute_language and exact_approved_match(c.claim_text, approved):
+                decided.add(i)  # 1. product-specific approved claim 優先（不需要 corpus）
+                final.add(i)
+                continue
+            plain_question = approved and not c.is_asserted and not is_disease_claim(c) and not c.uses_absolute_language
+            if plain_question and match_approved_function(c, approved)[0] is not None:
+                decided.add(i)  # 提問的 target 就是核准功效類別名稱（完全相同）
+                final.add(i)
+                continue
+            if plain_question:
+                function_questions.append((i, c))
+            pending.append((i, c))  # 部分重疊 / 多個功效 / 對應不到 → 保守的 evidence path
+        state.policy_decided_claims, state.policy_final_claims = set(decided), set(final)
+        if state.claim_policy is None or not pending:
             return
         try:
             available = state.claim_policy.corpus_available()
@@ -847,20 +910,29 @@ class VerificationAgent:
             bundle.planner_trace.append(PlannerStep(
                 round=len(bundle.planner_trace) + 1, note="claim policy corpus 尚未套用（0003），略過結構化 policy"))
             return
-        verified = bundle.product_match.status == ProductVerificationStatus.VERIFIED
-        approved = bundle.approved_claims if verified else []
-        decided: set[int] = set()
-        pending = []
-        for i, c in asserted:
-            if approved and not c.uses_absolute_language and exact_approved_match(c.claim_text, approved):
-                decided.add(i)  # 1. product-specific approved claim 優先
-            else:
-                pending.append((i, c))
+        if function_questions:
+            # 2a. 提問 → 保健功效目錄（問句中逐字出現的官方功效名稱）→ 該產品核准功效：唯一且一致才 deterministic 決定
+            texts = {i: self._question_text_without_product(state, c) for i, c in function_questions}
+            names = [e.function_name for e in approved if e.function_classified]
+            names += [c.target_function for _, c in function_questions if c.target_function]  # target 是否為另一個官方功效
+            self._guardrail_call(state, rec, "lookup_health_function", HealthFunctionArgs(
+                function_names=list(dict.fromkeys(names)), question_texts=list(dict.fromkeys(texts.values()))))
+            approved_names = {normalize_name(e.function_name) for e in approved if e.function_classified}
+            catalog = {normalize_name(h.official_function_name) for h in state.health_functions.values()}
+            for i, c in function_questions:
+                mentioned = state.function_mentions.get(normalize_name(texts[i]), [])
+                target = normalize_name(c.target_function or "")
+                if (len(mentioned) == 1 and normalize_name(mentioned[0]) in approved_names
+                        and not (target in catalog and target != normalize_name(mentioned[0]))):
+                    state.question_functions[normalize_name(c.claim_text)] = mentioned[0]
+                    decided.add(i)
+                    final.add(i)
+            pending = [(i, c) for i, c in pending if i not in final]
         if pending:
             self._guardrail_call(state, rec, "search_claim_policy_examples",
                                  ClaimTextsArgs(claim_texts=[c.claim_text for _, c in pending]))
         rule_ids = sorted({e.rule_id for e in state.policy_examples.values()})
-        needs_medical = any(is_asserted_disease_claim(c) for _, c in pending)
+        needs_medical = any(is_disease_claim(c) for _, c in pending)
         if rule_ids or needs_medical:
             self._guardrail_call(state, rec, "search_claim_policy_rules", ClaimPolicyRulesArgs(
                 rule_ids=rule_ids,
@@ -873,21 +945,41 @@ class VerificationAgent:
                 if r.rule_category == MEDICAL_RULE_CATEGORY and r.policy_effect == EFFECT_PROHIBITED
             }
         function_names = [e.function_name for e in approved if e.function_classified]
-        function_names += [c.target_function for _, c in asserted if c.target_function]
-        if function_names:
+        function_names += [c.target_function for _, c in propositions if c.target_function]
+        if function_names and not state.attempted.get("lookup_health_function"):
             self._guardrail_call(state, rec, "lookup_health_function",
-                                 HealthFunctionArgs(function_names=list(dict.fromkeys(function_names))))
+                                 HealthFunctionArgs(function_names=list(dict.fromkeys(function_names)), question_texts=[]))
         for i, c in pending:
             ctx = self._policy_context(state, c)
             decisive = ctx.decisive_example()
+            medical_rules = bool(ctx.decision_medical_rules())
             if decisive is not None and (not approved or decisive[0].example_type == MEDICAL_EXAMPLE_TYPE):
                 decided.add(i)  # 例示所屬規則已決定（通常可使用例示不覆蓋產品核准功效）
-            elif is_asserted_disease_claim(c) and ctx.decision_medical_rules():
-                decided.add(i)  # 疾病宣稱由規則決定，法規來源已由結構化規則提供
+                if not approved:
+                    final.add(i)
+            elif is_disease_claim(c) and medical_rules:
+                decided.add(i)  # 疾病命題由規則決定，法規來源已由結構化規則提供
+            if is_explicit_medical_claim(c) and medical_rules:
+                decided.add(i)  # 明確治療 / 診斷 / 取代醫療：在核准功效比對之前就由規則決定
+                final.add(i)
         state.policy_decided_claims = decided
+        state.policy_final_claims = final
         bundle.planner_trace.append(PlannerStep(
             round=len(bundle.planner_trace) + 1,
-            note=f"結構化 claim policy：{len(decided)}/{len(asserted)} 則宣稱已可由核准功效或規則決定"))
+            note=f"結構化 claim policy：{len(decided)}/{len(propositions)} 則命題已可由核准功效或規則決定"
+                 f"（{len(final)} 則不需語意比對）"))
+
+    @staticmethod
+    def _question_text_without_product(state: PlannerState, claim) -> str:
+        """問句去掉產品 / 品牌名稱（品名中的字不能被當成使用者問的功效）。"""
+        text = normalize_name(claim.claim_text)
+        best = state.bundle.product_match.best_match
+        names = [best.product.product_name_zh] if best else []
+        names += state.request.product_candidates + state.request.corrected_product_candidates + state.request.brand_candidates
+        for name in sorted({normalize_name(n) for n in names if n}, key=len, reverse=True):
+            if name:
+                text = text.replace(name, "")
+        return text
 
     @staticmethod
     def _policy_context(state: PlannerState, claim) -> StructuredPolicyContext:
@@ -898,6 +990,7 @@ class VerificationAgent:
             example_matches=sorted(examples, key=lambda e: e.example_id),
             rules=dict(state.policy_rules),
             medical_rules=[state.policy_rules[r] for r in sorted(state.medical_rule_ids) if r in state.policy_rules],
+            question_function=state.question_functions.get(norm),
         )
 
     @staticmethod

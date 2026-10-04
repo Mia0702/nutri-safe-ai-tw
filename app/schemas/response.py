@@ -14,6 +14,12 @@ from app.schemas.evidence import SourceRef
 
 # 風險識別只用 emoji，不用大面積色塊；只有 response_type=RISK 會使用
 RISK_EMOJI = {RiskLevel.LOW: "🟢", RiskLevel.MEDIUM: "🟠", RiskLevel.HIGH: "🔴"}
+# 說法查證（CLAIM_RESULT）的宣稱風險標示：針對「這句話若作為產品功效宣稱」，不是產品本身的風險
+CLAIM_RISK_LABEL = {
+    RiskLevel.LOW: "🟢 官方核准範圍內／符合官方資料",
+    RiskLevel.MEDIUM: "🟠 需要更多證據",
+    RiskLevel.HIGH: "🔴 高風險宣稱",
+}
 
 
 class ProductChoice(BaseModel):
@@ -31,6 +37,8 @@ class ResponsePayload(BaseModel):
     request_id: str
     response_type: ResponseType
     risk_level: RiskLevel | None = None  # 只有 RISK 才有；其他型態不硬加風險等級
+    # 只有 CLAIM_RESULT 才有：所有命題中最高的 claim_risk（取自 ClaimAssessment，不由 UI 重新推論）
+    claim_risk_level: RiskLevel | None = None
     is_conclusive: bool = True
     title: str
     summary: str  # 一句主要結論
@@ -49,6 +57,8 @@ class ResponsePayload(BaseModel):
     def _risk_level_only_for_risk(self) -> "ResponsePayload":
         if (self.response_type == ResponseType.RISK) != (self.risk_level is not None):
             raise ValueError("risk_level 必須且只能出現在 response_type=RISK")
+        if self.claim_risk_level is not None and self.response_type != ResponseType.CLAIM_RESULT:
+            raise ValueError("claim_risk_level 只用於 CLAIM_RESULT")
         if len(set(self.available_actions)) != len(self.available_actions):
             raise ValueError("available_actions 不可重複")
         if self.product_choices and self.response_type != ResponseType.MISSING_INFORMATION:

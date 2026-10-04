@@ -72,8 +72,11 @@ def test_user_question_about_disease_stays_claim_result():
     result, _ = run(extraction(intent=Intent.EFFICACY_INQUIRY, product_candidates=[PRODUCT_1], claims=[q]))
     assert [c.origin for c in result.normalized_request.claims] == [ClaimOrigin.USER_QUESTION]
     assert result.response.response_type == ResponseType.CLAIM_RESULT
-    assert result.claim_assessment[0].status != ClaimAssessmentStatus.MEDICAL_TREATMENT_CLAIM
-    assert result.response.risk_level is None
+    # 命題（若作為產品功效宣稱）是醫療效能 → claim risk HIGH；但仍是提問，不是產品風險燈
+    assert result.claim_assessment[0].status == ClaimAssessmentStatus.MEDICAL_TREATMENT_CLAIM
+    assert result.claim_assessment[0].origin == ClaimOrigin.USER_QUESTION
+    assert result.response.risk_level is None and result.risk.risk_level != RiskLevel.HIGH
+    assert result.response.claim_risk_level == RiskLevel.HIGH
     # 已確認產品：一併列出官方核准的功效，讓使用者知道官方核准的是什麼
     assert any("測試功效甲" in p for p in result.response.key_points)
 

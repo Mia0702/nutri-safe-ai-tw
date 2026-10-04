@@ -166,6 +166,20 @@ def search_claim_policy_examples(
     return out[:MAX_EXAMPLE_MATCHES]
 
 
+def health_functions_in_text(
+    repo: ClaimPolicyRepository, text: str, *, include_superseded: bool = False
+) -> list[HealthFunctionEvidence]:
+    """官方功效名稱（正規化後）逐字出現在文字中的保健功效項目；只比字面，不做同義詞推測。"""
+    norm = normalize_name(text)
+    if not norm:
+        return []
+    return sorted(
+        (health_function_evidence(row) for row in _current(repo.list_health_functions(), include_superseded)
+         if (name := normalize_name(row["official_function_name"])) and name in norm),
+        key=lambda e: e.function_id,
+    )
+
+
 def lookup_health_function(
     repo: ClaimPolicyRepository, function_names: list[str], *, include_superseded: bool = False
 ) -> list[HealthFunctionEvidence]:

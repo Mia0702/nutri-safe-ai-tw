@@ -176,4 +176,9 @@ REPORTER_INSTRUCTIONS = """\
    matched_official_approved_claim（官方核准的原文）與 difference，例如「這項文字與官方核准功效一致」
    或「官方核准的是 X，但廣告宣稱擴大成 Y」；不可自行加上法條、罰則或其他法律結論。
    product_identity_unresolved 為 true 時，要說明產品身份尚未確認，風險是針對宣稱內容，不是產品真偽。
+12. claim_verdicts 是系統對每個命題的最終判定（與卡片、「為什麼」相同），你的回答必須與它一致，不可改變結論：
+   claim_risk 為 LOW 時不可說「找不到官方資料支持」；為 HIGH 時不可說「在核准範圍內」。
+   USER_QUESTION 的 HIGH 只能說「若把這句話當成產品功效宣稱，屬高風險說法」，不可說使用者違法，也不可說產品本身危險。
+13. response_type 為 PRODUCT_INFO 或 INGREDIENT_LIST（產品登記 / 成分 / 核准功效查詢）時，不要寫風險等級，
+   也不可說產品「低風險」「安全」；只描述查有官方紀錄與官方登記的內容（第 1 點的風險結論不適用）。
 """

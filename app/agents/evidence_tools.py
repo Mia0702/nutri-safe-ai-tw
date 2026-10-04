@@ -19,6 +19,7 @@ from typing import Any, Callable
 from openai.lib._pydantic import to_strict_json_schema
 from pydantic import BaseModel, Field
 
+from app.normalization import normalize_name
 from app.schemas.enums import EntityType, ErrorCode
 from app.schemas.evidence import (
     ApprovedClaimEvidence,
@@ -84,9 +85,15 @@ class PlannerState:
     policy_rules: dict[str, ClaimPolicyRuleEvidence] = field(default_factory=dict)  # rule_id →
     policy_examples: dict[str, ClaimPolicyExampleEvidence] = field(default_factory=dict)  # example_id →
     health_functions: dict[str, HealthFunctionEvidence] = field(default_factory=dict)  # function_id →
+    # 問句（正規化）→ 其中逐字出現的官方功效名稱（保健功效目錄）
+    function_mentions: dict[str, list[str]] = field(default_factory=dict)
+    # 命題（正規化文字）→ 已 deterministic 對應到的唯一官方功效名稱（同時是該產品的核准功效）
+    question_functions: dict[str, str] = field(default_factory=dict)
     medical_rule_ids: set[str] = field(default_factory=set)  # 醫療效能禁止規則（statutory 來源）
     claim_policy_checked: bool = False
     policy_decided_claims: set[int] = field(default_factory=set)  # 結構化證據已足以決定的宣稱（不需 RAG / web）
+    # 其中連語意比對（assess_evidence）都不需要的命題：結論完全由 deterministic 規則決定
+    policy_final_claims: set[int] = field(default_factory=set)
 
 
 def _require(dep: Any, source: str) -> Any:
@@ -152,6 +159,7 @@ class ClaimTextsArgs(BaseModel):
 
 class HealthFunctionArgs(BaseModel):
     function_names: list[str] = Field(description="官方保健功效名稱，例如「調節血脂」")
+    question_texts: list[str] = Field(description="要找出其中逐字提到哪些官方功效名稱的問句（已去除產品名稱），沒有就給空陣列")
 
 
 # ---------------------------------------------------------------------------
@@ -363,7 +371,12 @@ def h_policy_examples(state: PlannerState, args: ClaimTextsArgs):
 
 
 def h_health_function(state: PlannerState, args: HealthFunctionArgs):
-    out = claim_policy_tools.lookup_health_function(_policy_repo(state), _trim_list(args.function_names))
+    repo = _policy_repo(state)
+    out = claim_policy_tools.lookup_health_function(repo, _trim_list(args.function_names))
+    for text in _trim_list(args.question_texts):
+        mentioned = claim_policy_tools.health_functions_in_text(repo, text)
+        state.function_mentions[normalize_name(text)] = [e.official_function_name for e in mentioned]
+        out += [e for e in mentioned if all(x.function_id != e.function_id for x in out)]
     for e in out:
         state.health_functions[e.function_id] = e
     return out, {"health_functions": [

@@ -366,9 +366,25 @@ GENERIC_EFFICACY_TERMS = frozenset(normalize_name(t) for t in (
 ))
 
 
+# 泛稱的組合（例如「核准保健功效」「官方核准的保健功效」「保健效果」）：只由修飾詞＋泛稱核心詞組成，沒有指定具體功效
+GENERIC_EFFICACY_QUALIFIERS = tuple(normalize_name(t) for t in (
+    "官方", "核准", "核可", "許可", "登記", "保健", "健康", "產品", "這個", "它", "的",
+))
+GENERIC_EFFICACY_CORES = frozenset(normalize_name(t) for t in ("功效", "效果", "效用", "功能", "作用", "好處"))
+
+
+def _is_generic_efficacy_term(norm: str) -> bool:
+    if norm in GENERIC_EFFICACY_TERMS:
+        return True
+    rest = norm
+    for qualifier in GENERIC_EFFICACY_QUALIFIERS:
+        rest = rest.replace(qualifier, "")
+    return rest in GENERIC_EFFICACY_CORES
+
+
 def _is_specific_target(value: str | None) -> bool:
     norm = normalize_name(value or "")
-    return bool(norm) and norm not in GENERIC_EFFICACY_TERMS
+    return bool(norm) and not _is_generic_efficacy_term(norm)
 
 
 def _is_open_efficacy_question(intent: Intent, claim: ExtractedClaim) -> bool:

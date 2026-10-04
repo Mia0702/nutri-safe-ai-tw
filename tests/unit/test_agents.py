@@ -287,9 +287,11 @@ def test_web_query_is_planned_by_llm_but_limited_to_one_search():
 
 @pytest.mark.parametrize("condition", ["某慢性病", "某消化道疾病", "某眼部疾病"])
 def test_question_about_disease_for_registered_product_is_not_high(condition):
+    """產品風險不因提問升級；提問中的命題本身仍標示 claim_risk HIGH（若作為產品功效宣稱）。"""
     req = request(product_candidates=[PRODUCT_1], claims=[claim(f"{PRODUCT_1}可以治療{condition}", MED, ClaimOrigin.USER_QUESTION)])
     b = agent().verify(req)
-    assert b.claim_assessment[0].status != ClaimAssessmentStatus.MEDICAL_TREATMENT_CLAIM
+    assert b.claim_assessment[0].origin == ClaimOrigin.USER_QUESTION
+    assert b.claim_assessment[0].claim_risk == RiskLevel.HIGH
     assert RiskEngine().assess(req, b).risk_level != RiskLevel.HIGH
 
 
@@ -346,9 +348,11 @@ def test_reporter_header_and_disclaimers_are_deterministic():
     assert DISCLAIMER_NOT_FOUND in out.text
 
 
-def test_reporter_verified_low_header_mentions_product_scope():
+def test_reporter_verified_registration_header_is_product_info_not_low_risk():
+    """單純產品登記查詢：完整分析標題是產品資訊，不說產品本身低風險、不加風險燈。"""
     _, risk, out = _full(request(product_candidates=[PRODUCT_1]))
-    assert risk.risk_level == RiskLevel.LOW and out.text.startswith(VERIFIED_LOW_HEADER)
+    assert risk.risk_level == RiskLevel.LOW and out.text.startswith("產品官方資訊")
+    assert "低風險" not in out.text and not out.text.startswith(VERIFIED_LOW_HEADER)
     assert "資料來源" in out.text and out.cited_source_count >= 1
 
 

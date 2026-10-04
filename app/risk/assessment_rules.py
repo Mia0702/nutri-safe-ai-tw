@@ -22,7 +22,9 @@ from app.schemas.enums import (
 from app.normalization import base_product_name, extract_permit_code, name_match_score, normalize_name
 from app.risk.claim_policy import (
     StructuredPolicyContext,
+    approved_function_decision,
     approved_support_decision,
+    claim_risk_level,
     classify_claim_policy,
     is_disease_claim,
 )
@@ -343,6 +345,7 @@ def assess_claim(
             rule_ids=[rule_id] + ([policy.rule_id] if policy and policy.rule_id != rule_id else []),
             explanation=explanation,
             policy=policy,
+            claim_risk=claim_risk_level(status, product_side=claim.is_product_side_assertion),
         )
 
     if not question:
@@ -376,6 +379,22 @@ def assess_claim(
         return build(ClaimAssessmentStatus.UNSUPPORTED, "CLAIM_NO_OFFICIAL_SUPPORT", policy.reason, policy)
 
     # ---- USER_QUESTION ----
+    # 提問不是宣稱（claim_role 保持 USER_QUESTION，Risk Engine 不因提問升級產品風險），
+    # 但問題中待查證的命題仍依同一套 claim policy 評估：疾病命題若作為產品功效宣稱屬醫療效能 → claim_risk HIGH。
+    if medical:
+        proposition = classify_claim_policy(
+            claim, official_links, approved_claims=approved_claims,
+            approved_claim_evidence_ids=approved_claim_evidence_ids,
+            regulation_sources=regulation_sources or {}, product_unresolved=product_unresolved,
+            comparison_completed=comparison_completed, any_source_succeeded=any_source_succeeded,
+            structured=structured_policy,
+        )
+        if proposition.policy_result == ClaimPolicyResult.MEDICAL_TREATMENT_CLAIM:
+            return build(ClaimAssessmentStatus.MEDICAL_TREATMENT_CLAIM, "QUESTION_PROPOSITION_MEDICAL_CLAIM",
+                         QUESTION_MEDICAL_PROPOSITION, proposition)
+        if proposition.policy_result in (ClaimPolicyResult.APPROVED_MATCH, ClaimPolicyResult.APPROVED_SCOPE_CONSISTENT):
+            return build(ClaimAssessmentStatus.CONSISTENT_WITH_OFFICIAL, "QUESTION_SUPPORTED_BY_APPROVED",
+                         "與該產品官方核准的保健功效相符。", proposition)
     approved_policy = approved_support_decision(
         [l for l in official_links if l.evidence_id in approved_claim_evidence_ids], approved_claims, claim.claim_text)
     if ClaimEvidenceRelation.CONTRADICTS in relations:
@@ -390,12 +409,25 @@ def assess_claim(
     if supported_by_approved and not medical and not exceeds:
         return build(ClaimAssessmentStatus.CONSISTENT_WITH_OFFICIAL, "QUESTION_SUPPORTED_BY_APPROVED",
                      "與該產品官方核准的保健功效相符。", approved_policy)
+    if not medical and not exceeds and not claim.uses_absolute_language and approved_claims:
+        # 產品特定提問：所問的功效就是該產品核准的保健功效類別（官方功效名稱相同）；只有部分重疊 → 無法確認
+        function_policy = approved_function_decision(
+            claim, approved_claims, structured_policy.question_function if structured_policy else None)
+        if function_policy is not None:
+            if function_policy.policy_result == ClaimPolicyResult.APPROVED_SCOPE_CONSISTENT:
+                return build(ClaimAssessmentStatus.CONSISTENT_WITH_OFFICIAL, "QUESTION_WITHIN_APPROVED_FUNCTION",
+                             function_policy.reason, function_policy)
+            return build(ClaimAssessmentStatus.UNKNOWN, "QUESTION_FUNCTION_MATCH_AMBIGUOUS",
+                         function_policy.reason, function_policy)
     if not any_source_succeeded:
         return build(ClaimAssessmentStatus.UNKNOWN, "CLAIM_NO_SOURCE_AVAILABLE", "資料來源暫時無法查詢，無法判斷這個說法。")
     if medical:
         return build(ClaimAssessmentStatus.UNSUPPORTED, "QUESTION_MEDICAL_NOT_SUPPORTED",
                      "使用者詢問的是疾病相關效果；沒有官方資料支持保健食品具有這種效果。")
     return build(ClaimAssessmentStatus.UNSUPPORTED, "QUESTION_NO_OFFICIAL_SUPPORT", "目前沒有找到支持這個說法的官方資料。")
+
+
+QUESTION_MEDICAL_PROPOSITION = "若把這句話當成產品功效宣稱，屬於涉及疾病治療或醫療效能的高風險說法；保健食品不能這樣宣稱。"
 
 
 # ---------------------------------------------------------------------------

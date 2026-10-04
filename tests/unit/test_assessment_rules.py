@@ -15,6 +15,7 @@ from app.schemas.enums import (
     EvidenceStrength,
     ProductReferenceStatus,
     ProductVerificationStatus,
+    RiskLevel,
     SourceType,
 )
 from app.schemas.evidence import (
@@ -51,11 +52,14 @@ def _link(eid, relation):
 
 
 @pytest.mark.parametrize("condition", CONDITIONS)
-def test_user_question_about_medical_effect_is_not_a_medical_treatment_claim(condition):
+def test_user_question_about_medical_effect_keeps_role_but_proposition_is_high_claim_risk(condition):
+    """提問仍是 USER_QUESTION（不是產品方宣稱，Risk Engine 不因此升級產品風險），
+    但命題若作為產品功效宣稱屬醫療效能 → MEDICAL_TREATMENT_CLAIM / claim_risk HIGH。"""
     c = claim(f"這個產品可以治療{condition}", MED, ClaimOrigin.USER_QUESTION, condition=condition)
     result = assess_claim(0, c, [], set(), set(), True)
-    assert result.status != ClaimAssessmentStatus.MEDICAL_TREATMENT_CLAIM
-    assert result.status == ClaimAssessmentStatus.UNSUPPORTED
+    assert result.origin == ClaimOrigin.USER_QUESTION
+    assert result.status == ClaimAssessmentStatus.MEDICAL_TREATMENT_CLAIM and result.claim_risk == RiskLevel.HIGH
+    assert result.rule_ids[0] == "QUESTION_PROPOSITION_MEDICAL_CLAIM"
     assert result.involves_medical_efficacy and not result.is_product_side_assertion
 
 
@@ -72,7 +76,7 @@ def test_asserted_medical_statement_is_medical_treatment_claim(origin, condition
 
 
 def test_question_contradicted_by_official_is_conflict():
-    result = assess_claim(0, claim(category=MED), [_link("r", ClaimEvidenceRelation.CONTRADICTS)], set(), {"r"}, True)
+    result = assess_claim(0, claim(), [_link("r", ClaimEvidenceRelation.CONTRADICTS)], set(), {"r"}, True)
     assert result.status == ClaimAssessmentStatus.CONFLICT_WITH_OFFICIAL
     assert result.rule_ids == ["QUESTION_CONTRADICTED_BY_OFFICIAL"]
 

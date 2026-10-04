@@ -23,6 +23,7 @@ from app.schemas.enums import (
     ProductMatchType,
     ProductStatus,
     ProductVerificationStatus,
+    RiskLevel,
     SourceType,
 )
 
@@ -410,6 +411,9 @@ class ClaimAssessment(BaseModel):
     rule_ids: list[str] = Field(default_factory=list)
     explanation: str = ""
     policy: ClaimPolicyDecision | None = None
+    # 這個命題「若作為產品功效宣稱」的風險（deterministic，由 status / role 決定）；
+    # Primary card、為什麼、完整分析都只讀這個欄位，不各自重新推論。不等於產品本身的風險。
+    claim_risk: RiskLevel | None = None
 
 
 class EvidenceBundle(BaseModel):

@@ -332,7 +332,7 @@ def test_open_efficacy_question_with_generic_target_word_is_not_a_claim():
 @pytest.mark.parametrize("input_type", [InputType.TEXT, InputType.AUDIO])
 @pytest.mark.parametrize("case, expected_type, expected_status, expected_risk", [
     ("open_efficacy", ResponseType.PRODUCT_INFO, None, None),
-    ("disease_question", ResponseType.CLAIM_RESULT, "not_medical_claim", None),
+    ("disease_question", ResponseType.CLAIM_RESULT, "question_proposition_high", None),
     ("ad_assertion", ResponseType.RISK, ClaimAssessmentStatus.MEDICAL_TREATMENT_CLAIM, RiskLevel.HIGH),
 ])
 def test_claim_role_outcomes_are_identical_for_text_and_audio(input_type, case, expected_type, expected_status, expected_risk):
@@ -347,9 +347,12 @@ def test_claim_role_outcomes_are_identical_for_text_and_audio(input_type, case, 
     assert result.response.response_type == expected_type
     if expected_status is None:
         assert result.claim_assessment == []
-    elif expected_status == "not_medical_claim":  # 使用者問句本身不會被當成醫療宣稱而直接 HIGH
-        assert result.claim_assessment[0].status != ClaimAssessmentStatus.MEDICAL_TREATMENT_CLAIM
-        assert result.response.risk_level is None
+    elif expected_status == "question_proposition_high":
+        # 仍是使用者提問：產品風險不升級、卡片沒有產品風險燈；命題若作為產品功效宣稱 → claim risk HIGH
+        ca = result.claim_assessment[0]
+        assert ca.origin == ClaimOrigin.USER_QUESTION and ca.claim_risk == RiskLevel.HIGH
+        assert result.response.risk_level is None and result.risk.risk_level != RiskLevel.HIGH
+        assert result.response.claim_risk_level == RiskLevel.HIGH
     else:
         assert result.claim_assessment[0].status == expected_status
     if expected_risk is not None:

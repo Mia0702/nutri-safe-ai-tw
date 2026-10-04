@@ -162,8 +162,8 @@ def test_implicit_follow_up_without_pronoun_uses_selected_product():
     select(handler, rid, "bind-0")
     ask(handler, "有哪些成分？")
     assert_answers_product(store, "bind-0", ResponseType.INGREDIENT_LIST)
-    ask(handler, "要注意什麼？")
-    assert_answers_product(store, "bind-0", ResponseType.RISK)
+    ask(handler, "要注意什麼？")  # 沒有命題、沒有風險發現：產品資訊（不推論產品安全性、不顯示風險燈）
+    assert_answers_product(store, "bind-0", ResponseType.PRODUCT_INFO)
 
 
 def test_base_name_of_selected_product_still_refers_to_selection():

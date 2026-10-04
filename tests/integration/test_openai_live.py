@@ -24,6 +24,7 @@ from app.schemas.user_request import RawUserInput
 from app.services.context_store import InMemoryConversationStore
 from app.tools.official_web_tools import TW_OFFICIAL_DOMAINS, is_allowed_official_url, search_tw_official_web
 from tests.fakes import InMemoryGraphRepo, InMemoryOfficialRepo, InMemoryRagStore, web_result
+from tests.unit.test_claim_policy_runtime import FakeClaimPolicyRepo  # 虛構 claim-policy corpus（TEST_ONLY）
 
 pytestmark = pytest.mark.integration
 
@@ -66,14 +67,28 @@ def run(llm, text, **kw):
 
 
 def test_1_user_question_about_disease_is_not_an_advertised_claim(openai_service):
-    result = run(openai_service, f"請問{PRODUCT_1}可以治療高血壓嗎？")
+    """提問仍是 USER_QUESTION（不是產品方宣稱）；命題若作為產品功效宣稱屬醫療效能 → claim risk HIGH，
+    產品風險不因提問升級；結構化 claim-policy（虛構 corpus）已足以決定，不需要 planner / RAG / 官方網站。"""
+    llm = openai_service
+    pipe = AnalysisPipeline(
+        intake=IntakeAgent(llm),
+        verifier=VerificationAgent(InMemoryOfficialRepo(), InMemoryGraphRepo(), InMemoryRagStore(), llm,
+                                   claim_policy_repo=FakeClaimPolicyRepo()),
+        risk_engine=RiskEngine(), reporter=ReporterAgent(llm),
+    )
+    result = pipe.run(RawUserInput(input_type=InputType.TEXT, text=f"請問{PRODUCT_1}可以治療高血壓嗎？"))
     show("1. 單純詢問產品能否治療疾病", result)
     claims = result.normalized_request.claims
     assert claims and all(c.origin == ClaimOrigin.USER_QUESTION for c in claims)
-    assert all(c.status != ClaimAssessmentStatus.MEDICAL_TREATMENT_CLAIM for c in result.claim_assessment)
     assert result.product_verification.status == ProductVerificationStatus.VERIFIED
-    assert result.risk.risk_level != RiskLevel.HIGH
-    assert any(t.planned_by == "llm_planner" for t in result.tools_called), "Agent B 應由 LLM planner 選擇工具"
+    assessments = result.claim_assessment
+    assert all(c.origin == ClaimOrigin.USER_QUESTION and not c.is_product_side_assertion for c in assessments)
+    assert any(c.status == ClaimAssessmentStatus.MEDICAL_TREATMENT_CLAIM for c in assessments)
+    assert any(c.claim_risk == RiskLevel.HIGH for c in assessments)
+    assert result.risk.risk_level != RiskLevel.HIGH  # 產品風險不因提問升級
+    assert result.response.risk_level is None and result.response.claim_risk_level == RiskLevel.HIGH
+    used = {t.tool_name for t in result.tools_called}
+    assert not used & {"plan_tool_calls", "search_rag", "search_tw_official_web"}, used
     assert "產品宣稱" not in result.final_answer and "這項產品宣稱" not in result.final_answer
 
 

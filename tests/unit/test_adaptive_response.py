@@ -63,10 +63,10 @@ def test_advertisement_claim_is_risk_card_with_high_mark():
     assert renderer.heading(p).startswith("🔴")
 
 
-def test_verified_product_verification_is_low_risk_card():
+def test_verified_product_verification_is_product_info_without_risk_light():
     p = compose(request(product_candidates=[PRODUCT_1]))
-    assert p.response_type == ResponseType.RISK and p.risk_level == RiskLevel.LOW
-    assert renderer.heading(p).startswith("🟢") and p.source_count >= 1
+    assert p.response_type == ResponseType.PRODUCT_INFO and p.risk_level is None
+    assert not renderer.heading(p).startswith("🟢") and p.source_count >= 1
     assert ResponseAction.OFFICIAL_INFO in p.available_actions
 
 
@@ -190,7 +190,7 @@ def test_old_button_returns_old_request_after_new_question():
 
 
 def test_detail_generates_full_analysis_on_demand_only():
-    llm, svc = _service([extraction(product_candidates=[PRODUCT_1])])
+    llm, svc = _service([extraction(product_candidates=["完全查不到的名字"])])  # 風險卡才有「查看完整分析」
     rid = _rid(svc.respond(_text(), owner_id="U1"), ResponseAction.DETAIL)
     assert not llm.called("generate_text")
     detail = svc.handle_action(build_postback_data(ResponseAction.DETAIL, rid), owner_id="U1")

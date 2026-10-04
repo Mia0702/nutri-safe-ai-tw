@@ -35,9 +35,10 @@
   → LINE validate API。產品由 DB 動態挑選（seed 隨機，ACTIVE + 有核准功效 + 有成分 + 有 source_url），不 hard-code。
   驗證腳本只在 session scratchpad，未進 repo；未修改 production code。
   - 產品查證 / 成分 / 核准功效 / 來源 / 查無產品 / 缺產品指稱：全部查到正式資料或正確顯示資料不足；查無產品只說
-    「不代表是假貨或違法」。response_type 依 `select_response_type` 設計：產品查證 → RISK 卡、已確認產品的功效問題 →
+    「不代表是假貨或違法」。response_type 依 `select_response_type` 設計：產品查證 → RISK 卡（2026-10-04 起：沒有命題且無風險發現時改為 PRODUCT_INFO）、已確認產品的功效問題 →
     PRODUCT_INFO（含核准功效）、SOURCE_SUMMARY 只出現在不指定產品的一般問題。
-  - Claim role：使用者問「可以治療糖尿病嗎」→ USER_QUESTION / CONFLICT_WITH_OFFICIAL / CLAIM_RESULT（無風險燈）；
+  - Claim role：使用者問「可以治療糖尿病嗎」→ USER_QUESTION / CLAIM_RESULT（當時為 CONFLICT_WITH_OFFICIAL、無風險燈；
+    2026-10-04 起命題判為 MEDICAL_TREATMENT_CLAIM、claim_risk HIGH 🔴，產品風險不變，見 Claim verdict consistency）；
     廣告寫「可以治療糖尿病」→ ADVERTISEMENT_CLAIM / MEDICAL_TREATMENT_CLAIM / RISK HIGH。
   - Multimodal：text / image（analyze_image）/ audio（transcribe_audio，品名語音誤聽仍正確對到產品）/ URL（fetch_url_content）皆 VERIFIED。
   - Context / Queue：「那它…」RESOLVED_FROM_CONTEXT；開始新問題後 context 清除；FIFO A 先回；舊卡 sources 指向舊 request_id。
@@ -445,6 +446,102 @@
     （`POLICY_CONTEXT_ONLY_NOT_DECISIVE`）；CONTEXT_ONLY / NEEDS_REVIEW RAG chunk 可檢索但 `decision_eligible=False`。
     正式 rules 表沒有 SUPERSEDED 規則（superseded 只在 sources / RAG），規則層的 superseded 排除只由虛構資料測試覆蓋。
     尚未跑完整 pipeline（Agent A → C）live regression。
+- **Claim verdict consistency ＋ USER_QUESTION 命題風險 ＋ Flex 版面（2026-10-04；DATA / schema / corpus / Risk Engine 規則 /
+  resolver 未動，不 hard-code 產品或句子）**：
+  - Root cause：(A) CLAIM_RESULT primary 的結論用 `CLAIM_STATUS_SUMMARY[status]`，「為什麼」用另一套組字，完整分析由 LLM 依原始
+    approved_claims 自行推論；USER_QUESTION 的產品特定命題只有「核准原文完全相同」或 LLM 比對連結才算支持，比對沒給連結時
+    status = UNSUPPORTED → 卡片說「找不到官方資料支持」，完整分析卻說有核准功效。(B) USER_QUESTION 的疾病命題固定落在
+    `QUESTION_MEDICAL_NOT_SUPPORTED`（UNSUPPORTED、無 policy），卡片只能寫「找不到官方資料」，沒有命題本身的宣稱風險。
+  - Single source of truth：`ClaimAssessment.claim_risk`（`claim_risk_level`：醫療效能 → HIGH、產品方宣稱與官方矛盾 → HIGH、
+    與官方一致 → LOW、其餘 → MEDIUM），在 `assess_claim` 決定。Reporter 的 `claim_verdict_line` / `claim_verdict_summary`
+    同時用於 primary 重點、RISK 卡重點、「為什麼？」與完整分析的「查證結論」區塊；完整分析標題 = primary 的宣稱風險；
+    LLM 收到 `claim_verdicts` 且寫出相反結論（LOW 卻說找不到支持 / HIGH 卻說在核准範圍）時改用固定模板。
+  - Health-function matching（`match_approved_function` / `approved_function_decision`，只用於 USER_QUESTION、無疾病語意、
+    無絕對化用語、無 EXCEEDS）：ApprovedClaim 的官方功效名稱（＝保健功效目錄官方名稱）與 Agent A 的 target_function
+    正規化後完全相同，或沒有 target_function 時命題文字只出現一個官方功效名稱 → APPROVED_SCOPE_CONSISTENT
+    （`POLICY_QUESTION_WITHIN_APPROVED_FUNCTION`）；只有部分重疊 / 多個功效 → INSUFFICIENT_EVIDENCE（`POLICY_FUNCTION_MATCH_AMBIGUOUS`）。
+    未分類核准宣稱不參與；官方例示 exact-match 規則未放寬。
+  - USER_QUESTION：疾病命題以與廣告相同的 `classify_claim_policy` 評估；MEDICAL → status MEDICAL_TREATMENT_CLAIM、
+    claim_risk HIGH，rule `QUESTION_PROPOSITION_MEDICAL_CLAIM`，origin 仍是 USER_QUESTION、非產品方 → Risk Engine 產品風險不升級。
+    文字固定：「若把這句話當成產品功效宣稱，屬於涉及疾病治療或醫療效能的高風險說法」，摘要註明「不是指你違法，也不是指產品本身危險」。
+  - Risk display：`ResponsePayload.claim_risk_level`（只允許 CLAIM_RESULT）→ 標題下方「🟢 官方核准範圍內／符合官方資料」/
+    「🟠 需要更多證據」/「🔴 高風險宣稱」；每個命題重點前有 🟢🟠🔴。RISK 卡維持原產品風險燈；PRODUCT_INFO 不顯示風險燈。
+  - Flex（`line_renderer.py`）：標題區 / 結論 / 重點 / 附註各自為 section（margin lg + separator）；每個重點是 horizontal box
+    （符號 flex 0 ＋ 內容 flex 1）；明細每一行獨立 component（・ / 🟢🟠🔴 開頭為 bullet）。body / note 加 lineSpacing
+    （4px / 2px）。TEXT_SIZES、wrap、scaling、按鈕 shrink-to-fit 不變；內文不 shrink；無 xs、無色塊。7 種卡片通過 LINE validate API。
+  - 更新舊測試（改的是被要求改變的契約）：USER_QUESTION 疾病命題不再斷言「不是 MEDICAL_TREATMENT_CLAIM」，改斷言
+    origin 不變、claim_risk HIGH、產品風險非 HIGH（test_assessment_rules / test_claim_policy / test_agents / test_demo_stabilization /
+    test_resolver_parity）；被官方反駁的提問測試改用非疾病命題。FROZEN_CONTRACTS FC-C3 / FC-E1 文字同步更新。
+  - tests：`tests/unit/test_claim_verdict_consistency.py`（18，虛構）；targeted 25 檔 565 passed（未跑 full suite）。
+- **Product wording ＋ USER_QUESTION claim-policy fast path ＋ 警語編號（2026-10-04；DATA / schema / corpus / Risk Engine 規則未動）**：
+  - Product wording root cause：`select_response_type` 把所有 PRODUCT_VERIFICATION / SAFETY_INQUIRY 都給風險卡，
+    VERIFIED + LOW 的標題是「這項產品有官方紀錄，產品本身目前看起來屬於低風險」，完整分析標題沿用。
+    修正：沒有命題、Risk Engine 為 LOW（無任何風險發現）且產品 VERIFIED → PRODUCT_INFO（無風險燈，摘要「官方紀錄中有…」）；
+    許可證失效 / 違規廣告紀錄 / 衝突 / 查無等實際發現仍是風險卡。SAFETY_INQUIRY 的產品資訊加上「官方紀錄代表有登記，
+    不代表對每個人都安全…」與官方警語則數提示。VERIFIED_LOW_TITLE 改為「查有官方紀錄，目前沒有發現不當宣稱」（只用於有命題的風險卡）。
+    完整分析標題：RISK → 風險標題、CLAIM_RESULT → 宣稱風險、其他 → 卡片標題（無燈）；LLM prompt 第 13 點＋
+    `product_info_overclaims` guard（產品資訊 / 成分回答寫出「低風險 / 風險較低 / 很安全」→ 固定模板）。
+  - Question fast path root cause：`_claim_policy_stage` 只處理 `is_asserted` 宣稱，USER_QUESTION 命題永遠不在
+    policy_decided → claim comparison path 跑 RAG → assess →「claim_beyond_internal_evidence」→ 官方網站 → 第二次 assess（live ~48s）。
+    修正：stage 處理所有命題（宣稱與提問同一條路徑：核准功效 → 結構化規則 → 例示 → RAG → web）。
+    核准功效層不需要 corpus：核准原文相同、或提問所問功效 = 核准功效類別（含部分重疊 → INSUFFICIENT）→ final。
+    疾病命題查醫療效能 DECISION_ELIGIBLE 規則 → decided（不查 RAG / web）；明確治療 / 診斷 / 取代醫療＋規則 → final。
+    新 `policy_final_claims`：claim comparison / package path 中所有命題都 final → 直接回（不 RAG、不 web、不 assess）。
+    「改善 / 預防某疾病」類命題在有核准功效時仍需一次語意比對（可能等價於核准功效），但不查 RAG / web。
+    claim_role 仍是 USER_QUESTION、claim_risk HIGH、產品風險不升級。沒有 corpus 時疾病提問維持原 RAG 路徑。
+  - 警語：renderer `_bullet` 顯示前移除行首純列表編號（`1.` / `1、` / `(1)` / `（1）`，`1.5` 這類數值與「第1條」不動），
+    統一用一個 bullet component；EvidenceBundle / DB 原文不變。
+  - 更新舊測試（被要求改變的行為）：登記查詢 🟢 低風險卡 → 產品資訊無燈（test_adaptive_response ×2、test_agents、
+    test_context_binding_fonts「要注意什麼？」→ PRODUCT_INFO）。
+  - tests：`tests/unit/test_question_fast_path_and_wording.py`（19，虛構）；targeted 26 檔 584 passed（未跑 full suite）。
+    尚未做 live latency 量測（預期疾病提問於已確認產品：不再有 RAG / web / assess）。
+- **Claim Policy Runtime 收尾（2026-10-04；schema / corpus / Risk Engine / claim policy 語意 / FROZEN_CONTRACTS 定義 /
+  OpenAI prompt 未動；手機實測 treatment question 6–7s、claim risk / UI 正確）**：
+  - 列表排版（DISPLAY-ONLY，`line_renderer.split_list_items`）：行首或標點 / 空白後的 `1.` `1、` `(1)` `（1）`，
+    且編號從 1 依序遞增、至少 2 項才拆；`1.5`、`0.5%`、`第1條`、字號、日期、句中數字、單一編號不拆。
+    前言一行＋每項一個子項目 component（◦、paddingStart、margin sm），沒有前言時項目即第一層 bullet。
+    套用於 primary 重點（每點最多 6 子項，不計入 FC-E8 的 3 點）與所有明細（完整功效 / 警語 / 完整分析 / 法規依據）。
+    EvidenceBundle / payload / DB 原文不變。3 種 Flex 通過 LINE validate API。
+  - 說法查證卡：重點改為命題判定（一致時只標「官方核准功效：功能名稱」）＋「官方核准功效：<類別名稱>」；
+    不再在卡片上放完整核准原文（原本兩處重複）。完整分析在「查證結論」後加「官方核准內容」（原文，顯示時拆項）。
+    被說出的宣稱（廣告 / 包裝）的 claim_policy_line 不變。
+  - 功效詢問 fast path root cause：開放式功效詢問的泛稱判斷只用固定詞表，「核准保健功效」「官方核准的保健功效」「保健效果」
+    等組合被當成具體功效 → 保留成命題 → claim path（RAG / assess / web）。修正（intake deterministic 規則，非 prompt）：
+    只由修飾詞（官方 / 核准 / 許可 / 保健 / 健康 / 的…）＋泛稱核心詞（功效 / 效果 / 功能…）組成即為泛稱 → 不是命題 →
+    既有 structured fast path（不 RAG / assess / web / planner）。指定具體功效（含核准功效名稱）仍是命題（上一輪的 deterministic 路徑）。
+  - 純產品名稱 fast path：intent=UNCLEAR、無命題、有品名候選、無字號 / 成分 / URL / 圖片 / 外國 / 缺 context，
+    resolver VERIFIED 且 match_type 為 CANONICAL_EXACT / OFFICIAL_ALIAS_EXACT，且使用者原始訊息正規化後就等於官方品名或
+    命中的別名 → `structured_fast_path`（`fast_path_reason = product_name_only_exact`）→ PRODUCT_INFO。
+    其他 UNCLEAR（有額外語意、只有相似 / 部分名稱、沒有產品）照舊走完整流程。
+  - tests：`tests/unit/test_list_layout_and_fast_paths.py`（25，虛構）；targeted 27 檔 609 passed（未跑 full suite）。
+- **Approved-function 提問 deterministic fast path（2026-10-04；schema / corpus / Risk Engine / claim policy 語意 /
+  Agent A prompt / Frozen Contract 未動）**：
+  - Root cause（正式資料唯讀重播，不寫 log）：Agent A 的 target_function 是改寫（「肝臟保健」「肝臟功能」對應官方「護肝」、
+    「胃腸功能」對應「胃腸功能改善」），上一輪只認 target 與核准功效名稱完全相同 → 落到 RAG + assess（~21s）；
+    部分重疊則被當成 deterministic INSUFFICIENT（太早定案）。另外「沒有 target 時以文字包含核准功效」只看產品自己的核准功效，
+    問句同時提到未核准功效時會誤判為單一功效。
+  - 條件（全部成立才 final）：產品 VERIFIED、USER_QUESTION、無疾病語意 / 絕對化用語；問句去掉產品 / 品牌名稱後，
+    以保健功效目錄（`lookup_health_function` 新參數 `question_texts`、tool `health_functions_in_text`，只比官方名稱字面）
+    找到「唯一」一個官方功效名稱；該功效 = 產品核准功效類別（正規化名稱相同）；Agent A 的 target 不是另一個官方功效名稱。
+    → `StructuredPolicyContext.question_function` → APPROVED_SCOPE_CONSISTENT（match_method `health_function_catalog`），
+    claim comparison path 直接停止：不 RAG / assess / web / planner。target 與核准功效名稱完全相同的既有規則保留。
+  - 保守路徑：部分重疊（問句沒有完整官方名稱）、多個功效、target 指向另一個官方功效、產品沒有該核准功效、沒有 corpus →
+    既有 evidence path（RAG + 一次 assess）。`match_approved_function` 在沒有 target 時不再以文字包含決定對應（只標 ambiguous）。
+  - Primary：所有命題都是「在核准功效範圍內」的提問時，重點只有「官方核准功效：功能名稱」一次；逐條判定在「為什麼」/ 完整分析。
+  - Live 唯讀重播（隨機產品）：護肝提問 20.8–22.0s → 5.7–6.4s（tools：product / approved / warnings / ingredients / KG /
+    illegal ads / lookup_health_function）。
+  - tests：`tests/unit/test_health_function_fast_path.py`（12，虛構）；更新 1 個舊測試（無目錄時不以文字包含判定）；
+    targeted 28 檔 621 passed（未跑 full suite）。
+- **TFDA Claim Policy Runtime = FROZEN（2026-10-04）**：手機 final regression 通過（exact product name / open efficacy /
+  treatment USER_QUESTION / approved-function question 皆走 structured deterministic path，rag / planner / assessment /
+  official_web 皆 0 ms）。之後修改本區行為（claim-policy evidence priority、quarantine、USER_QUESTION 命題風險、
+  approved-function / efficacy / product-name fast path、claim verdict 單一來源、列表顯示）需使用者明確同意。
+  - Full pytest（含 live integration / DB）：891 passed / 1 failed / 1 skipped（663s）。唯一 failure 為
+    `test_openai_live.py::test_1_user_question_about_disease_is_not_an_advertised_claim` 的過期斷言（仍斷言 USER_QUESTION 疾病命題
+    不是 MEDICAL_TREATMENT_CLAIM、且需要 LLM planner），非 production regression。經使用者同意只更新該測試為現行契約
+    （USER_QUESTION、MEDICAL_TREATMENT_CLAIM、claim_risk HIGH、產品風險非 HIGH、不需 planner / RAG / web、最終回答不寫成「產品宣稱」；
+    結構化政策使用虛構 corpus `FakeClaimPolicyRepo`）後重跑 `tests/integration/test_openai_live.py`：8 passed（157s）。
+    skipped 1 為 `test_line_demo_live.py` 第一題沒有官方來源時的條件式 skip（unit test 已覆蓋）。
 - 最新完整 pytest（2026-10-03，LINE 整合後）：466 passed / 7 skipped / 0 failed（當時 DB 尚未 seed）。
 - 2026-10-03 seed 後（未改 production code，未重跑完整 suite）：`test_data_stores_live.py` 6 passed（原本 skip）、
   `test_line_demo_live.py` 6 passed。
