@@ -21,7 +21,7 @@ from app.line.client import LineApiError, LineMessagingClient
 from app.line.request_queue import PerUserRequestQueue, RequestState
 from app.pipeline import AnalysisPipeline
 from app.risk.risk_engine import RiskEngine
-from app.schemas.enums import InputType, ClaimAssessmentStatus, ClaimOrigin, ClaimSemanticCategory, ErrorCode, Intent, ResponseType, RiskLevel
+from app.schemas.enums import InputType, ClaimAssessmentStatus, ClaimOrigin, ClaimSemanticCategory, ErrorCode, Intent, ResponseAction, ResponseType, RiskLevel
 from app.schemas.user_request import IntakeExtraction, RawUserInput
 from app.services.errors import ServiceError
 from app.tools import input_tools
@@ -62,8 +62,9 @@ def test_open_efficacy_question_answers_with_approved_claims_not_unsupported():
     assert payload.response_type == ResponseType.PRODUCT_INFO
     text = payload.plain_text()
     assert "找不到官方資料支持" not in text and "不支持" not in text
-    assert "官方核准的保健功效" in payload.summary
-    assert any("測試功效甲" in p and "有助於維持測試機能甲" in p for p in payload.key_points)
+    assert "官方核准保健功效" in payload.summary and payload.status_line == "官方核准功效"
+    assert "測試功效甲" in payload.key_points
+    assert ResponseAction.FULL_EFFICACY in payload.available_actions  # 完整核准原文在下一層
     assert "search_tw_official_web" not in tool_path(result)
 
 

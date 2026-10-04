@@ -376,8 +376,8 @@
   - Frozen modules / Safe extension points：見 `docs/FROZEN_CONTRACTS.md` 末段。
 - **TFDA Claim Policy Corpus Data Layer（2026-10-04；只有 migration + importer + dry-run，未寫 production；
   Agent / Risk / Claim policy runtime 行為未動）**：
-  - Corpus：`data/tfda_claim_policy/`（`2026-10-03/` 子目錄為空，結構化檔案在上一層；版本取 validation.json
-    `research_reference_date` = 2026-10-03）。
+  - Corpus：`data/tfda_claim_policy/2026-10-03/`（2026-10-04 以 git mv 從上一層搬入，內容 / sha256 / batch_key 不變；
+    版本取 validation.json `research_reference_date` = 2026-10-03）。importer 預設路徑與 tests 已指向此目錄。
   - Migration `0003_claim_policy_corpus.sql`（additive、idempotent、需 0001 marker）：`claim_policy_import_batches` /
     `claim_policy_sources` / `claim_policy_rules` / `claim_policy_examples` / `health_function_catalog`，
     另加 `health_function_historical_sources`（舊評估方法陣列改關聯表才能有 FK）。id = uuid5(corpus 原始 ID)，
@@ -542,6 +542,144 @@
     （USER_QUESTION、MEDICAL_TREATMENT_CLAIM、claim_risk HIGH、產品風險非 HIGH、不需 planner / RAG / web、最終回答不寫成「產品宣稱」；
     結構化政策使用虛構 corpus `FakeClaimPolicyRepo`）後重跑 `tests/integration/test_openai_live.py`：8 passed（157s）。
     skipped 1 為 `test_line_demo_live.py` 第一題沒有官方來源時的條件式 skip（unit test 已覆蓋）。
+- **Taiwan Product Coverage Importer Design + Dry Run（2026-10-04；未寫 production、未套 migration；
+  claim-policy / risk / LINE / resolver frozen runtime 未動）**：
+  - 研究 snapshot：`data/tfda_product_coverage/2026-10-04/`（原本誤放在 `data/tfda_claim_policy/2026-10-04/`，已搬移；
+    SHA256SUMS 全部 OK；9112 列 raw_row_sha256 皆可由原始 CSV 重算）。
+  - 新類別（`ProductCategory`，`app/ingestion/tfda_product_coverage.py`）：`domestic_vitamin_tablet_capsule`（InfoId 24，
+    source_key `tw_fda_domestic_vitamin_tablet_capsule`）、`imported_tablet_capsule`（InfoId 23，`tw_fda_imported_tablet_capsule`）；
+    既有 `health_food` 不變。新類別只代表「查有官方查驗登記／核備資料」：不產生 health_food、核准功效、警語、品牌 / 別名、成分 canonical。
+  - Canonical key `TFDA:{info_id}:{原始字號}`（字串、保留前導零；輸入類 196 筆前導零）；products.id = uuid5('product','TW:'+key)、
+    permits.id = uuid5('permit','TW:'+key)（與 health_food 的 `TW:<字號>` 命名空間不同）。
+  - Schema reuse（0001，無新表）：source_registry（2 列）/ raw_import_records（raw_hash = 官方原始列 sha256；raw_data =
+    原始欄位＋登記事實（發證 / 有效日期、原始日期、official_status = null、簽審文件編號、申請商電話地址）＋成分 staging）/
+    companies（申請商；只新增，既有公司沿用不更新）/ permits（permit_number = permit_code = 完整原始字號，permit_type = 查驗登記證 / 核備函，
+    status = UNKNOWN、status_raw = NULL）/ products（product_category 新值、status = UNKNOWN）。derived_temporal_status 不寫入（隨時間改變），
+    只在 dry-run 報告依 as-of 計算。
+  - Migration：`migrations/0004_tfda_product_coverage.sql`（2026-10-04 由 proposal 轉為正式 additive migration，**未套用**）：
+    permits.expiry_date / signing_document_no、products.product_category CHECK（三值）、product_details view 末尾追加 product_category /
+    expiry_date / signing_document_no / permit_status_raw；需 0003 marker。`--apply` 沒有 `migration_0004_tfda_product_coverage` marker 時拒絕寫入。
+  - Importer：`python -m scripts.import_tfda_product_coverage --dry-run`（預設、不連線）；`--compare-supabase`（唯讀）；
+    `--apply --confirm-project nutri_safe_ai`。fail closed：SHA256SUMS / validation.json 筆數與表頭 / 05 來源（官方網域、sha256）不符 → error；
+    逐列隔離：缺字號、非數字字號、缺品名、未知類別、未知 review_status、日期錯誤、與研究 normalized 結果不一致、canonical key 重複、
+    跨資料集同字號、與 DB 其他來源列 ID / 字號碰撞。idempotent（相同 snapshot 重跑全部 unchanged、0 寫入）；version-aware
+    （DB 已有較新 retrieved_at → 拒絕降版；官方內容變更 → 新 raw 版本、舊版保留、product update）。不以品名合併。
+  - Dry-run（研究 snapshot，as-of 2026-10-04）：Domestic 1705 / Imported 7407 / total 9112；would insert 9112、update 0、unchanged 0、
+    quarantine 0；key collisions 0；missing required 0；READY 5069 / NEEDS_REVIEW 4043（成分解析品質，不阻擋登記匯入）；
+    依日期比較（不寫入）國產 CURRENT 1695 / EXPIRED 10、輸入 7115 / 292。
+    唯讀比對正式 Supabase：ID / 字號碰撞 0；申請商 1130 家中 67 家沿用既有公司、新增 1063；與既有 health_food 正規化品名相同 14 筆（audit only）。
+    匯入後 products 理論上 565 + 9112 = 9677 列（不是 9677 個唯一商品：跨類別候選未合併）。
+  - 成分：只保存 ingredients_raw、研究 token draft、review_status / review_reasons（raw_data.ingredient_staging，
+    `interaction_eligible = false`）；不建 ingredients / product_ingredients / Ingredient node / INTERACTS_WITH。
+  - 跨類別：08 候選 103 pairs（國產 vs 輸入 85、新類別 vs 公開健康食品參考 18；CONFIRMATION_REQUIRED 98 / FAMILY_ONLY 5）、
+    07 同名不同字號 491 列 → 只留 CSV 作研究證據 + dry-run 報告；不 SAME_AS、不 merge、未新增 candidate table。
+  - Neo4j plan（dry-run；apply 才寫）：沿用既有 `(Product)-[:SUPPORTED_BY]->(Source)`（未另建 SOURCED_FROM，避免同義關係）、
+    `(Product)-[:REGISTERED_AS]->(Permit)`、`(Company)-[:OWNS_OR_APPLIES_FOR]->(Product)`；新 Product 帶 `product_category`；
+    Company 用 ON CREATE SET（不改既有屬性）。Source 2 / Product 9112 / Permit 9112 / Company merge 1130。
+    既有 565 Product 目前沒有 product_category property → 見下方 Runtime compatibility（Neo4j 0003 backfill，apply 時執行）。
+  - **Runtime impact（2026-10-04 audit；1–5、7–9 已由下方 Runtime compatibility 處理，6 依 frozen claim policy 維持不變）**：
+    1. `app/normalization.py` `extract_permit_code`（`[A-Z]\d{5}|\d{6}`）會把 10 碼字號截成前 6 碼 → `lookup_permit`
+       （`app/tools/product_tools.py`）查不到新字號，且可能誤中 6 碼數字的健康食品字號；`context_binding.py` / `clarification.py` 同樣使用。
+    2. `app/risk/risk_engine.py` `RISK_MED_PERMIT_INACTIVE`：status ≠ ACTIVE 一律 MEDIUM「官方許可目前不是有效狀態」→ 新類別（UNKNOWN）每筆都會被誤判。
+    3. `product_details` view 與 `ProductRecord`（`app/schemas/evidence.py`）、`_product_from_row` 沒有 product_category / expiry_date（0004 proposal＋新選填欄位）。
+    4. `app/agents/reporter_agent.py`：`PRODUCT_STATUS_TEXT`「許可證狀態不明」、候選 `is_active`、官方資訊卡「許可狀態 / 核准功效」用語；
+       新類別應顯示「查驗登記證號 / 核備函字號、發證 / 有效日期（依日期，非官方狀態）」，不得出現「官方核准保健功效」。
+    5. Agent B fast path（`verification_agent.py`）：功效 / 成分問題要求核准功效 / product_ingredients 存在才停止 → 新類別會落到 planner / RAG / web；
+       需類別感知回答（「此類別登記不含保健功效核准」、成分顯示 raw 原文＋未解析提示）。
+    6. Claim policy（frozen）：核准功效比對、`STATUTORY_*` 依健康食品管理法；新類別屬一般食品（食安法 §28 標示廣告規範），
+       `CLAIM_POLICY_RAG_TEMPLATE`「健康食品標示或廣告…」與「保健食品不能這樣宣稱」等用語需類別感知。
+    7. NOT_FOUND（`NOT_FOUND_NOT_FAKE`、risk 訊息）：之後應說明目前涵蓋的官方類別（健康食品 / 國產維生素錠狀膠囊 / 輸入錠狀膠囊）。
+    8. Resolver：9677 列下同名跨類別增加 → 更多 MULTIPLE 候選；候選卡 label 應標類別。
+    9. `scripts/check_data_integrity.py --expect-products 565`、`graph_sync`（無 product_category）、evidence_tools 的「查台灣官方健康食品紀錄」描述。
+  - tests：`tests/unit/test_tfda_product_coverage.py`（19，虛構＋研究 snapshot 筆數）、`tests/db/test_tfda_product_coverage_db.py`
+    （4，本機 PostgreSQL：0001→0003＋完整 9112 筆寫入、health_food 列不變、重跑 0 寫入、0004 proposal 可重跑＋typed 欄位）；
+    targeted 163 passed；`tests/unit` 全部 868 passed（未跑 live integration）。
+- **Claim-policy corpus 路徑整理＋Taiwan Product Coverage runtime compatibility（2026-10-04；未寫任何正式 DB、未套 0004、
+  未匯入 9112 筆；claim-policy evidence priority / claim semantics / risk semantics 未動）**：
+  - 路徑：claim-policy corpus 9 檔 `git mv` 到 `data/tfda_claim_policy/2026-10-03/`（根目錄不留檔）；sha256 前後相同、
+    dry-run 輸出相同（batch_key `79757f38…`）。更新 `scripts/import_claim_policy_corpus.py` 預設路徑與兩個 corpus 測試。
+    `data/tfda_product_coverage/2026-10-04/` 未動。
+  - 共用規則 `app/product_coverage.py`：`ProductCategory`（移到 `app/schemas/enums.py`，importer 共用）、類別標籤、
+    `OFFICIALLY_INACTIVE_STATUSES`（EXPIRED / MERGED / CANCELLED / REVOKED）、`derived_temporal_status`（只顯示日期狀態）、coverage 文字。
+  - 字號：`extract_permit_code` 改為「英文字母＋5 碼」或「完整數字段（≥6 碼，前後不接數字 / 英文字母）」：10 碼不截斷、前導零保留、字串；
+    健康食品 `A00235` / `000042` / 全形不變。本機 DB 測試：9112 筆官方字號解析結果 = permit_code = 原字號。
+  - UNKNOWN：`RISK_MED_PERMIT_INACTIVE` 只在官方明確非有效狀態觸發（適用所有類別，含 health_food 的 UNKNOWN）；
+    EXPIRED / CANCELLED / REVOKED / MERGED 不變。有效日期只顯示「有效日期：…（依日期…，非官方狀態）」。
+  - 類別感知（`ProductRecord.product_category` / `expiry_date`，`_product_from_row` 讀 0004 view 欄位，缺欄位 = health_food）：
+    非健康食品 → PRODUCT_INFO「查有官方查驗登記／核備資料」、字號名稱「查驗登記證號 / 核備函字號」、「登記狀態：官方資料未提供…」、
+    「這類官方登記不是健康食品核准，不包含核准的保健功效」；不顯示核准功效、不建立 approved claim。功效詢問視為結構化答案
+    （fast path `_details_sufficient`），不落到 planner / RAG / web。健康食品行為不變；claim policy 不因類別改變（醫療宣稱仍 HIGH）。
+  - Resolver：使用者字號唯一 → VERIFIED；同一字號對應多筆 → PARTIAL（新 `MULTIPLE_REGISTRATION_RECORDS`）＋候選確認；
+    同名 / 跨類別同名 → 既有 MULTIPLE_EXACT_NAMES 候選，不 merge / SAME_AS。候選卡標類別與字號名稱，UNKNOWN 不標失效。
+  - NOT_FOUND：`DISCLAIMER_NOT_FOUND` = `NOT_FOUND_NOT_FAKE` =「目前系統查詢的台灣官方資料包含：健康食品、國產維生素類錠狀／膠囊狀食品、
+    輸入錠狀／膠囊狀食品。查不到紀錄不代表產品是假貨或違法。」（不聲稱涵蓋一般食品）。
+  - Integrity gate（`app/ingestion/product_integrity.py`＋`scripts/check_data_integrity.py`）：不再固定 565；檢查類別已知、來源與類別一致、
+    每個來源 products = raw 官方紀錄數、canonical ID = 官方字號推導（health_food `TW:<許可證字號>` 不變）；選填
+    `--expect-category <類別>=N`、`--coverage-snapshot <dir>`、`--expect-products N`。Neo4j Product.product_category 與 Supabase 一致
+    （0004 marker 存在才是 blocker）。raw 只要求每個產品有 raw link（允許保留舊版本）。
+  - Neo4j：`graph_sync` 與 coverage importer 都寫 `product_category`；`migrations/neo4j/0003_product_category.cypher`（index＋
+    依健康食品 Source 補 NULL 的 `product_category='health_food'`）只由 coverage `--apply` 在寫入前執行（`prepare_coverage_graph`），未執行。
+  - Frozen 檔案變更（使用者本輪明確要求）：`risk_engine.py`（INACTIVE 條件、NOT_FOUND 文字）、`assessment_rules.resolve_product_match`
+    （同字號多筆不猜）、`reporter_agent.py`（類別感知文字）、`verification_agent._details_sufficient`。FROZEN_CONTRACTS 未改。
+  - 更新舊測試 2 個（NOT_FOUND 文字斷言「不代表是假貨」→「不代表產品是假貨」：test_image_routing、test_response_ux_cleanup）。
+  - tests：`tests/unit/test_product_coverage_runtime.py`（49，虛構）；`tests/db/test_tfda_product_coverage_db.py` 新增 runtime 讀取測試；
+    `tests/unit` 全部 917 passed；`tests/db` 27 passed（本機 PostgreSQL）。未跑 live integration。
+- **Intent-first primary response＋semantic color＋NOT_FOUND semantics（2026-10-04；resolver 門檻 / Claim Policy frozen 行為 /
+  Risk Engine 規則 / DB schema / production data 未動；只改 Agent C 回覆組裝、renderer、actions）**：
+  - Intent-first：功效詢問 → 標題「核准功效查詢」，第一層只回答功效；產品查證 → 登記狀態；說法查證 → 既有宣稱風險標示；
+    成分詢問（已確認產品）→ 成分卡（沒有已整理成分也直接說明）。申請商 / 字號 / 日期放第二層按鈕。
+  - 健康食品功效：🟢「官方核准功效」＋功效名稱（每項一點）；按鈕 查看完整功效 / 查看產品資訊 / 查看資料來源（完整原文在完整功效）。
+  - 國產 / 輸入類別功效：🟠「未有健康食品核准保健功效資料」＋「查有官方查驗登記／核備紀錄，但這類登記不等於健康食品許可，
+    因此不能由這筆資料認定有核准保健功效」（不說產品沒有任何功效）；按鈕 查看產品登記資料 / 查看資料來源。
+    新 `ResponseAction.REGISTRATION_INFO`（與官方資訊同內容、下一層只有資料來源）；`OFFICIAL_INFO` 標籤改「查看產品資訊」。
+  - 語意顏色（`SemanticTone`、`ResponsePayload.status_line / status_tone / tone`）：GREEN 官方確認 / 核准、ORANGE 資料不足 /
+    查無涵蓋紀錄 / 登記≠核准、RED 高風險宣稱。renderer 只替關鍵短語上色（status 行、宣稱風險標示、風險卡標題），內文維持黑字。
+  - NOT_FOUND：沒有命題時查無產品 / 查詢失敗 → MISSING_INFORMATION「需要更多資訊」、🟠「未查到對應官方紀錄」（失敗為「暫時無法完成產品查詢」＋重新查詢），
+    列出三個涵蓋類別、「查不到紀錄不代表產品是假貨或違法」、請提供完整品名 / 包裝照片 / 證號；無風險燈號。Risk Engine 內部仍 MEDIUM（未改）。
+    風險卡的資訊不足標題改為「目前資訊不足，暫時無法確認」（移除「先以中風險看待」）。有命題時沿用說法 / 風險卡。
+  - FC-E8：primary 仍最多 3 個重點（多的顯示「還有 N 項」）。FROZEN_CONTRACTS FC-C2 / FC-E1 文字與測試名稱同步更新（使用者本輪要求）。
+  - 更新舊測試（被要求改變的行為）：查無產品改 MISSING_INFORMATION（test_adaptive_response、test_response_ux_cleanup、test_agents）；
+    功效卡改列功效名稱、原文在完整功效（test_demo_stabilization、test_list_layout_and_fast_paths、test_p1_fastpath_dedup、
+    test_context_binding_fonts、test_product_selection、test_product_coverage_runtime）；PRODUCT_INFO「無風險燈」改為無風險用語且
+    🟢/🟠 只出現在 status 行（test_claim_verdict_consistency、test_question_fast_path_and_wording）。
+  - tests：`tests/unit/test_intent_first_response.py`（12，虛構）；targeted 24 檔 530 passed（未跑 full pytest、未呼叫 LINE validate API）。
+- **Taiwan Product Coverage = FROZEN（2026-10-04 Final Freeze Gate）**：
+  - Coverage（production）：health_food 565 / domestic_vitamin_tablet_capsule 1705 / imported_tablet_capsule 7407 / total 9677。
+  - 維持：**Claim Policy Runtime = FROZEN**、**Product Coverage Runtime = FROZEN**（類別感知、字號解析、UNKNOWN 狀態、NOT_FOUND 涵蓋文字、
+    Intent-first 卡片、語意顏色、分類別 integrity gate）。之後修改需使用者明確同意。
+  - LINE validate API：14 張（健康食品功效＋完整功效、國產 / 輸入功效＋產品登記資料、NOT_FOUND、查詢失敗、高風險宣稱、
+    健康食品 / 國產登記卡、登記類成分卡、跨類別候選 inline、>3 候選 carousel）全部 PASS（虛構資料，含 Quick Reply）。
+  - 候選選擇：新增跨類別同名選擇測試（request-scoped、其他使用者拒絕、不重跑 Agent A、沿用原題 intent、依所選類別回答）；selection / webhook /
+    adaptive / pending / context 117 passed。ConnectError：reply 時的網路錯誤會讓該 job 失敗並記 `line_job_failed`，queue 繼續（既有測試覆蓋）；
+    不重送是既有設計（狀態不明時避免重複），未加特例。
+  - Resolver safety audit（只稽核，未改 resolver / threshold）：production 唯讀抽樣 120 產品（exact / 截斷 1–2 字 / 中間錯一字）：
+    exact 106 VERIFIED、14 同名 → 候選；NAME_SIMILARITY 自動確認 198 次中 **1 次確認成另一項產品**（錯字讓查詢更接近較短的另一品名，差距 0.057）、
+    27 次正確但第二名差距 < 0.10（多為只差一字的姊妹品項，如配方別）；search_products limit 20 沒有漏掉 margin 內的對手（0）。
+    `tests/unit/test_resolver_safety_audit.py`：9 個安全行為 PASS＋2 個已知不安全 strict xfail（替換字誤確認、一般品名被包含在多個品名中時自動確認最短者）。
+    建議一般化規則（需同意修改 frozen FC-B1 / FC-B2 / FC-B3）：NAME_SIMILARITY 只有在（a）使用者文字依序完整包含於該品名（只有省略、沒有替換字），
+    且（b）沒有其他候選也完整包含使用者文字，且（c）第二名 < 0.8 或差距 ≥ 0.10 時才自動確認；其餘改為既有的候選確認卡。
+  - Full pytest（含 live integration / DB）：987 passed / 1 failed / 2 xfailed（690s）。唯一 failure 為 `test_line_demo_live.py::test_fifo_order_and_old_card_sources`
+    的過期 helper（以按鈕找該題紀錄；虛構品名在正式 DB 查無 → 依上一輪規格為無按鈕的 MISSING_INFORMATION 卡），非 production regression；
+    只更新測試 helper（無按鈕時以同一使用者＋altText 結論對應紀錄），重跑該測試：FIFO 斷言通過，之後走既有的條件式 skip（第一題沒有官方來源）。
+- **Resolver identity safety（2026-10-04，使用者同意只調整 FC-B1 / FC-B2 / FC-B3；Claim Policy / Risk Engine / schema / production data /
+  postback protocol / Agent A prompt / 類別行為未動）→ Taiwan Product Coverage = FROZEN**：
+  - 原則：wrong auto-confirm 比多一次確認更危險；分數高於固定門檻不能覆蓋 ambiguity。
+  - 強證據不變：唯一字號 / 官方品名 / 官方別名 / 基本品名完全相同 → VERIFIED；名稱＋公司 / 品牌佐證、修正寫法佐證依既有規則。
+  - 純 NAME_SIMILARITY 自動確認（`similarity_confirm_blockers`，`app/risk/assessment_rules.py`）三條全部成立：
+    A 正規化後使用者文字是官方品名的有序子序列（只有省略、沒有替換字）；B 沒有其他候選品名也包含同一段文字；
+    C 第二名 < 0.80（`SIMILARITY_RUNNER_UP_CEILING`）或領先 >= 0.10（`SIMILARITY_SAFE_GAP`）。
+    有對手（B / C 不成立）→ MULTIPLE_SIMILAR_NAMES 候選卡（第一名＋對手）；只有替換字、沒有對手 → LOW_MATCH_CONFIDENCE 單一候選確認。
+    既有 VERIFIED_MIN_SCORE 0.9 / AMBIGUITY_MARGIN 0.05 未改。候選卡 / postback / 選擇後沿用原題（不重跑 Agent A）不變。
+  - 稽核時的兩個 strict xfail（錯字確認成較短的另一項、一般品名被多個品名包含）改為一般 regression test 並通過；姊妹品項只差一字、
+    差距 0.096 的截斷查詢（第二名 >= 0.80）現在也走候選確認（依新規則 C，舊測試期待已更新）。
+  - FROZEN_CONTRACTS FC-B1 / FC-B2 / FC-B3 已更新（Exact strong evidence 可確認、Fuzzy similarity 在 ambiguity 時必須 clarification、
+    不得為命中率犧牲 identity safety）；其他 contract 未動。
+  - tests：`tests/unit/test_resolver_safety_audit.py`（16，虛構）＋`test_product_selection.py` 錯字 → 候選卡 → 選擇沿用原題（1）；
+    targeted 20 檔 447 passed；`tests/unit` 947 passed。
+  - **Full pytest（含 live integration / DB）：995 passed / 0 failed / 1 skipped / 0 xfailed（697s）**。skipped 為 `test_line_demo_live.py`
+    第一題（虛構品名查無 → MISSING_INFORMATION）沒有官方來源時的既有條件式 skip（unit test 已覆蓋）。
+  - **Taiwan Product Coverage = FROZEN**（health_food 565 / domestic_vitamin_tablet_capsule 1705 / imported_tablet_capsule 7407 / total 9677）；
+    **Claim Policy Runtime = FROZEN**、**Product Coverage Runtime = FROZEN**、Resolver identity safety contract（FC-B1/B2/B3）= FROZEN。
 - 最新完整 pytest（2026-10-03，LINE 整合後）：466 passed / 7 skipped / 0 failed（當時 DB 尚未 seed）。
 - 2026-10-03 seed 後（未改 production code，未重跑完整 suite）：`test_data_stores_live.py` 6 passed（原本 skip）、
   `test_line_demo_live.py` 6 passed。
@@ -551,8 +689,9 @@
 
 ## 注意事項
 
-- DB 目前為正式 565 筆 seed（DATA FREEZE）；寫入 / reset 需使用者同意。
-- Migration：新 Supabase 已套用 0001 + 0002 + 0003（claim policy corpus，已匯入）。全新 DB：0001 → 0002（no-op）→ 0003。`tests/db/test_migration_0002_upgrade.py` 以本機 PostgreSQL 驗證
+- DB 目前為正式 565 health_food＋9112 查驗登記／核備（共 9677 products，DATA FREEZE）；寫入 / reset 需使用者同意。
+- Migration：新 Supabase 已套用 0001 + 0002 + 0003（claim policy corpus）+ 0004（product coverage，使用者於 SQL Editor 套用），皆已匯入。
+  全新 DB：0001 → 0002（no-op）→ 0003 → 0004。`tests/db/test_migration_0002_upgrade.py` 以本機 PostgreSQL 驗證
   舊 0001 等價 schema → 0002 → 0002 與全新安裝 schema 一致。
 
 ## 下一步（依序）
@@ -561,6 +700,26 @@
 下一步：完整 pipeline live regression（核准功效原文廣告、官方醫療效能例示原文、待複核例示、無產品一般可用詞句、URL / 圖片宣稱），
 確認延遲與 web fallback 次數；不需要再 migration / import / embedding。
 
+**TFDA Product Coverage — Production Import 完成（2026-10-04）**：
+- Preflight（唯讀）PASS：marker nutri_safe_ai、products 565（全 health_food）/ permits 565 / raw 565、integrity blockers 0；
+  使用者於 SQL Editor 套用 0004 後再確認：`migration_0004_tfda_product_coverage = applied`、565 列與套用前逐欄相同、view 有新欄位；
+  `--compare-supabase` 仍為 Domestic 1705 / Imported 7407 / insert 9112 / collisions 0 / missing 0 / errors 0。
+- `--apply --confirm-project nutri_safe_ai`（exit 0、errors 0）：source_registry 2、raw_import_records 9112、companies 新增 1063（沿用 67）、
+  permits 9112、products 9112；Neo4j：0003 index＋health_food backfill、Source 2 / Company merge 1130 / Permit 9112 / Product 9112 / links 9112。
+- 匯入後（唯讀）：health_food 565 / domestic 1705 / imported 7407 / total 9677。`check_data_integrity --expect-category health_food=565
+  --coverage-snapshot data/tfda_product_coverage/2026-10-04 --expect-products 9677` PASS（blockers 0）：Supabase ↔ Neo4j Product / Permit 9677、
+  Company 1308、Source 74 一致；Neo4j product_category 缺 0；每來源 products = raw；canonical ID 全部由官方字號推導。
+- 565 health_food：products / permits / raw / product_claims 652 / approved_claims 14 與匯入前逐欄相同；SUPPORTED_BY 仍指向健康食品來源。
+- 新兩類：status / permit status 全 UNKNOWN、status_raw NULL；expiry_date 9112；字號 10 碼 9112、前導零 196、permit_code = 字號 = extract_permit_code；
+  全 DB permit_number / permit_code 無重複；product_claims / product_ingredients / product_warnings 0；Neo4j 新 Product 無 CONTAINS / HAS_APPROVED_CLAIM，
+  Ingredient 仍 272，無 SAME_AS / INTERACTS_WITH 關係型別。全 DB 同名組 257（不合併）。
+- 重跑 `--compare-supabase`：products / permits / raw 9112 unchanged、insert 0、companies 1130 reused、errors 0。
+- Production READ-ONLY smoke（真實 Supabase / Neo4j repo，intake 用固定抽取不呼叫 OpenAI，不寫 log，產品由 DB 隨機挑選）：
+  health_food 功效 → PRODUCT_INFO＋核准功效（fast path 1.8s）；國產 10 碼字號 → VERIFIED PERMIT_NUMBER、「查有官方查驗登記／核備資料」、
+  無核准功效、LOW 無 INACTIVE（0.5s）；輸入前導零＋依日期已過有效日期 → 同上，日期狀態標「非官方狀態」（0.4s）；跨類別同名 3 筆 →
+  structured_clarification 候選（標類別＋字號名稱），不合併。全部無 planner / RAG / assess / web。
+- tests：targeted 12 檔 245 passed（未跑 full pytest、未跑 live integration）。
+- 下一步：手機 smoke（10 碼字號、新類別品名、跨類別同名選擇、查無產品文字）；新類別成分問題目前仍走完整流程（尚無結構化成分）。
 
 0. 手機重測 image identity：有字號但品名 / 標章小字易誤讀的包裝、字號被擋住只看到品名、同名多公司包裝（含公司名）
 0a. 手機重測 pending clarification：只傳相似包裝圖 → 回「是」/「不是」/ 改傳其他品名；字號＋不同品名 → 回「是同一個」

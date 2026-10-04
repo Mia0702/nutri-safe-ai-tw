@@ -105,11 +105,12 @@ def test_verified_product_with_inactive_permit_still_medium_risk():
     assert result.response.risk_level == RiskLevel.MEDIUM
 
 
-def test_named_product_not_found_keeps_conservative_risk_card():
-    """有明確的查證對象（使用者指名的產品）但查無紀錄：仍是既有的保守 MEDIUM 卡（不等於假貨）。"""
+def test_named_product_not_found_is_missing_information_without_risk_light():
+    """使用者指名的產品查無紀錄（2026-10-04 調整）：MISSING_INFORMATION、無風險燈號；Risk Engine 仍是 MEDIUM（不變）。"""
     result, _ = run_text(extraction(intent=Intent.PRODUCT_VERIFICATION, product_candidates=[UNKNOWN]))
-    assert result.response.response_type == ResponseType.RISK and result.response.risk_level == RiskLevel.MEDIUM
-    assert any("不代表" in w for w in result.response.warnings)
+    assert result.risk.risk_level == RiskLevel.MEDIUM
+    assert result.response.response_type == ResponseType.MISSING_INFORMATION and result.response.risk_level is None
+    assert any("不代表" in k for k in result.response.key_points)
 
 
 def test_missing_information_offers_retry_only_when_a_source_failed():
@@ -136,7 +137,7 @@ def test_image_not_found_shows_short_recognized_content():
                                           "公司：範例虛構公司"]  # 最多 4 項，不是整張 OCR
     text = json.dumps(AdaptiveLineRenderer().render_primary(payload), ensure_ascii=False)
     assert "圖片辨識到：" in text and "虛構素乙" not in text
-    assert "許可證字號" in payload.plain_text() and "不代表是假貨" in payload.plain_text()
+    assert "許可證字號" in payload.plain_text() and "不代表產品是假貨" in payload.plain_text()
 
 
 def test_image_without_any_identifier_asks_for_clearer_photo():

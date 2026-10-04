@@ -20,7 +20,7 @@ MEDIUM
   RISK_MED_PRODUCT_NOT_FOUND            查不到官方產品紀錄（不等於假貨）
   RISK_MED_PRODUCT_LOOKUP_FAILED        產品查詢失敗，無法確認（不可說成查無紀錄）
   RISK_MED_PRODUCT_PARTIAL              只找到相似產品，無法確認是同一項
-  RISK_MED_PERMIT_INACTIVE              官方紀錄存在，但許可證已非有效狀態
+  RISK_MED_PERMIT_INACTIVE              官方紀錄存在，但官方狀態為已失效 / 併證 / 註銷 / 廢止（UNKNOWN 不算）
   RISK_MED_PRODUCT_SIDE_CLAIM_ISSUE     包裝 / 廣告宣稱誇大、無官方支持或無法判斷
   RISK_MED_CIRCULATING_CLAIM_ISSUE      流傳說法涉及醫療效能、與官方矛盾、誇大或無官方支持
   RISK_MED_EVIDENCE_INSUFFICIENT        證據強度為 WEAK / NONE
@@ -33,11 +33,11 @@ LOW
 使用者提問（USER_QUESTION）的查證結果只決定回答內容，不會單獨讓風險升級。
 """
 
+from app.product_coverage import NOT_FOUND_COVERAGE_TEXT, is_officially_inactive
 from app.schemas.enums import (
     ClaimAssessmentStatus,
     ClaimOrigin,
     EvidenceStrength,
-    ProductStatus,
     ProductVerificationStatus,
     RiskLevel,
 )
@@ -45,7 +45,7 @@ from app.schemas.evidence import ClaimAssessment, EvidenceBundle
 from app.schemas.risk import RiskAssessment, RiskRuleHit
 from app.schemas.user_request import NormalizedUserRequest
 
-DISCLAIMER_NOT_FOUND = "目前未找到官方紀錄，不代表產品一定是假貨或違法。"
+DISCLAIMER_NOT_FOUND = NOT_FOUND_COVERAGE_TEXT  # 說明查詢涵蓋的官方類別；查不到 ≠ 假貨或違法
 DISCLAIMER_MEDICAL = "保健食品不能用來治療疾病，身體有狀況請諮詢醫師或藥師。"
 DISCLAIMER_DATA_INCOMPLETE = "目前部分資料來源暫時無法查詢，因此這次結果可能不完整。"
 DISCLAIMER_TW_SCOPE = (
@@ -100,8 +100,10 @@ class RiskEngine:
         if (
             product_status == ProductVerificationStatus.VERIFIED
             and best is not None
-            and best.product.status != ProductStatus.ACTIVE
+            and is_officially_inactive(best.product.status)
         ):
+            # 只有官方資料明確給出的非有效狀態（EXPIRED / MERGED / CANCELLED / REVOKED）才算；
+            # UNKNOWN（官方資料集未提供狀態）≠ 失效，依有效日期推得的日期狀態也不是官方法律狀態
             hit("RISK_MED_PERMIT_INACTIVE", RiskLevel.MEDIUM, "這項產品的官方許可目前不是有效狀態。")
 
         # ---- MEDIUM：宣稱 ----

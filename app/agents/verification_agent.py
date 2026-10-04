@@ -69,6 +69,7 @@ from app.agents.evidence_tools import (
     ToolSpec,
 )
 from app.normalization import extract_permit_code, normalize_name
+from app.product_coverage import has_health_claim_approval
 from app.risk.assessment_rules import (
     assess_claim,
     compute_evidence_strength,
@@ -632,6 +633,10 @@ class VerificationAgent:
             return False
         intent, bundle = state.request.intent, state.bundle
         if intent == Intent.EFFICACY_INQUIRY:
+            best = bundle.product_match.best_match
+            if best is not None and not has_health_claim_approval(best.product.product_category):
+                # 查驗登記／核備類別本來就沒有核准保健功效：「沒有」就是結構化答案，不是缺資料
+                return True
             return bool(bundle.approved_claims)
         if intent == Intent.INGREDIENT_INQUIRY:
             return bool(bundle.ingredients)

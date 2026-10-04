@@ -1,7 +1,13 @@
 """Real DB Integrity Gate（唯讀）：比對 Supabase（canonical）與 Neo4j（graph）。
 
 用法：
-    python -m scripts.check_data_integrity --expect-products 565
+    python -m scripts.check_data_integrity
+    python -m scripts.check_data_integrity --expect-category health_food=<N>          # 選填：指定類別預期筆數
+    python -m scripts.check_data_integrity --coverage-snapshot data/tfda_product_coverage/2026-10-04
+                                                                    # 選填：查驗登記／核備類別預期筆數取自 snapshot
+
+產品筆數不再固定：依來源 / 批次 / 類別驗證（app/ingestion/product_integrity.py）——類別與來源一致、
+每個來源的產品數 = raw 官方紀錄數、canonical ID = 官方字號推導、（選填）類別預期筆數。
 
 任一 blocker → exit code 1。不寫入任何資料。
 """
@@ -12,6 +18,13 @@ from collections import Counter
 
 from app.config.settings import get_settings
 from app.ingestion.graph_sync import _fetch_all
+from app.ingestion.product_integrity import (
+    graph_category_checks,
+    parse_category_expectations,
+    product_count_checks,
+    snapshot_expectations,
+)
+from app.ingestion.tfda_product_coverage import MIGRATION_0004_MARKER
 from app.schemas.evidence import CLAIM_KIND_UNCLASSIFIED
 
 # (Neo4j label, id property, Supabase table)
@@ -33,8 +46,15 @@ REL_TYPES = [
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="呷安心 Real DB Integrity Gate（唯讀）")
-    parser.add_argument("--expect-products", type=int, default=565)
+    parser.add_argument("--expect-products", type=int, default=None, help="選填：Product 總數")
+    parser.add_argument("--expect-category", action="append", default=[], metavar="CATEGORY=N",
+                        help="選填、可重複：某類別的預期筆數（例如 health_food=N）")
+    parser.add_argument("--coverage-snapshot", type=str, default=None,
+                        help="選填：已匯入的 coverage snapshot 目錄，查驗登記／核備類別預期筆數取自 validation.json")
     args = parser.parse_args()
+    expected = parse_category_expectations(args.expect_category)
+    if args.coverage_snapshot:
+        expected = {**snapshot_expectations(args.coverage_snapshot), **expected}
 
     from app.services.neo4j_service import Neo4jService
     from app.services.supabase_service import SupabaseService
@@ -67,10 +87,18 @@ def main() -> int:
             check(set(ids) == set(gids) and dup_sb == 0 and dup_g == 0 and None not in gids,
                   f"{label}: supabase {len(ids)} / neo4j {len(gids)}；duplicate {dup_sb}/{dup_g}；"
                   f"only_sb {len(set(ids) - set(gids))} only_neo4j {len(set(gids) - set(ids))}")
-        check(len(sb_ids["Product"]) == args.expect_products, f"Product = {args.expect_products}")
+        print("[products] 來源 / 批次 / 類別")
+        products = fetch("products", "id,company_id,permit_id,raw_record_id,source_record_key,source_id,product_category")
+        for c in product_count_checks(products, fetch("permits", "id,permit_number"), fetch("source_registry", "id,source_key"),
+                                      fetch("raw_import_records", "source_id,source_record_key"),
+                                      expected=expected, expected_total=args.expect_products):
+            check(c.ok, c.label)
+        migration_0004 = bool(sb.select(sb.table("app_schema_meta").select("value").eq("key", MIGRATION_0004_MARKER).limit(1)))
+        graph_products = neo.read("MATCH (p:Product) RETURN p.product_id AS id, p.product_category AS product_category")
+        for c in graph_category_checks(products, graph_products, required=migration_0004):
+            check(c.ok, c.label)
 
         print("[relationships] counts / duplicates")
-        products = fetch("products", "id,company_id,permit_id,raw_record_id,source_record_key")
         joins = {
             "CONTAINS": len(fetch("product_ingredients", "product_id")),
             "HAS_APPROVED_CLAIM": len(fetch("product_claims", "id")),
@@ -134,7 +162,8 @@ def main() -> int:
         raw = fetch("raw_import_records", "id,source_record_key,raw_data")
         raw_ids = {r["id"] for r in raw}
         no_raw = [p for p in products if not p["raw_record_id"] or p["raw_record_id"] not in raw_ids]
-        check(len(raw) == len(products) and not no_raw, f"raw_import_records {len(raw)}；產品缺 raw link {len(no_raw)}")
+        # raw_import_records 可保留舊版本（官方內容變更時新增版本）：只要求每個產品都連到存在的 raw 紀錄
+        check(not no_raw, f"raw_import_records {len(raw)}；產品缺 raw link {len(no_raw)}")
         check(all(r["raw_data"] for r in raw), "raw_data 皆非空")
         claims = fetch("approved_claims", "id,claim_kind")
         unclassified = {c["id"] for c in claims if c["claim_kind"] == CLAIM_KIND_UNCLASSIFIED}

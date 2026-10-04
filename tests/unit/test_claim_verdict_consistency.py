@@ -207,7 +207,9 @@ def test_product_info_does_not_get_a_risk_light():
     p = result.response
     assert p.response_type == ResponseType.PRODUCT_INFO and p.risk_level is None and p.claim_risk_level is None
     card = json.dumps(R.render_primary(p), ensure_ascii=False)
-    assert not any(m in card for m in ("🟢", "🟠", "🔴"))
+    # 2026-10-04：🟢/🟠 只作為 status 關鍵短語的語意顏色（例如「🟢 官方核准功效」），不是風險燈號
+    assert "風險" not in card and "🔴" not in card
+    assert sum(card.count(m) for m in ("🟢", "🟠")) == (1 if p.status_line else 0)
 
 
 def test_claim_risk_level_is_only_allowed_on_claim_result():

@@ -11,7 +11,9 @@ import uuid
 # canonical ID 命名空間：Supabase 與 Neo4j 用同一套 uuid5 產生 ID
 _ID_NAMESPACE = uuid.UUID("7b0f7c52-3f43-4d0e-9a59-6f1b3f1e2a10")
 
-_PERMIT_CODE_RE = re.compile(r"([A-Z]\d{5}|\d{6})")
+# 官方登記字號：健康食品「英文字母＋5 碼」，或一段完整的數字（健康食品 6 碼、錠狀膠囊類查驗登記 / 核備 10 碼…）。
+# 數字段必須完整取出（前後不能再接數字或英文字母）：不截斷、不轉 integer、保留前導零。
+_PERMIT_CODE_RE = re.compile(r"([A-Z]\d{5}(?!\d)|(?<![0-9A-Z])\d{6,}(?!\d))")
 _PERMIT_TYPE_RE = re.compile(r"(健食規字|健食字)")
 
 
@@ -97,7 +99,10 @@ def name_match_score(query: str, candidate: str) -> float:
 
 
 def extract_permit_code(text: str) -> str | None:
-    """從「衛部健食字第A00235號」或「A00235」取出正規化代碼。"""
+    """從「衛部健食字第A00235號」、「A00235」或完整數字字號（如 10 碼查驗登記證號）取出正規化代碼。
+
+    回傳字串原樣（含前導零）；數字段不截斷。
+    """
     norm = unicodedata.normalize("NFKC", text or "").upper()
     match = _PERMIT_CODE_RE.search(norm)
     return match.group(1) if match else None

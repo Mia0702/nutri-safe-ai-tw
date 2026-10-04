@@ -25,7 +25,8 @@ ACTION_LABELS = {
     ResponseAction.DETAIL: "查看完整分析",
     ResponseAction.SOURCES: "查看資料來源",
     ResponseAction.INGREDIENTS: "查看完整成分",
-    ResponseAction.OFFICIAL_INFO: "查看官方資訊",
+    ResponseAction.OFFICIAL_INFO: "查看產品資訊",
+    ResponseAction.REGISTRATION_INFO: "查看產品登記資料",
     ResponseAction.WHY: "為什麼？",
     ResponseAction.RETRY: "重新查詢",
     ResponseAction.CHECK_PACKAGE_CLAIMS: "查驗包裝宣稱",
@@ -39,6 +40,7 @@ DETAIL_FOLLOW_UPS: dict[ResponseAction, tuple[ResponseAction, ...]] = {
     ResponseAction.OFFICIAL_INFO: (ResponseAction.FULL_EFFICACY, ResponseAction.WARNINGS, ResponseAction.SOURCES),
     # 為什麼 → 法規依據（結構化 claim policy 的條次 / 摘要）→ 官方來源（既有可點擊來源卡）
     ResponseAction.WHY: (ResponseAction.POLICY_BASIS, ResponseAction.SOURCES),
+    ResponseAction.REGISTRATION_INFO: (ResponseAction.SOURCES,),
 }
 
 

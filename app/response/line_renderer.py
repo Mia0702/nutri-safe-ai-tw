@@ -21,7 +21,15 @@ from typing import Any, Callable
 from app.response.actions import ACTION_LABELS, build_postback_data, build_select_product_data
 from app.response.sources import SourceLink, safe_source_url
 from app.schemas.enums import ResponseAction, ResponseType
-from app.schemas.response import CLAIM_RISK_LABEL, RISK_EMOJI, DetailPayload, ProductChoice, ResponsePayload
+from app.schemas.enums import SemanticTone
+from app.schemas.response import (
+    CLAIM_RISK_LABEL,
+    RISK_EMOJI,
+    TONE_EMOJI,
+    DetailPayload,
+    ProductChoice,
+    ResponsePayload,
+)
 
 MAX_KEY_POINTS = 3
 MAX_WARNINGS = 2
@@ -64,6 +72,20 @@ COLOR_TITLE = "#111111"
 COLOR_BODY = "#333333"
 COLOR_MUTED = "#888888"
 COLOR_SEPARATOR = "#EEEEEE"
+# 語意顏色只用在關鍵短語（status / 宣稱風險 / 風險標題），內文維持黑字
+TONE_COLORS = {SemanticTone.GREEN: "#1B7F3B", SemanticTone.ORANGE: "#B45309", SemanticTone.RED: "#C62828"}
+
+
+def _tone_color(payload: ResponsePayload) -> str:
+    tone = payload.tone
+    return TONE_COLORS[tone] if tone is not None else COLOR_TITLE
+
+
+def _status_rows(payload: ResponsePayload) -> list[dict[str, Any]]:
+    if not payload.status_line:
+        return []
+    return [_text(f"{TONE_EMOJI[payload.status_tone]} {payload.status_line}", "body",
+                  color=TONE_COLORS[payload.status_tone], weight="bold")]
 
 TYPE_LABELS = {
     ResponseType.RISK: "風險判斷",
@@ -264,7 +286,8 @@ MAX_CHOICE_BUTTON_CHARS = 20  # LINE action label 上限
 
 
 def _choice_detail(choice: ProductChoice) -> str:
-    parts = [f"許可證字號 {choice.permit_number}" if choice.permit_number else "無許可證字號"]
+    parts = [choice.category_label] if choice.category_label else []
+    parts.append(f"{choice.number_label} {choice.permit_number}" if choice.permit_number else f"無{choice.number_label}")
     if not choice.is_active:
         parts.append(f"⚠️ {choice.status_text}（仍可查詢）")
     return "・".join(parts)
@@ -333,6 +356,7 @@ class AdaptiveLineRenderer:
         intro = [_text(TYPE_LABELS[payload.response_type], "section", color=COLOR_MUTED),
                  *_query_label_row(query_label),
                  _text(heading, "title", color=COLOR_TITLE, weight="bold"),
+                 *_status_rows(payload),
                  _text(payload.summary, "body", color=COLOR_BODY)]
         note = [_text(payload.choice_note, "note", color=COLOR_MUTED)] if payload.choice_note else []
         recognized = _recognized_rows(payload)
@@ -359,8 +383,11 @@ class AdaptiveLineRenderer:
         header = [
             _text(TYPE_LABELS[payload.response_type], "section", color=COLOR_MUTED),
             *_query_label_row(query_label),
-            _text(heading, "title", color=COLOR_TITLE, weight="bold"),
-            *([_text(badge, "body", color=COLOR_TITLE, weight="bold")] if badge else []),
+            # 風險卡的標題本身就是關鍵結論 → 依語意上色；其他卡片標題維持黑字，只替 status / 宣稱風險短語上色
+            _text(heading, "title", color=_tone_color(payload) if payload.response_type == ResponseType.RISK else COLOR_TITLE,
+                  weight="bold"),
+            *([_text(badge, "body", color=_tone_color(payload), weight="bold")] if badge else []),
+            *_status_rows(payload),
         ]
         notes = [_text(_clip(w, 120), "note", color=COLOR_MUTED) for w in payload.warnings[:MAX_WARNINGS]]
         if payload.source_count:

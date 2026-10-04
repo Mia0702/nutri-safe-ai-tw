@@ -70,10 +70,13 @@ def test_verified_product_verification_is_product_info_without_risk_light():
     assert ResponseAction.OFFICIAL_INFO in p.available_actions
 
 
-def test_unknown_product_is_medium_and_not_called_fake():
+def test_unknown_product_is_missing_information_and_not_called_fake():
+    """2026-10-04 使用者調整：查無產品是「需要更多資訊」，不是風險判定 → 無風險燈號；仍附涵蓋範圍與「不代表假貨」。"""
     p = compose(request(product_candidates=["完全查不到的名字"]))
-    assert p.risk_level == RiskLevel.MEDIUM and not p.is_conclusive and renderer.heading(p).startswith("🟠")
-    assert DISCLAIMER_NOT_FOUND in p.warnings  # NOT_FOUND 不等於假貨，必要警語保留在 primary card
+    assert p.response_type == ResponseType.MISSING_INFORMATION and p.risk_level is None and not p.is_conclusive
+    assert not renderer.heading(p).startswith(("🟢", "🟠", "🔴"))
+    assert DISCLAIMER_NOT_FOUND in p.plain_text() or (
+        "查不到紀錄不代表產品是假貨或違法。" in p.key_points and any("健康食品" in k for k in p.key_points))
 
 
 def test_efficacy_inquiry_on_verified_product_is_product_info():
@@ -190,7 +193,7 @@ def test_old_button_returns_old_request_after_new_question():
 
 
 def test_detail_generates_full_analysis_on_demand_only():
-    llm, svc = _service([extraction(product_candidates=["完全查不到的名字"])])  # 風險卡才有「查看完整分析」
+    llm, svc = _service([extraction(product_candidates=["另一虛構保健測試錠"])])  # 風險卡（違規廣告紀錄）才有「查看完整分析」
     rid = _rid(svc.respond(_text(), owner_id="U1"), ResponseAction.DETAIL)
     assert not llm.called("generate_text")
     detail = svc.handle_action(build_postback_data(ResponseAction.DETAIL, rid), owner_id="U1")

@@ -31,7 +31,7 @@ from app.schemas.evidence import CLAIM_KIND_UNCLASSIFIED
 from app.services.neo4j_service import ALLOWED_LABELS
 
 ROOT = Path(__file__).resolve().parents[2]
-CORPUS_DIR = ROOT / "data" / "tfda_claim_policy"
+CORPUS_DIR = ROOT / "data" / "tfda_claim_policy" / "2026-10-03"
 MIGRATION = (ROOT / "migrations" / "0003_claim_policy_corpus.sql").read_text(encoding="utf-8")
 
 pytestmark = pytest.mark.skipif(not (CORPUS_DIR / cpc.FILES["validation"]).is_file(), reason="corpus 檔案不存在")

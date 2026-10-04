@@ -20,6 +20,7 @@ from app.schemas.enums import (
     EvidenceStrength,
     ProductAmbiguityReason,
     ProductIdentityFlag,
+    ProductCategory,
     ProductMatchType,
     ProductStatus,
     ProductVerificationStatus,
@@ -93,6 +94,10 @@ class ProductRecord(BaseModel):
     approval_date: str | None = None
     status: ProductStatus = ProductStatus.UNKNOWN
     source: SourceRef
+    # 產品在官方資料中的法律身分；只有 HEALTH_FOOD 可能有核准保健功效（見 app/product_coverage.py）
+    product_category: ProductCategory = ProductCategory.HEALTH_FOOD
+    # 登記有效日期（0004 起）；只能顯示日期狀態，不是官方法律狀態
+    expiry_date: str | None = None
 
 
 # lookup_product 以官方 / 人工審核的產品別名完全命中時的 matched_by（推測別名不會使用此值）

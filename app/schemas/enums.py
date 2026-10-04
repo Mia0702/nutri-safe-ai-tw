@@ -212,6 +212,7 @@ class ProductAmbiguityReason(StrEnum):
     MULTIPLE_VARIANTS = "MULTIPLE_VARIANTS"  # 同一基本品名有多個規格 / 口味品項
     MULTIPLE_SIMILAR_NAMES = "MULTIPLE_SIMILAR_NAMES"  # 多個候選分數接近
     LOW_MATCH_CONFIDENCE = "LOW_MATCH_CONFIDENCE"  # 只有相似名稱，分數不足以確認
+    MULTIPLE_REGISTRATION_RECORDS = "MULTIPLE_REGISTRATION_RECORDS"  # 使用者給的字號對應多筆官方紀錄
 
 
 class ClaimAssessmentStatus(StrEnum):
@@ -307,6 +308,18 @@ class ProductStatus(StrEnum):
     UNKNOWN = "UNKNOWN"
 
 
+class ProductCategory(StrEnum):
+    """products.product_category：產品在官方資料中的法律身分（台灣）。
+
+    HEALTH_FOOD 是健康食品許可（可能有官方核准保健功效）；其他類別只代表「查有官方查驗登記／核備資料」，
+    不含健康食品保健功效核准。
+    """
+
+    HEALTH_FOOD = "health_food"
+    DOMESTIC_VITAMIN_TABLET_CAPSULE = "domestic_vitamin_tablet_capsule"
+    IMPORTED_TABLET_CAPSULE = "imported_tablet_capsule"
+
+
 class ErrorCode(StrEnum):
     NOT_CONFIGURED = "NOT_CONFIGURED"
     UNAVAILABLE = "UNAVAILABLE"
@@ -331,6 +344,19 @@ class ResponseType(StrEnum):
     ERROR = "ERROR"
 
 
+class SemanticTone(StrEnum):
+    """卡片上關鍵短語的固定語意顏色（只替關鍵短語上色，一般說明維持黑字）。
+
+    GREEN：官方確認 / 官方核准 / 有支持。
+    ORANGE：資料不足、待複核、查無目前涵蓋的紀錄、查驗登記不等於健康食品核准（不是違法或假貨）。
+    RED：高風險宣稱、醫療效能宣稱、明確警示。
+    """
+
+    GREEN = "GREEN"
+    ORANGE = "ORANGE"
+    RED = "RED"
+
+
 class ResponseAction(StrEnum):
     """Primary response 上的 on-demand 按鈕；postback 一律帶 request_id（見 app/response/actions.py）。"""
 
@@ -345,3 +371,4 @@ class ResponseAction(StrEnum):
     WARNINGS = "warnings"  # 官方資訊卡 → 警語與注意事項
     CHECK_PACKAGE_CLAIMS = "check_claims"  # 查驗圖片中觀察到的包裝宣稱（使用原 request 保存的內容）
     POLICY_BASIS = "policy_basis"  # 為什麼 → 法規依據（結構化 claim-policy 規則 / 例示 / 保健功效定義）
+    REGISTRATION_INFO = "registration_info"  # 查驗登記／核備類別的產品登記資料（與官方資訊同內容，用語不同）

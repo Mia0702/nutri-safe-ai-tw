@@ -1,0 +1,159 @@
+{
+  "research_date": "2026-10-04",
+  "generated_at": "2026-10-04T03:30:36.534202+00:00",
+  "production_written": false,
+  "production_565_modified": false,
+  "production_snapshot_available": false,
+  "health_reference_status": "PUBLIC_REFERENCE_ONLY",
+  "health_reference_rows": 565,
+  "health_reference_not_in_normalized_files": true,
+  "datasets": {
+    "24": {
+      "raw_rows": 1705,
+      "normalized_rows": 1705,
+      "missing_registration_number": 0,
+      "registration_duplicate_groups": 0,
+      "missing_product_name": 0,
+      "missing_ingredients": 0,
+      "date_parse_failures": 0,
+      "source_row_key_duplicate_groups": 0,
+      "same_name_groups": 29,
+      "exact_raw_duplicate_groups": 0,
+      "ready": 288,
+      "needs_review": 1417,
+      "review_reason_counts": {
+        "COMPOUND_RELATIONSHIP_UNAVAILABLE": 360,
+        "REPEATED_SOURCE_TOKENS": 852,
+        "CONCENTRATION_OR_AMOUNT_CONTEXT_UNRESOLVED": 558,
+        "OPAQUE_COMPOUND_OR_NESTED_LIST": 538,
+        "SECONDARY_SEPARATOR_OPAQUE": 38,
+        "MISSING_ISSUE_DATE": 1,
+        "UNBALANCED_BRACKETS": 6
+      },
+      "temporal_status_counts": {
+        "CURRENT_BY_DATE": 1695,
+        "EXPIRED_BY_DATE": 10
+      },
+      "latest_issue_date": "2026-08-21",
+      "max_expiry_date": "2031-11-03",
+      "csv_vs_json_equal": true,
+      "raw_sha256": "bd4c9a7d235fd0e94fcdd86d57bb2091f1ce4032e836372b94c0872fe2eeda5b",
+      "raw_field_names": [
+        "查驗登記證號",
+        "中文品名",
+        "英文品名",
+        "有效日期",
+        "發證日期",
+        "申請商名稱",
+        "申請商電話",
+        "申請商地址",
+        "成分"
+      ]
+    },
+    "23": {
+      "raw_rows": 7407,
+      "normalized_rows": 7407,
+      "missing_registration_number": 0,
+      "registration_duplicate_groups": 0,
+      "missing_product_name": 0,
+      "missing_ingredients": 5,
+      "date_parse_failures": 0,
+      "source_row_key_duplicate_groups": 0,
+      "same_name_groups": 198,
+      "exact_raw_duplicate_groups": 0,
+      "ready": 4781,
+      "needs_review": 2626,
+      "review_reason_counts": {
+        "MISSING_INGREDIENTS": 5,
+        "REPEATED_SOURCE_TOKENS": 1885,
+        "SECONDARY_SEPARATOR_OPAQUE": 1052,
+        "OPAQUE_COMPOUND_OR_NESTED_LIST": 787,
+        "COMPOUND_RELATIONSHIP_UNAVAILABLE": 55,
+        "CONCENTRATION_OR_AMOUNT_CONTEXT_UNRESOLVED": 158,
+        "UNBALANCED_BRACKETS": 12
+      },
+      "temporal_status_counts": {
+        "CURRENT_BY_DATE": 7115,
+        "EXPIRED_BY_DATE": 292
+      },
+      "latest_issue_date": "2026-06-18",
+      "max_expiry_date": "2031-09-01",
+      "csv_vs_json_equal": true,
+      "raw_sha256": "1e82a272ac87dfd4e6122a3989e8eace181aee591a064921d691f0fbe588a5be",
+      "raw_field_names": [
+        "核備函字號",
+        "中文品名",
+        "英文品名",
+        "有效日期",
+        "發證日期",
+        "申請商名稱",
+        "申請商電話",
+        "申請商地址",
+        "成分",
+        "簽審文件編號"
+      ]
+    }
+  },
+  "gates": [
+    {
+      "info_id": 24,
+      "checks": {
+        "raw_normalized_count_equal": true,
+        "all_raw_fields_and_values_preserved": true,
+        "trace_raw_row_and_sha256": true,
+        "source_key_unique": true,
+        "category_correct": true,
+        "no_health_food_category": true,
+        "no_approved_health_claim_field": true,
+        "official_sources_only": true,
+        "raw_bytes_unchanged": true,
+        "all_dates_calendar_valid": true,
+        "official_status_remains_null": true,
+        "unavailable_fields_null": true,
+        "utf8_roundtrip": true
+      },
+      "all_checks_passed": true
+    },
+    {
+      "info_id": 23,
+      "checks": {
+        "raw_normalized_count_equal": true,
+        "all_raw_fields_and_values_preserved": true,
+        "trace_raw_row_and_sha256": true,
+        "source_key_unique": true,
+        "category_correct": true,
+        "no_health_food_category": true,
+        "no_approved_health_claim_field": true,
+        "official_sources_only": true,
+        "raw_bytes_unchanged": true,
+        "all_dates_calendar_valid": true,
+        "official_status_remains_null": true,
+        "unavailable_fields_null": true,
+        "utf8_roundtrip": true
+      },
+      "all_checks_passed": true
+    }
+  ],
+  "official_sources": 15,
+  "successful_official_sources": 12,
+  "cross_category_candidates": 103,
+  "candidate_scope_counts": {
+    "DOMESTIC_VS_IMPORTED": 85,
+    "NEW_CATEGORIES_VS_PUBLIC_HEALTH_REFERENCE": 18
+  },
+  "candidate_classification_counts": {
+    "CONFIRMATION_REQUIRED": 98,
+    "FAMILY_ONLY": 5
+  },
+  "needs_review_total": 4043,
+  "ready_total": 5069,
+  "null_encoding": "Literal NULL in normalized CSV; raw JSON retains original empty strings; raw CSV unchanged",
+  "canonical_key": "TFDA:{source_info_id}:{original_official_registration_number}",
+  "ready_for_importer_design": true,
+  "known_gaps": [
+    "Production 565 snapshot not available; public reference cannot establish production overlap",
+    "Consumer query pages inaccessible; full export cannot be independently reconciled to internal registration database",
+    "No official status/manufacturer/country/dosage_form/specification/serving/dose fields",
+    "No exact resource updated_at or freshness SLA; metadata and product issue dates are different concepts"
+  ]
+}

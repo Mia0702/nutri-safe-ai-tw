@@ -10,6 +10,7 @@ from typing import Any, Protocol
 from pydantic import BaseModel
 
 from app.normalization import extract_permit_code, name_match_score, normalize_name, search_terms
+from app.product_coverage import category_of
 from app.schemas.enums import EntityType, EvidenceScope, EvidenceStatus, ProductStatus, SourceType
 from app.schemas.evidence import (
     CLAIM_KIND_UNCLASSIFIED,
@@ -93,6 +94,8 @@ def _product_from_row(row: dict[str, Any]) -> ProductRecord:
         approval_date=str(row["approval_date"]) if row.get("approval_date") else None,
         status=status,
         source=_source_from_row(row),
+        product_category=category_of(row.get("product_category")),
+        expiry_date=str(row["expiry_date"])[:10] if row.get("expiry_date") else None,
     )
 
 

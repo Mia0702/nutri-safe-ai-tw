@@ -24,7 +24,7 @@ from app.ingestion.claim_policy_corpus import (
     plan_import,
 )
 
-DEFAULT_CORPUS_DIR = Path("data/tfda_claim_policy")
+DEFAULT_CORPUS_DIR = Path("data/tfda_claim_policy/2026-10-03")
 MIGRATION_MARKER = "migration_0003_claim_policy_corpus"
 
 

@@ -344,7 +344,9 @@ def _full(req, llm=None):
 
 def test_reporter_header_and_disclaimers_are_deterministic():
     _, risk, out = _full(request(product_candidates=["完全查不到的名字"]))
-    assert out.text.startswith(INCONCLUSIVE_HEADER) or out.text.startswith(RISK_HEADERS[risk.risk_level])
+    # 查無產品是 MISSING_INFORMATION（2026-10-04）：完整分析標題沿用卡片標題，不加風險燈、不說「先以中風險看待」
+    assert out.text.startswith("需要更多資訊") and "先以中風險" not in out.text
+    assert not out.text.startswith((INCONCLUSIVE_HEADER, *RISK_HEADERS.values()))
     assert DISCLAIMER_NOT_FOUND in out.text
 
 

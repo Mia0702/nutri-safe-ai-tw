@@ -126,10 +126,11 @@ def test_efficacy_card_splits_items_and_raw_approved_claim_is_unchanged(list_cla
     p = result.response
     assert p.response_type == ResponseType.PRODUCT_INFO and p.risk_level is None
     card = R.render_primary(p)
-    assert sub_items(card) == ITEMS
+    assert sub_items(card) == [] and LIST_TEXT not in str(card)  # primary 只列功效名稱（Intent-first）
     detail = ReporterAgent(llm).detail(ResponseAction.FULL_EFFICACY, result.normalized_request, result.evidence,
                                        result.risk)
     assert LIST_TEXT in "\n".join(detail.body)  # payload 保留原文，只在顯示時拆項
+    assert sub_items(R.render_detail(detail)) == ITEMS
     assert sub_items(R.render_detail(detail)) == ITEMS
 
 

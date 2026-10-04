@@ -421,8 +421,8 @@ class ToolSpec:
 EVIDENCE_TOOLS: dict[str, ToolSpec] = {
     spec.name: spec
     for spec in [
-        ToolSpec("lookup_product", "以產品名稱（可附品牌）查台灣官方健康食品紀錄，回傳候選與比對分數。", LookupProductArgs, h_lookup_product),
-        ToolSpec("lookup_permit", "以許可證字號查官方產品。", LookupPermitArgs, h_lookup_permit),
+        ToolSpec("lookup_product", "以產品名稱（可附品牌）查台灣官方產品紀錄（健康食品、國產維生素類錠狀／膠囊狀食品、輸入錠狀／膠囊狀食品），回傳候選與比對分數。", LookupProductArgs, h_lookup_product),
+        ToolSpec("lookup_permit", "以許可證字號、查驗登記證號或核備函字號（完整字號）查官方產品。", LookupPermitArgs, h_lookup_permit),
         ToolSpec("lookup_company", "以公司或品牌名稱查官方申請商及其產品（含別名解析）。", NamesArgs, h_lookup_company),
         ToolSpec("resolve_entity_alias", "把名稱解析成官方實體（品牌→申請商、公司簡稱、成分英文名）。", ResolveAliasArgs, h_resolve_alias),
         ToolSpec("lookup_ingredient", "以名稱查官方資料中的成分，回傳 ingredient_id。", NamesArgs, h_lookup_ingredient),

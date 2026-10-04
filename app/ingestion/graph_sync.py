@@ -78,7 +78,7 @@ def sync_graph_from_supabase(
     def run(stage: str, query: str, rows: list[dict[str, Any]]) -> int:
         return _run(neo4j, query, rows, stage, write_batch_size)
 
-    products = fetch("products", "id,product_name_zh,status,country_code,company_id,permit_id,source_id,source_url,source_record_key", pf)
+    products = fetch("products", "id,product_name_zh,status,country_code,product_category,company_id,permit_id,source_id,source_url,source_record_key", pf)
     company_ids = sorted({p["company_id"] for p in products if p["company_id"]})
     permit_ids = sorted({p["permit_id"] for p in products if p["permit_id"]})
     companies = fetch("companies", "id,name_zh", ("id", company_ids)) if company_ids else []
@@ -103,7 +103,8 @@ def sync_graph_from_supabase(
         SET s.source_name = r.source_name, s.is_official = r.is_official, s.base_url = r.base_url""", sources)
     counts["Product"] = run("Product", """
         UNWIND $rows AS r MERGE (p:Product {product_id: r.id})
-        SET p.name_zh = r.product_name_zh, p.status = r.status, p.country_code = r.country_code
+        SET p.name_zh = r.product_name_zh, p.status = r.status, p.country_code = r.country_code,
+            p.product_category = r.product_category
         WITH p, r MATCH (s:Source {source_id: r.source_id})
         MERGE (p)-[rel:SUPPORTED_BY]->(s)
         SET rel.source_url = r.source_url, rel.source_record_key = r.source_record_key""", products)

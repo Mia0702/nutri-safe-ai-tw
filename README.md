@@ -260,7 +260,11 @@ debug endpoint 接受 `text` 與 `url`（image / audio 需要二進位內容，�
 ## 目前限制
 
 - Input Tools 與回覆架構（contract、Renderer、request-scoped actions）已完成；LINE webhook（簽章驗證、下載 LINE 圖片 / 語音內容、reply API）尚未實作。
-- 只有 TFDA「健康食品資料集」（InfoId 19，565 筆）。一般食品、膠囊錠狀食品、違規廣告等資料集尚未匯入，因此 `illegal_ad_cases` 目前是空的。
+- 正式 DB 目前只有 TFDA「健康食品資料集」（InfoId 19）。國產維生素類錠狀／膠囊狀食品（InfoId 24）與輸入錠狀／膠囊狀食品（InfoId 23）
+  的 importer、runtime 類別感知與 `migrations/0004_tfda_product_coverage.sql` 已就緒但尚未套用 / 匯入
+  （研究 snapshot：`data/tfda_product_coverage/2026-10-04/`）。一般食品、違規廣告等資料集尚未匯入，因此 `illegal_ad_cases` 目前是空的。
+- Claim policy corpus：`data/tfda_claim_policy/2026-10-03/`（`python -m scripts.import_claim_policy_corpus --dry-run`）。
+- 資料完整性：`python -m scripts.check_data_integrity`（唯讀；依來源 / 批次 / 類別驗證，可加 `--expect-category <類別>=<筆數>`）。
 - 成分欄位的官方格式很不一致，parser 採保守的通用規則。少數品管指標（例如「魚油純度」）會被當成成分，原文完整保留在 `product_ingredients.raw_text`。
 - 產品名稱比對是字元層級的相似度。只講俗稱（例如只有品牌加品類）時，通常只會得到 `PARTIAL_MATCH`。
 - 官方網站 fallback 有時會回傳相關性偏低的官方頁面（例如檢驗結果清單），還需要加上相關性篩選。

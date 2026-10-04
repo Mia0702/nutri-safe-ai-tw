@@ -36,6 +36,8 @@ BASE_4 = "虛構牌多款測試粉"  # TEST_ONLY：四個品項 → carousel
 VARIANTS_4 = [(f"{BASE_4}({x})", "ACTIVE") for x in ("甲款", "乙款", "丙款", "丁款")]
 OTHER_PRODUCT = "虛構牌晶亮測試膠囊"  # synthetic_data 既有的唯一產品
 OTHER_USER = "U_TEST_ONLY_OTHER"
+BASE_X = "虛構牌跨類測試錠"
+TYPO_QUERY, TYPO_NAMES = "虛構順甲軟膠囊", ["虛構順軟膠囊", "虛構順通軟膠囊"]  # TEST_ONLY：錯字更接近另一個較短品名  # TEST_ONLY：同名的國產查驗登記＋輸入核備兩筆（product_category 不同）
 
 
 @pytest.fixture(autouse=True)
@@ -47,6 +49,12 @@ def variant_data(monkeypatch):
         claims.append({"product_claim_id": f"pcs-{i}", "product_id": pid, "approved_claim_id": f"acs-{i}",
                        "function_name": "測試功效甲", "claim_text": f"TEST_ONLY 品項{i}的核准敘述。", **SOURCE})
         ingredients.append({"product_id": pid, "ingredient_id": "i-1", "raw_text": "虛構素甲"})
+    from app.schemas.enums import ProductCategory
+    from tests.unit.test_product_coverage_runtime import _registration
+
+    products += [_registration("selx-d", BASE_X, "9900007001", ProductCategory.DOMESTIC_VITAMIN_TABLET_CAPSULE, "查驗登記證"),
+                 _registration("selx-i", BASE_X, "0099007002", ProductCategory.IMPORTED_TABLET_CAPSULE, "核備函")]
+    products += [_product(f"typo-{i}", n, "c-1", "虛構測試生技股份有限公司", f"Z0071{i}") for i, n in enumerate(TYPO_NAMES)]
     monkeypatch.setattr(data, "PRODUCTS", data.PRODUCTS + products)
     monkeypatch.setattr(data, "APPROVED_CLAIMS", data.APPROVED_CLAIMS + claims)
     monkeypatch.setattr(data, "PRODUCT_INGREDIENTS", data.PRODUCT_INGREDIENTS + ingredients)
@@ -56,7 +64,7 @@ def fake_intake(input_text: str) -> IntakeExtraction:
     """TEST_ONLY：依內容模擬 Agent A（只用於 fake）。"""
     content = json.loads(input_text)["content"]
     intent = Intent.INGREDIENT_INQUIRY if "成分" in content else Intent.EFFICACY_INQUIRY
-    for name in (OTHER_PRODUCT, BASE_2, BASE_4):
+    for name in (OTHER_PRODUCT, BASE_2, BASE_4, BASE_X, TYPO_QUERY):
         if name in content:
             return extraction(intent=intent, product_candidates=[name], normalized_text=content)
     return extraction(intent=Intent.OUT_OF_SCOPE, normalized_text=content)
@@ -146,7 +154,8 @@ def test_selecting_candidate_resumes_original_intent_without_rerunning_agent_a(q
     assert record.response.response_type == expected_type
     reply = json.dumps(line.sent[-1][2], ensure_ascii=False)
     if expected_type == ResponseType.PRODUCT_INFO:
-        assert "TEST_ONLY 品項0的核准敘述" in reply and "品項1" not in reply
+        assert match.best_match.product.product_name_zh in reply and "品項1" not in reply
+        assert ResponseAction.FULL_EFFICACY in record.response.available_actions
     assert contexts.snapshot(USER).current_product_id == "sel-0"  # 所選產品成為目前產品
     assert len(line.sent) == 2  # 每個 request 一則
 
@@ -212,3 +221,36 @@ def test_unknown_request_id_is_rejected():
     handler, line, *_ = build()
     send(handler, event("postback", data=build_select_product_data("00000000-0000-0000-0000-000000000000", "sel-0")))
     assert EXPIRED_ACTION_TEXT in json.dumps(line.sent[-1][2], ensure_ascii=False)
+
+
+def test_cross_category_candidate_selection_is_request_scoped_and_resumes_original_intent():
+    """product_category 不影響候選選擇：仍 request-scoped、同一使用者、不重跑 Agent A、沿用原題 intent。"""
+    handler, line, contexts, store, llm = build()
+    rid, msg = ask(handler, line, f"{BASE_X}的核准功效是什麼？")
+    choices = store.get(rid).response.product_choices
+    assert {c.product_id for c in choices} == {"selx-d", "selx-i"} and all(c.category_label for c in choices)
+    imported = next(b for b in select_buttons(msg) if parse_postback_data(b["data"]).candidate_id == "selx-i")
+    send(handler, event("postback", data=imported["data"], user=OTHER_USER))  # 其他使用者不能選
+    assert EXPIRED_ACTION_TEXT in json.dumps(line.sent[-1][2], ensure_ascii=False)
+    new_rid = send(handler, event("postback", data=imported["data"]))[0]
+    record = store.get(new_rid)
+    assert intake_calls(llm) == 1 and record.normalized_request.intent == Intent.EFFICACY_INQUIRY
+    assert record.evidence.product_match.best_match.product.product_id == "selx-i"
+    assert record.evidence.planner_mode == FAST_PATH_MODE
+    assert record.response.status_line == "未有健康食品核准保健功效資料"  # 依所選類別回答
+    assert contexts.snapshot(USER).current_product_id == "selx-i"
+
+
+def test_fuzzy_typo_goes_to_candidate_card_and_selection_resumes_original_intent():
+    """2026-10-04 resolver safety：錯字查詢不自動確認（之前會確認成較短的另一項），改成候選卡；選對後沿用原題。"""
+    handler, line, contexts, store, llm = build()
+    rid, msg = ask(handler, line, f"{TYPO_QUERY}的核准功效是什麼？")
+    record = store.get(rid)
+    assert record.evidence.product_match.status == ProductVerificationStatus.PARTIAL_MATCH
+    assert {c.product_id for c in record.response.product_choices} == {"typo-0", "typo-1"}
+    wanted = next(b for b in select_buttons(msg) if parse_postback_data(b["data"]).candidate_id == "typo-1")
+    new_rid = send(handler, event("postback", data=wanted["data"]))[0]
+    picked = store.get(new_rid)
+    assert intake_calls(llm) == 1 and picked.normalized_request.intent == Intent.EFFICACY_INQUIRY
+    assert picked.evidence.product_match.best_match.product.product_id == "typo-1"
+    assert picked.response.response_type == ResponseType.PRODUCT_INFO

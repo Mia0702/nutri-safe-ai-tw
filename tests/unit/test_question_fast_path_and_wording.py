@@ -83,8 +83,10 @@ def test_product_registration_does_not_claim_product_is_low_risk():
     card = json.dumps(R.render_primary(p), ensure_ascii=False)
     full = "\n".join(full_analysis(result, llm).body)
     for text in (card, p.plain_text(), full):
-        assert "低風險" not in text and not any(m in text for m in MARKS)
+        assert "低風險" not in text and "🔴" not in text
     assert "官方紀錄" in p.summary
+    # 🟢/🟠 只出現在 status 關鍵短語（語意顏色），不是風險燈號
+    assert p.status_line and sum(card.count(m) for m in MARKS) == 1
 
 
 def test_full_analysis_llm_saying_product_is_low_risk_falls_back():
@@ -98,7 +100,9 @@ def test_product_info_has_no_risk_light(intent):
     result, _ = run(intent=intent)
     p = result.response
     assert p.response_type == ResponseType.PRODUCT_INFO and p.risk_level is None and p.claim_risk_level is None
-    assert not any(m in json.dumps(R.render_primary(p), ensure_ascii=False) for m in MARKS)
+    card = json.dumps(R.render_primary(p), ensure_ascii=False)
+    assert "風險" not in card and "🔴" not in card
+    assert sum(card.count(m) for m in MARKS) == (1 if p.status_line else 0)  # 只有 status 關鍵短語
     if intent == Intent.SAFETY_INQUIRY:
         assert any("不代表對每個人都安全" in k for k in p.key_points)
 

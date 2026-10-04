@@ -221,8 +221,9 @@ def test_product_info_card_and_official_info_show_shared_claim_text_once(monkeyp
     result, _ = run(extraction(intent=Intent.EFFICACY_INQUIRY, product_candidates=["虛構牌晶亮測試膠囊"]))
     payload = result.response
     assert payload.response_type == ResponseType.PRODUCT_INFO
-    assert sum(SHARED_TEXT in p for p in payload.key_points) == 1
-    assert any(p.startswith("測試功效甲、測試功效乙、測試功效丙：") for p in payload.key_points)
+    assert payload.key_points == ["測試功效甲", "測試功效乙", "測試功效丙"]  # primary 只列功效名稱，各一次
+    full = detail_payload(ResponseAction.FULL_EFFICACY, result.normalized_request, result.evidence, result.risk)
+    assert sum(SHARED_TEXT in line for line in full.body) == 1  # 相同核准原文在完整功效只出現一次
     assert len(result.evidence.approved_claims) == 3  # EvidenceBundle 未被改動：每筆官方紀錄仍可追溯
     detail = detail_payload(ResponseAction.OFFICIAL_INFO, result.normalized_request, result.evidence, result.risk)
     assert sum(SHARED_TEXT in line for line in detail.body) <= 1  # 官方資訊卡為摘要式

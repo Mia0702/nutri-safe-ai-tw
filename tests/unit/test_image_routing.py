@@ -160,7 +160,7 @@ def test_image_not_found_asks_for_more_info_without_hard_search():
     assert not (set(tools(result)) & SLOW_TOOLS) and not llm.called("web_search_structured")
     assert payload.response_type == ResponseType.MISSING_INFORMATION and payload.risk_level is None
     text = payload.plain_text()
-    assert "不代表是假貨" in text and "許可證字號" in text
+    assert "不代表產品是假貨" in text and "許可證字號" in text
     assert payload.recognized_content == [f"產品名稱：{UNKNOWN}"]  # 讓使用者知道系統看到了什麼
 
 

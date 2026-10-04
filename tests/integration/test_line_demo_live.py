@@ -145,12 +145,16 @@ def _show(title, message, record=None):
     print("flex bytes:", len(contents))
 
 
-def _record_for(demo, message):
+def _record_for(demo, message, user=None):
     for b in _walk_buttons(message):
         parsed = parse_postback_data(b["data"])
         if parsed:
             return demo["store"].get(parsed.request_id)
-    return None
+    # 沒有按鈕的卡片（例如查無產品的 MISSING_INFORMATION，2026-10-04 起不放按鈕）：以 altText 中的結論對應該題紀錄
+    alt = message.get("altText", "")
+    matches = [r for r in demo["store"]._data.values() if r.response is not None and r.response.summary
+               and r.response.summary[:20] in alt and (user is None or r.owner_id == user)]
+    return matches[0] if len(matches) == 1 else None
 
 
 def _walk_buttons(message):
@@ -240,7 +244,7 @@ def test_fifo_order_and_old_card_sources(demo):
     _post(demo, _event(user, text=f"{PRODUCT}有沒有登記？"), _event(user, text="魚油可以降血壓嗎？"))
     msgs = _messages(demo, user)
     assert len(msgs) == 2
-    first, second = (_record_for(demo, m) for m in msgs)
+    first, second = (_record_for(demo, m, user) for m in msgs)
     assert first is not None and second is not None
     assert PRODUCT in first.normalized_request.original_text  # A 的回覆一定在 B 之前
     assert "魚油" in second.normalized_request.original_text

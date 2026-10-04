@@ -57,6 +57,39 @@ PARTIAL_MIN_SCORE = 0.5
 MAX_CANDIDATES = 5
 # 第二名與第一名分數差距在此範圍內：兩者都是合理候選（ambiguous），不可只挑第一名
 AMBIGUITY_MARGIN = 0.05
+# 純名稱相似（NAME_SIMILARITY）自動確認的安全條件（2026-10-04 resolver safety）：
+# 第二名分數 >= SIMILARITY_RUNNER_UP_CEILING 時，第一名必須領先至少 SIMILARITY_SAFE_GAP，否則請使用者確認
+SIMILARITY_RUNNER_UP_CEILING = 0.80
+SIMILARITY_SAFE_GAP = 0.10
+
+
+def _is_ordered_subsequence(query: str, name: str) -> bool:
+    """正規化後的使用者文字可由官方品名「刪字 / 省略」得到（不允許替換字）。"""
+    it = iter(name)
+    return bool(query) and all(ch in it for ch in query)
+
+
+def similarity_confirm_blockers(
+    raw_queries: list[str], top: ProductCandidateMatch, others: list[tuple[ProductCandidateMatch, float]], top_score: float,
+) -> tuple[bool, list[ProductCandidateMatch]]:
+    """純名稱相似要自動確認，三條必須全部成立（wrong auto-confirm 比多一次確認更危險）：
+
+    A. 使用者文字（正規化）是第一名官方品名的有序子序列：只有省略、沒有替換字。
+    B. 沒有其他候選的官方品名也完整包含同一段使用者文字（一般品名 / 同名 / 跨類別同名）。
+    C. 第二名 < SIMILARITY_RUNNER_UP_CEILING，或第一名領先 >= SIMILARITY_SAFE_GAP。
+    回傳 (A 是否成立, 造成 B / C 不成立的對手候選)。只用正規化（全半形 / 空白 / 標點 / 大小寫）後的字元比較。
+    """
+    top_name = normalize_name(top.product.product_name_zh)
+    queries = [q for q in (normalize_name(r) for r in raw_queries) if q]
+    covering = [q for q in queries if _is_ordered_subsequence(q, top_name)]
+    rivals = []
+    for m, score in others:
+        name = normalize_name(m.product.product_name_zh)
+        contains_same_text = any(_is_ordered_subsequence(q, name) for q in covering)
+        too_close = score >= SIMILARITY_RUNNER_UP_CEILING and top_score - score < SIMILARITY_SAFE_GAP
+        if contains_same_text or too_close:
+            rivals.append(m)
+    return bool(covering), rivals
 
 
 def user_product_queries(request: NormalizedUserRequest) -> list[str]:
@@ -140,7 +173,8 @@ def resolve_product_match(
     4. 名稱相似度（一律以使用者原始寫法計分，LLM / planner 提出的名稱不能抬高分數）：
        分數接近最高分的候選有多個：其中只有一項對應到本次看到的公司 / 品牌 → 以它為準
        （分數 >= VERIFIED_MIN_SCORE → VERIFIED，否則請使用者確認這一項）；否則 ambiguous；
-       唯一且 >= VERIFIED_MIN_SCORE → VERIFIED；
+       唯一且 >= VERIFIED_MIN_SCORE，且通過 similarity_confirm_blockers（只有省略字、沒有其他品名也包含同一段文字、
+       第二名 < 0.80 或領先 >= 0.10）→ VERIFIED；有對手 → 候選確認；只有替換字 → 單一候選確認；
        其餘 >= PARTIAL_MIN_SCORE → PARTIAL_MATCH
     5. 只對應到公司 / 推測品牌 → PARTIAL_MATCH（推測不會升級為 VERIFIED）
     6. 有查詢但沒有合理候選 → NOT_FOUND；沒有產品識別資訊 → NOT_APPLICABLE
@@ -166,7 +200,11 @@ def resolve_product_match(
     ranked = _unique_products(name_matches)
     user_permits = _user_permit_matches(request, permit_matches)
 
-    # 1. 使用者提供的許可證字號
+    # 1. 使用者提供的許可證字號：唯一對應一筆官方紀錄才可直接確認；對應多筆（例如不同資料類別）→ 請使用者選，不猜
+    if len({m.product.product_id for m in user_permits}) > 1:
+        return result(ProductVerificationStatus.PARTIAL_MATCH, candidates=user_permits,
+                      match_type=ProductMatchType.PERMIT_NUMBER, confidence=1.0,
+                      ambiguity=ProductAmbiguityReason.MULTIPLE_REGISTRATION_RECORDS)
     if user_permits:
         best = user_permits[0]
         candidates = user_permits + [m for m in ranked if m.match_score >= PARTIAL_MIN_SCORE]
@@ -275,8 +313,21 @@ def resolve_product_match(
                           match_type=ProductMatchType.NAME_SIMILARITY, confidence=top_score,
                           ambiguity=ProductAmbiguityReason.MULTIPLE_SIMILAR_NAMES)
         if top_score >= VERIFIED_MIN_SCORE:
-            return result(ProductVerificationStatus.VERIFIED, best=plausible[0], candidates=plausible,
-                          match_type=ProductMatchType.NAME_SIMILARITY, confidence=top_score)
+            # 分數高不代表身份安全：替換字、一般品名被多個品名包含、第二名太接近 → 一律請使用者確認
+            omission_only, rivals = similarity_confirm_blockers(raw_queries, plausible[0], by_raw[1:], top_score)
+            if rivals:
+                choices = [plausible[0]] + rivals
+                return result(ProductVerificationStatus.PARTIAL_MATCH, candidates=choices,
+                              match_type=ProductMatchType.NAME_SIMILARITY, confidence=top_score,
+                              ambiguity=ProductAmbiguityReason.MULTIPLE_SIMILAR_NAMES,
+                              candidate_count=len(choices))
+            if omission_only:
+                return result(ProductVerificationStatus.VERIFIED, best=plausible[0], candidates=plausible,
+                              match_type=ProductMatchType.NAME_SIMILARITY, confidence=top_score)
+            # 只有一個候選但使用者文字有替換字：最接近的一項，請使用者確認是不是它
+            return result(ProductVerificationStatus.PARTIAL_MATCH, best=plausible[0], candidates=plausible,
+                          match_type=ProductMatchType.NAME_SIMILARITY, confidence=top_score,
+                          ambiguity=ProductAmbiguityReason.LOW_MATCH_CONFIDENCE, candidate_count=len(plausible))
         return result(ProductVerificationStatus.PARTIAL_MATCH, best=plausible[0], candidates=plausible,
                       match_type=ProductMatchType.NAME_SIMILARITY, confidence=top_score,
                       ambiguity=ProductAmbiguityReason.LOW_MATCH_CONFIDENCE, candidate_count=len(plausible))

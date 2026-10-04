@@ -9,7 +9,7 @@ Payload 可以比 UI 顯示的更完整（例如 key_points 超過卡片上限�
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.schemas.enums import ResponseAction, ResponseType, RiskLevel
+from app.schemas.enums import ResponseAction, ResponseType, RiskLevel, SemanticTone
 from app.schemas.evidence import SourceRef
 
 # 風險識別只用 emoji，不用大面積色塊；只有 response_type=RISK 會使用
@@ -22,6 +22,10 @@ CLAIM_RISK_LABEL = {
 }
 
 
+TONE_EMOJI = {SemanticTone.GREEN: "🟢", SemanticTone.ORANGE: "🟠", SemanticTone.RED: "🔴"}
+RISK_TONE = {RiskLevel.LOW: SemanticTone.GREEN, RiskLevel.MEDIUM: SemanticTone.ORANGE, RiskLevel.HIGH: SemanticTone.RED}
+
+
 class ProductChoice(BaseModel):
     """產品確認卡上的一個候選（只來自該 request 的 EvidenceBundle 候選，不由 UI 自行產生）。"""
 
@@ -31,6 +35,8 @@ class ProductChoice(BaseModel):
     permit_number: str | None = None
     is_active: bool = True
     status_text: str | None = None  # 非有效許可證時的狀態說明
+    number_label: str = "許可證字號"  # 字號名稱（非健康食品類別為「查驗登記證號」/「核備函字號」）
+    category_label: str | None = None  # 非健康食品類別的資料類別（跨類別同名時可分辨）
 
 
 class ResponsePayload(BaseModel):
@@ -52,6 +58,9 @@ class ResponsePayload(BaseModel):
     choice_note: str | None = None
     # 圖片辨識到的少量識別資訊（產品名 / 品牌 / 字號 / 公司）：產品尚未確認時讓使用者知道系統看到了什麼
     recognized_content: list[str] = Field(default_factory=list)
+    # 直接回答使用者所問的關鍵短語（例如「官方核准功效」「未查到對應官方紀錄」）＋固定語意顏色；不是風險燈號
+    status_line: str | None = None
+    status_tone: SemanticTone | None = None
 
     @model_validator(mode="after")
     def _risk_level_only_for_risk(self) -> "ResponsePayload":
@@ -63,12 +72,23 @@ class ResponsePayload(BaseModel):
             raise ValueError("available_actions 不可重複")
         if self.product_choices and self.response_type != ResponseType.MISSING_INFORMATION:
             raise ValueError("product_choices 只用於產品確認（MISSING_INFORMATION）")
+        if (self.status_line is None) != (self.status_tone is None):
+            raise ValueError("status_line 與 status_tone 必須同時提供")
         return self
+
+    @property
+    def tone(self) -> SemanticTone | None:
+        """卡片主要關鍵短語的語意顏色：明確的 status → 宣稱風險 → 風險燈號。"""
+        if self.status_tone is not None:
+            return self.status_tone
+        level = self.claim_risk_level or self.risk_level
+        return RISK_TONE[level] if level is not None else None
 
     def plain_text(self) -> str:
         """純文字版本：只給 debug API / log 使用，不會送到 LINE。"""
         title = f"{RISK_EMOJI[self.risk_level]} {self.title}" if self.risk_level else self.title
-        parts = [title, self.summary]
+        status = f"{TONE_EMOJI[self.status_tone]} {self.status_line}" if self.status_line else ""
+        parts = [title, status, self.summary]
         parts += [f"・{p}" for p in self.key_points]
         parts += self.warnings
         return "\n".join(p for p in parts if p)

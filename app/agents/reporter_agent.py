@@ -34,8 +34,21 @@ from app.schemas.enums import (
     RiskLevel,
 )
 from app.normalization import extract_permit_code, normalize_name
+from app.product_coverage import (
+    CATEGORY_LABELS,
+    COVERAGE_LIST_TEXT,
+    NOT_FOUND_NOT_FAKE_TEXT,
+    NO_HEALTH_CLAIM_APPROVAL_TEXT,
+    NOT_FOUND_COVERAGE_TEXT,
+    REGISTRATION_RECORD_TEXT,
+    STATUS_NOT_PROVIDED_TEXT,
+    expiry_date_text,
+    has_health_claim_approval,
+    is_officially_inactive,
+)
 from app.schemas.evidence import ApprovedClaimEvidence, ClaimAssessment, EvidenceBundle, SourceRef
 from app.schemas.response import CLAIM_RISK_LABEL, RISK_EMOJI, DetailPayload, ProductChoice, ResponsePayload
+from app.schemas.enums import SemanticTone
 from app.schemas.risk import RiskAssessment
 from app.schemas.user_request import NormalizedUserRequest
 from app.services.errors import ServiceError
@@ -51,7 +64,7 @@ RISK_TITLES = {
     RiskLevel.MEDIUM: "目前看起來屬於中風險，建議多加留意",
     RiskLevel.HIGH: "高風險，請特別小心",
 }
-INCONCLUSIVE_TITLE = "目前資訊不足，暫時無法確認（先以中風險看待）"
+INCONCLUSIVE_TITLE = "目前資訊不足，暫時無法確認"
 VERIFIED_LOW_TITLE = "查有官方紀錄，目前沒有發現不當宣稱"  # 只描述查證結果，不推論產品整體安全性
 RISK_HEADERS = {level: f"{RISK_EMOJI[level]} {title}" for level, title in RISK_TITLES.items()}
 INCONCLUSIVE_HEADER = f"{RISK_EMOJI[RiskLevel.MEDIUM]} {INCONCLUSIVE_TITLE}"
@@ -110,6 +123,10 @@ def build_evidence_summary(
                 "permit_number": best.permit_number,
                 "permit_status": best.status.value,
                 "approval_date": best.approval_date,
+                # 類別決定官方紀錄的意義：非健康食品類別只是查驗登記／核備資料，沒有核准保健功效
+                "product_category": CATEGORY_LABELS[best.product_category],
+                "has_health_claim_approval": has_health_claim_approval(best.product_category),
+                "registration_status_text": product_status_text(best),
             },
             "similar_candidates": [c.product.product_name_zh for c in match.candidates[:3]]
             if match.status.value == "PARTIAL_MATCH" else [],
@@ -275,11 +292,13 @@ TYPE_TITLES = {
     ResponseType.INGREDIENT_LIST: "成分資訊",
     ResponseType.CLAIM_RESULT: "說法查證結果",
     ResponseType.SOURCE_SUMMARY: "官方資料摘要",
-    ResponseType.MISSING_INFORMATION: "需要多一點資訊",
+    ResponseType.MISSING_INFORMATION: "需要更多資訊",
     ResponseType.OUT_OF_SCOPE: "呷安心可以幫你查什麼",
     ResponseType.ERROR: "這次沒有完成查詢",
 }
+EFFICACY_TITLE = "核准功效查詢"  # 功效詢問：第一層先回答功效（Intent-first）
 DETAIL_TITLES = {
+    ResponseAction.REGISTRATION_INFO: "產品登記資料",
     ResponseAction.DETAIL: "完整分析",
     ResponseAction.SOURCES: "資料來源",
     ResponseAction.INGREDIENTS: "完整成分",
@@ -309,10 +328,33 @@ PRODUCT_STATUS_TEXT = {
     "ACTIVE": "許可證有效", "EXPIRED": "許可證已失效", "MERGED": "許可證已併證",
     "CANCELLED": "許可證已註銷", "REVOKED": "許可證已廢止", "UNKNOWN": "許可證狀態不明",
 }
+
+
+def product_status_text(product) -> str:
+    """登記狀態文字。官方資料集未提供狀態的非健康食品類別：只說「未提供」＋有效日期（日期比較，非官方狀態）。"""
+    if product.status.value == "UNKNOWN" and not has_health_claim_approval(product.product_category):
+        return "；".join(t for t in (STATUS_NOT_PROVIDED_TEXT, expiry_date_text(product.expiry_date)) if t)
+    return PRODUCT_STATUS_TEXT.get(product.status.value, "")
+
+
+def registration_number_label(product) -> str:
+    """健康食品 →「許可證字號」；其他類別依官方字號類型（查驗登記證 →「查驗登記證號」、核備函 →「核備函字號」）。"""
+    if has_health_claim_approval(product.product_category) or not product.permit_type:
+        return "許可證字號"
+    return product.permit_type + ("號" if product.permit_type.endswith("證") else "字號")
+
+
+def _flagged_inactive(product) -> bool:
+    """候選要標示的非有效狀態：健康食品維持原規則（非 ACTIVE 皆標示）；其他類別只標示官方明確給出的非有效狀態。"""
+    if has_health_claim_approval(product.product_category):
+        return product.status.value != "ACTIVE"
+    return is_officially_inactive(product.status)
+
+
 ASK_MORE_INFO = "可以提供產品全名、包裝照片或許可證字號，我再幫你查。"
 REGISTRATION_NOT_SAFETY_NOTE = "官方紀錄代表產品有登記，不代表對每個人都安全；有疾病、懷孕或正在用藥，請先諮詢醫師或藥師。"
 ASK_IMAGE_MORE_INFO = "可以補充許可證字號，或拍清楚包裝正面的產品名稱，我再幫你查。"
-NOT_FOUND_NOT_FAKE = "查不到不代表是假貨或違法。"
+NOT_FOUND_NOT_FAKE = NOT_FOUND_COVERAGE_TEXT  # 說明目前查詢涵蓋的官方類別（不是所有一般食品）
 ASK_WHICH_PRODUCT = "請回覆你要查的是哪一項（可直接傳完整品名或許可證字號）。"
 NOT_LISTED_NOTE = "如果都不是，可能目前資料中沒有這項產品的官方紀錄（查不到不代表是假貨）。"
 PICK_BELOW = "請直接點選下方你要查的品項。"
@@ -455,6 +497,11 @@ def identity_unresolved(request: NormalizedUserRequest, bundle: EvidenceBundle) 
             and not request.ingredient_candidates)
 
 
+def product_not_found(request: NormalizedUserRequest, bundle: EvidenceBundle) -> bool:
+    """使用者有給產品識別資訊，但查無目前涵蓋的官方紀錄（或查詢失敗）。"""
+    return request.has_product_identifiers and bundle.product_match.status == ProductVerificationStatus.NOT_FOUND
+
+
 def select_response_type(request: NormalizedUserRequest, bundle: EvidenceBundle, risk: RiskAssessment) -> ResponseType:
     """一般化規則：依 intent 與證據決定 template；高風險或產品方宣稱一律用風險卡，不會被其他 template 隱藏。
 
@@ -476,6 +523,9 @@ def select_response_type(request: NormalizedUserRequest, bundle: EvidenceBundle,
     if identity_unresolved(request, bundle) and not request.claims:
         # 多個合理候選、低信心候選、圖片無法確認產品、只有相似名稱：不猜是哪一項，請使用者確認或補充
         return ResponseType.MISSING_INFORMATION
+    if not request.claims and product_not_found(request, bundle):
+        # 查無目前涵蓋的官方紀錄（或查詢失敗）：產品身份未確認，不是風險判定 → 不顯示風險燈號，請使用者補充
+        return ResponseType.MISSING_INFORMATION
     if request.image_identification and not request.claims:
         # 只傳圖片且產品已確認：無風險 → 產品資訊；有風險（例如許可證失效）→ 風險卡
         return ResponseType.PRODUCT_INFO if risk.risk_level == RiskLevel.LOW else ResponseType.RISK
@@ -489,12 +539,12 @@ def select_response_type(request: NormalizedUserRequest, bundle: EvidenceBundle,
     if request.claims:
         return ResponseType.CLAIM_RESULT
     verified = bundle.product_match.status == ProductVerificationStatus.VERIFIED
-    if request.intent == Intent.INGREDIENT_INQUIRY and (bundle.ingredients or request.ingredient_candidates):
-        return ResponseType.INGREDIENT_LIST
+    if request.intent == Intent.INGREDIENT_INQUIRY and (bundle.ingredients or request.ingredient_candidates or verified):
+        return ResponseType.INGREDIENT_LIST  # 問成分 → 第一層先回答成分（沒有已整理的成分也直接說明）
     if verified:
         return ResponseType.PRODUCT_INFO
-    if request.has_product_identifiers:  # 有指定產品但無法確認：NOT_FOUND 不等於假貨，以保守風險卡說明
-        return ResponseType.RISK
+    if request.has_product_identifiers:  # 有指定產品但無法確認：請使用者補充，不給風險燈號
+        return ResponseType.MISSING_INFORMATION
     if request.ingredient_candidates and bundle.ingredients:
         return ResponseType.INGREDIENT_LIST
     if bundle.rag_evidence or bundle.official_web_evidence:
@@ -588,20 +638,93 @@ def product_choices(bundle: EvidenceBundle) -> list[ProductChoice]:
         code = extract_permit_code(product.permit_number or "")
         label = short or (code if len(set(p.product_name_zh for p in products)) < len(products) and code else None)
         label = label or product.product_name_zh
-        active = product.status.value == "ACTIVE"
+        active = not _flagged_inactive(product)
+        health_food = has_health_claim_approval(product.product_category)
         choices.append(ProductChoice(
             product_id=product.product_id, label=label[:MAX_CHOICE_LABEL_CHARS], full_name=product.product_name_zh,
             permit_number=product.permit_number, is_active=active,
             status_text=None if active else PRODUCT_STATUS_TEXT.get(product.status.value, "許可證狀態不明"),
+            number_label=registration_number_label(product),
+            category_label=None if health_food else CATEGORY_LABELS[product.product_category],
         ))
     return choices
 
 
 def _candidate_option(product) -> str:
-    """候選項目：品名＋字號；許可證不是有效狀態時一併標示，讓同名不同字號的紀錄可以分辨。"""
-    details = [d for d in (product.permit_number,
-                           None if product.status.value == "ACTIVE" else PRODUCT_STATUS_TEXT.get(product.status.value)) if d]
+    """候選項目：品名＋（非健康食品類別）＋字號；非有效狀態一併標示，讓同名不同字號 / 跨類別的紀錄可以分辨。"""
+    category = None if has_health_claim_approval(product.product_category) else CATEGORY_LABELS[product.product_category]
+    details = [d for d in (category, product.permit_number,
+                           PRODUCT_STATUS_TEXT.get(product.status.value) if _flagged_inactive(product) else None) if d]
     return f"{product.product_name_zh}（{'，'.join(details)}）" if details else product.product_name_zh
+
+
+NOT_FOUND_SUMMARY = "目前在系統涵蓋的台灣官方資料中，沒有找到相符的產品。"
+NOT_FOUND_ASK = "提供完整品名、包裝照片或證號，可以再次查詢。"
+LOOKUP_FAILED_RETRY = "可以稍後按「重新查詢」，或提供完整品名、包裝照片或證號。"
+NO_EFFICACY_REGISTRATION_TEMPLATE = ("「{name}」查有官方查驗登記／核備紀錄，但這類登記不等於健康食品許可，"
+                                     "因此不能由這筆資料認定有核准保健功效。")
+
+
+def _efficacy_answer(bundle: EvidenceBundle, product) -> tuple[str, list[str]]:
+    """功效詢問（Intent-first）：第一層只回答功效；申請商 / 字號 / 日期放下一層按鈕。"""
+    if not has_health_claim_approval(product.product_category):
+        # 只說「這筆登記沒有健康食品核准功效」，不說產品沒有任何功效
+        return NO_EFFICACY_REGISTRATION_TEMPLATE.format(name=product.product_name_zh), [
+            f"資料類別：{CATEGORY_LABELS[product.product_category]}"]
+    names = _approved_function_names(bundle, product)
+    if not names:
+        return f"官方資料中沒有登記「{product.product_name_zh}」的核准保健功效。", []
+    return f"「{product.product_name_zh}」的官方核准保健功效：", names
+
+
+def status_for(rtype: ResponseType, request: NormalizedUserRequest, bundle: EvidenceBundle) -> tuple[str, SemanticTone] | None:
+    """直接回答使用者所問內容的關鍵短語與固定語意顏色（GREEN 官方確認 / ORANGE 資料不足或登記≠核准 / RED 高風險）。
+
+    查無紀錄一律 ORANGE（不是違法或假貨）；風險卡與說法查證卡已有自己的風險標示，不另加。"""
+    product = _verified_product(bundle)
+    if rtype == ResponseType.MISSING_INFORMATION:
+        if product_not_found(request, bundle):
+            if not bundle.product_match.lookup_completed:
+                return "暫時無法完成產品查詢", SemanticTone.ORANGE
+            return "未查到對應官方紀錄", SemanticTone.ORANGE
+        return None
+    if product is None:
+        return None
+    health_food = has_health_claim_approval(product.product_category)
+    if rtype == ResponseType.PRODUCT_INFO and request.intent == Intent.EFFICACY_INQUIRY:
+        if not health_food:
+            return "未有健康食品核准保健功效資料", SemanticTone.ORANGE
+        if _approved_function_names(bundle, product):
+            return "官方核准功效", SemanticTone.GREEN
+        return "官方資料未列核准保健功效", SemanticTone.ORANGE
+    if rtype == ResponseType.PRODUCT_INFO:
+        if not health_food:
+            return "查有官方查驗登記／核備紀錄", SemanticTone.GREEN
+        if product.status.value == "ACTIVE":
+            return "查有健康食品許可（許可證有效）", SemanticTone.GREEN
+        return "查有健康食品紀錄，許可狀態需確認", SemanticTone.ORANGE
+    if rtype == ResponseType.INGREDIENT_LIST:
+        if _product_ingredients(bundle):
+            return "官方登記成分", SemanticTone.GREEN
+        return "未有已整理的成分資料", SemanticTone.ORANGE
+    return None
+
+
+def _registration_only_product_info(request: NormalizedUserRequest, product) -> tuple[str, list[str]]:
+    """非健康食品類別（查驗登記／核備資料）：只說查有官方登記，不提核准保健功效；沒有核准功效不是異常。"""
+    category = CATEGORY_LABELS[product.product_category]
+    summary = (f"官方紀錄中有「{product.product_name_zh}」（{category}），{REGISTRATION_RECORD_TEXT}，"
+               f"{registration_number_label(product)} {product.permit_number or '無'}。")
+    points = [f"申請商：{product.company_name}" if product.company_name else "", product_status_text(product)]
+    if request.intent == Intent.EFFICACY_INQUIRY:
+        points.insert(0, NO_HEALTH_CLAIM_APPROVAL_TEXT)
+    else:
+        points.append(NO_HEALTH_CLAIM_APPROVAL_TEXT)
+    if request.observed_package_claims:
+        points.append(f"包裝上另有 {len(request.observed_package_claims)} 項宣稱文字，需要的話可按「查驗包裝宣稱」。")
+    if request.intent == Intent.SAFETY_INQUIRY:
+        points.insert(0, REGISTRATION_NOT_SAFETY_NOTE)
+    return summary, _dedupe(points)
 
 
 def _summary_and_points(
@@ -614,7 +737,9 @@ def _summary_and_points(
         if claim_level_high:
             summary = CLAIM_LEVEL_HIGH_NOTE
         elif product is not None:
-            summary = f"官方紀錄中有「{product.product_name_zh}」（{product.permit_number or '無字號'}）。"
+            category = ("" if has_health_claim_approval(product.product_category)
+                        else CATEGORY_LABELS[product.product_category] + "，")
+            summary = f"官方紀錄中有「{product.product_name_zh}」（{category}{product.permit_number or '無字號'}）。"
         elif not risk.is_conclusive:
             summary = "目前資訊不足，暫時無法確認。"
         else:
@@ -623,11 +748,11 @@ def _summary_and_points(
         if not risk.is_conclusive:
             points.append(ASK_MORE_INFO)
         return summary, _dedupe(points)
+    if rtype == ResponseType.PRODUCT_INFO and product is not None and request.intent == Intent.EFFICACY_INQUIRY:
+        return _efficacy_answer(bundle, product)
+    if rtype == ResponseType.PRODUCT_INFO and product is not None and not has_health_claim_approval(product.product_category):
+        return _registration_only_product_info(request, product)
     if rtype == ResponseType.PRODUCT_INFO and product is not None:
-        approved = _approved_claim_lines(bundle, product)
-        if request.intent == Intent.EFFICACY_INQUIRY and approved:
-            # 詢問官方核准功效：答案就是官方核准內容本身，不是待查證的說法
-            return f"「{product.product_name_zh}」官方核准的保健功效如下。", approved
         functions = "、".join(_dedupe([e.function_name for e in bundle.approved_claims if e.product_id == product.product_id]))
         points = [f"申請商：{product.company_name}" if product.company_name else "",
                   PRODUCT_STATUS_TEXT.get(product.status.value, ""),
@@ -637,12 +762,16 @@ def _summary_and_points(
         if request.intent == Intent.SAFETY_INQUIRY:
             warning_count = sum(1 for w in bundle.warnings if w.product_id == product.product_id)
             points[:0] = [REGISTRATION_NOT_SAFETY_NOTE] + (
-                [f"官方登記的警語與注意事項有 {warning_count} 則，可在「查看官方資訊」中查看。"] if warning_count else [])
+                [f"官方登記的警語與注意事項有 {warning_count} 則，可在「查看產品資訊」中查看。"] if warning_count else [])
         return f"官方紀錄中有「{product.product_name_zh}」，許可證字號 {product.permit_number or '無'}。", _dedupe(points)
     if rtype == ResponseType.INGREDIENT_LIST:
         names = _product_ingredients(bundle)
         if product is not None and names:
             return f"「{product.product_name_zh}」官方登記的保健功效相關成分如下。", names
+        if product is not None:
+            return (f"官方資料中目前沒有「{product.product_name_zh}」已整理的成分資料。",
+                    ["可以按「" + ("查看產品資訊" if has_health_claim_approval(product.product_category)
+                                 else "查看產品登記資料") + "」查看這筆官方紀錄。"])
         if names:
             return "官方資料中找到以下成分。", names
         return "官方資料中目前查不到這個成分。", [ASK_MORE_INFO]
@@ -679,6 +808,10 @@ def _summary_and_points(
         return "這張圖片中沒有辨識到產品名稱或許可證字號。", [ASK_IMAGE_MORE_INFO]
     if request.missing_product_context:
         return "目前不知道你指的是哪一項產品。", [ASK_MORE_INFO]
+    if product_not_found(request, bundle):
+        if not bundle.product_match.lookup_completed:
+            return "產品資料暫時查不到，無法確認是否有官方紀錄。", [LOOKUP_FAILED_RETRY]
+        return NOT_FOUND_SUMMARY, [COVERAGE_LIST_TEXT, NOT_FOUND_NOT_FAKE_TEXT, NOT_FOUND_ASK]
     if request.product_candidates and bundle.product_match.status == ProductVerificationStatus.PARTIAL_MATCH:
         return f"目前無法確認「{request.product_candidates[0]}」是哪一項官方登記的產品。", [ASK_MORE_INFO]
     return "目前資訊不夠，還沒辦法開始查證。", [ASK_MORE_INFO]
@@ -705,13 +838,20 @@ def _clip_text(text: str, limit: int) -> str:
 
 def _available_actions(rtype: ResponseType, bundle: EvidenceBundle, risk: RiskAssessment, source_count: int,
                        request: NormalizedUserRequest | None = None) -> list[ResponseAction]:
+    product = _verified_product(bundle)
+    registration_only = product is not None and not has_health_claim_approval(product.product_category)
+    efficacy = request is not None and request.intent == Intent.EFFICACY_INQUIRY
     has = {
+        ResponseAction.FULL_EFFICACY: bool(efficacy and product is not None and not registration_only
+                                           and _approved_function_names(bundle, product)),
+        ResponseAction.REGISTRATION_INFO: registration_only,
         ResponseAction.CHECK_PACKAGE_CLAIMS: bool(request is not None and request.observed_package_claims
                                                   and _verified_product(bundle) is not None),
         ResponseAction.DETAIL: True,
         ResponseAction.WHY: bool(risk.triggered_rules or bundle.claim_assessment),
-        ResponseAction.OFFICIAL_INFO: _verified_product(bundle) is not None,
-        ResponseAction.INGREDIENTS: bool(bundle.ingredients),
+        ResponseAction.OFFICIAL_INFO: product is not None and not registration_only,
+        # 功效詢問卡固定為 完整功效 / 產品資訊（登記資料）/ 資料來源，不讓成分按鈕擠掉資料來源
+        ResponseAction.INGREDIENTS: bool(bundle.ingredients) and not (efficacy and rtype == ResponseType.PRODUCT_INFO),
         ResponseAction.SOURCES: source_count > 0,
     }
     if rtype == ResponseType.MISSING_INFORMATION:
@@ -720,11 +860,14 @@ def _available_actions(rtype: ResponseType, bundle: EvidenceBundle, risk: RiskAs
         return [ResponseAction.RETRY] if risk.data_incomplete else []
     order = {
         # 卡片最多顯示 3 個按鈕：「查看完整分析」「查看資料來源」優先
-        ResponseType.RISK: [ResponseAction.DETAIL, ResponseAction.SOURCES, ResponseAction.OFFICIAL_INFO, ResponseAction.WHY],
+        ResponseType.RISK: [ResponseAction.DETAIL, ResponseAction.SOURCES, ResponseAction.OFFICIAL_INFO,
+                            ResponseAction.REGISTRATION_INFO, ResponseAction.WHY],
         ResponseType.CLAIM_RESULT: [ResponseAction.DETAIL, ResponseAction.SOURCES, ResponseAction.WHY],
-        ResponseType.PRODUCT_INFO: [ResponseAction.CHECK_PACKAGE_CLAIMS, ResponseAction.OFFICIAL_INFO,
+        ResponseType.PRODUCT_INFO: [ResponseAction.CHECK_PACKAGE_CLAIMS, ResponseAction.FULL_EFFICACY,
+                                    ResponseAction.OFFICIAL_INFO, ResponseAction.REGISTRATION_INFO,
                                     ResponseAction.INGREDIENTS, ResponseAction.SOURCES],
-        ResponseType.INGREDIENT_LIST: [ResponseAction.INGREDIENTS, ResponseAction.SOURCES],
+        ResponseType.INGREDIENT_LIST: [ResponseAction.INGREDIENTS, ResponseAction.OFFICIAL_INFO,
+                                       ResponseAction.REGISTRATION_INFO, ResponseAction.SOURCES],
         ResponseType.SOURCE_SUMMARY: [ResponseAction.DETAIL, ResponseAction.SOURCES],
     }.get(rtype, [])
     return [a for a in order if has[a]]
@@ -739,6 +882,12 @@ def compose_payload(request: NormalizedUserRequest, bundle: EvidenceBundle, risk
         points = [note] + points
     sources = [s for s in bundle.all_sources() if s.is_official]
     warnings = [] if rtype == ResponseType.OUT_OF_SCOPE else list(risk.required_disclaimers)
+    if NOT_FOUND_NOT_FAKE_TEXT in points:  # 查無紀錄卡的內容已列出涵蓋類別與「不代表假貨」，不重複放在附註
+        warnings = [w for w in warnings if w != NOT_FOUND_NOT_FAKE]
+    status = status_for(rtype, request, bundle)
+    title = (risk_title(risk) if rtype == ResponseType.RISK
+             else EFFICACY_TITLE if rtype == ResponseType.PRODUCT_INFO and request.intent == Intent.EFFICACY_INQUIRY
+             else TYPE_TITLES[rtype])
     if bundle.inferred_links:
         warnings.append(INFERRED_LINK_NOTE)
     return ResponsePayload(
@@ -748,7 +897,7 @@ def compose_payload(request: NormalizedUserRequest, bundle: EvidenceBundle, risk
         claim_risk_level=(worst.claim_risk if rtype == ResponseType.CLAIM_RESULT and (worst := worst_claim(bundle))
                           else None),
         is_conclusive=risk.is_conclusive,
-        title=risk_title(risk) if rtype == ResponseType.RISK else TYPE_TITLES[rtype],
+        title=title,
         summary=summary,
         key_points=points,
         warnings=_dedupe(warnings),
@@ -757,6 +906,8 @@ def compose_payload(request: NormalizedUserRequest, bundle: EvidenceBundle, risk
         sources=sources,
         **_choice_fields(rtype, bundle),
         recognized_content=recognized_image_content(request, bundle) if rtype == ResponseType.MISSING_INFORMATION else [],
+        status_line=status[0] if status else None,
+        status_tone=status[1] if status else None,
     )
 
 
@@ -852,7 +1003,7 @@ def detail_payload(
         body = body or ["這次沒有可列出的官方資料來源。"]
     elif action == ResponseAction.INGREDIENTS:
         body = _product_ingredients(bundle) or ["官方資料中沒有登記成分。"]
-    elif action == ResponseAction.OFFICIAL_INFO:
+    elif action in (ResponseAction.OFFICIAL_INFO, ResponseAction.REGISTRATION_INFO):
         if product is None:
             body = ["這次沒有確認到官方產品紀錄。"]
         else:
@@ -860,13 +1011,17 @@ def detail_payload(
             lines = dedupe_approved_claims([e for e in bundle.approved_claims if e.product_id == product.product_id])
             functions = "、".join(_dedupe([f for line in lines for f in line.function_names]))
             first_text = next((line.claim_text for line in lines if line.claim_text), "")
+            health_food = has_health_claim_approval(product.product_category)
+            category = CATEGORY_LABELS[product.product_category]
             body = _dedupe([
                 f"官方品名：{product.product_name_zh}",
-                f"許可證字號：{product.permit_number}" if product.permit_number else "",
-                f"許可狀態：{PRODUCT_STATUS_TEXT.get(product.status.value, '')}",
+                "" if health_food else f"資料類別：{category}（{REGISTRATION_RECORD_TEXT}）",
+                f"{registration_number_label(product)}：{product.permit_number}" if product.permit_number else "",
+                f"{'許可狀態' if health_food else '登記狀態'}：{product_status_text(product)}",
                 f"申請商：{product.company_name}" if product.company_name else "",
-                f"核准功效：{functions}" if functions else "",
-                _clip_text(first_text, MAX_EFFICACY_SUMMARY_CHARS) if first_text else "",
+                f"核准功效：{functions}" if functions and health_food else "",
+                _clip_text(first_text, MAX_EFFICACY_SUMMARY_CHARS) if first_text and health_food else "",
+                "" if health_food else NO_HEALTH_CLAIM_APPROVAL_TEXT,
             ])
             follow_ups = {
                 ResponseAction.FULL_EFFICACY: bool(lines),

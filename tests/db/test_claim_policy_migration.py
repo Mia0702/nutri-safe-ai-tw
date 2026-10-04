@@ -19,7 +19,7 @@ pytestmark = pytest.mark.db
 ROOT = Path(__file__).resolve().parents[2]
 MIGRATIONS = [ROOT / "migrations" / name for name in
               ("0001_initial_schema.sql", "0002_brand_relationship_semantics.sql", "0003_claim_policy_corpus.sql")]
-CORPUS_DIR = ROOT / "data" / "tfda_claim_policy"
+CORPUS_DIR = ROOT / "data" / "tfda_claim_policy" / "2026-10-03"
 NEW_TABLES = ("claim_policy_import_batches", "claim_policy_sources", "claim_policy_rules", "claim_policy_examples",
               "health_function_catalog", "health_function_historical_sources")
 DIM = 1536

@@ -151,7 +151,8 @@ def test_text_selection_then_pronoun_follow_up_uses_selected_product(copy_base_n
     assert rec.normalized_request.product_reference_status == ProductReferenceStatus.RESOLVED_FROM_CONTEXT
     ask(handler, "這個的核准功效？")
     assert_answers_product(store, "bind-1", ResponseType.PRODUCT_INFO)
-    assert "bind-1 的核准敘述" in json.dumps(line.sent[-1][2], ensure_ascii=False)
+    reply = json.dumps(line.sent[-1][2], ensure_ascii=False)
+    assert VARIANTS[1][0] in reply and VARIANTS[0][0] not in reply  # 回答的是已確認的那一項
     # 確認來源與時間保留在原本的選擇
     assert contexts.snapshot(USER).confirmed_product.confirmation_source == ProductConfirmationSource.USER_SELECTED
 

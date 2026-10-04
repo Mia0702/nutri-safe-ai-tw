@@ -1,0 +1,65 @@
+﻿source_dataset_id,source_info_id,canonical_field,raw_field,availability,transform,data_type,notes
+9046,24,source_row_key,查驗登記證號,AVAILABLE,TFDA:24:original_registration_number,STRING_OR_NULL,
+9046,24,product_category,DATASET_METADATA,AVAILABLE,DATASET_CONSTANT; no product factual inference,STRING_OR_NULL,
+9046,24,official_name_zh,中文品名,AVAILABLE,COPY_AS_STRING,STRING_OR_NULL,
+9046,24,official_name_en,英文品名,AVAILABLE,COPY_AS_STRING,STRING_OR_NULL,
+9046,24,permit_or_registration_no,查驗登記證號,AVAILABLE,COPY_AS_STRING,STRING_OR_NULL,
+9046,24,permit_type,DATASET_METADATA,AVAILABLE,DATASET_CONSTANT; no product factual inference,STRING_OR_NULL,
+9046,24,issue_date,發證日期,AVAILABLE,STRICT_ROC_DATE_TO_ISO; 6/7 digits; year+1911; calendar validation,STRING_OR_NULL,
+9046,24,expiry_date,有效日期,AVAILABLE,STRICT_ROC_DATE_TO_ISO; 6/7 digits; year+1911; calendar validation,STRING_OR_NULL,
+9046,24,official_status,NULL,NOT_AVAILABLE,NOT_AVAILABLE,STRING_OR_NULL,official_status/status = NULL; temporal status is separate
+9046,24,derived_temporal_status,RAW_RECORD,AVAILABLE,DERIVED; see report,STRING_OR_NULL,
+9046,24,applicant_name,申請商名稱,AVAILABLE,COPY_AS_STRING,STRING_OR_NULL,
+9046,24,applicant_phone,申請商電話,AVAILABLE,COPY_AS_STRING,STRING_OR_NULL,
+9046,24,applicant_address,申請商地址,AVAILABLE,COPY_AS_STRING,STRING_OR_NULL,
+9046,24,manufacturer_name,NULL,NOT_AVAILABLE,NOT_AVAILABLE,STRING_OR_NULL,申請商不得當製造商；類別不得推定原產國或每筆劑型
+9046,24,manufacturer_address,NULL,NOT_AVAILABLE,NOT_AVAILABLE,STRING_OR_NULL,申請商不得當製造商；類別不得推定原產國或每筆劑型
+9046,24,country_of_origin,NULL,NOT_AVAILABLE,NOT_AVAILABLE,STRING_OR_NULL,申請商不得當製造商；類別不得推定原產國或每筆劑型
+9046,24,dosage_form,NULL,NOT_AVAILABLE,NOT_AVAILABLE,STRING_OR_NULL,申請商不得當製造商；類別不得推定原產國或每筆劑型
+9046,24,ingredients_raw,成分,AVAILABLE,COPY_AS_STRING,STRING_OR_NULL,
+9046,24,ingredients_normalized,成分,AVAILABLE,"HTML_ENTITY_DECODE_DRAFT_ONLY; split literal ;; only; opaque ordered tokens, duplicates preserved",STRING_OR_NULL,
+9046,24,source_dataset_id,DATASET_METADATA,AVAILABLE,DATASET_CONSTANT; no product factual inference,STRING_OR_NULL,
+9046,24,source_info_id,DATASET_METADATA,AVAILABLE,DATASET_CONSTANT; no product factual inference,STRING_OR_NULL,
+9046,24,source_url,DATASET_METADATA,AVAILABLE,DATASET_CONSTANT; no product factual inference,STRING_OR_NULL,
+9046,24,retrieved_at,DATASET_METADATA,AVAILABLE,DATASET_CONSTANT; no product factual inference,STRING_OR_NULL,
+9046,24,raw_source_fields_json,RAW_RECORD,AVAILABLE,DERIVED; see report,STRING_OR_NULL,
+9046,24,review_status,RAW_RECORD,AVAILABLE,DERIVED; see report,STRING_OR_NULL,
+9046,24,raw_row_number,RAW_RECORD,AVAILABLE,DERIVED; see report,STRING_OR_NULL,
+9046,24,raw_row_sha256,RAW_RECORD,AVAILABLE,DERIVED; see report,STRING_OR_NULL,
+9046,24,issue_date_raw,RAW_RECORD,AVAILABLE,DERIVED; see report,STRING_OR_NULL,
+9046,24,expiry_date_raw,RAW_RECORD,AVAILABLE,DERIVED; see report,STRING_OR_NULL,
+9046,24,review_reasons,RAW_RECORD,AVAILABLE,DERIVED; see report,STRING_OR_NULL,
+9046,24,signing_document_no,NULL,NOT_AVAILABLE,NOT_AVAILABLE,STRING_OR_NULL,
+9046,24,status,NULL,NOT_AVAILABLE,NOT_AVAILABLE; official_status is null; never alias derived_temporal_status to official status,STRING_OR_NULL,供既有 schema mapping 使用；normalized 以 official_status 明確表示
+9047,23,source_row_key,核備函字號,AVAILABLE,TFDA:23:original_registration_number,STRING_OR_NULL,
+9047,23,product_category,DATASET_METADATA,AVAILABLE,DATASET_CONSTANT; no product factual inference,STRING_OR_NULL,
+9047,23,official_name_zh,中文品名,AVAILABLE,COPY_AS_STRING,STRING_OR_NULL,
+9047,23,official_name_en,英文品名,AVAILABLE,COPY_AS_STRING,STRING_OR_NULL,
+9047,23,permit_or_registration_no,核備函字號,AVAILABLE,COPY_AS_STRING,STRING_OR_NULL,
+9047,23,permit_type,DATASET_METADATA,AVAILABLE,DATASET_CONSTANT; no product factual inference,STRING_OR_NULL,
+9047,23,issue_date,發證日期,AVAILABLE,STRICT_ROC_DATE_TO_ISO; 6/7 digits; year+1911; calendar validation,STRING_OR_NULL,
+9047,23,expiry_date,有效日期,AVAILABLE,STRICT_ROC_DATE_TO_ISO; 6/7 digits; year+1911; calendar validation,STRING_OR_NULL,
+9047,23,official_status,NULL,NOT_AVAILABLE,NOT_AVAILABLE,STRING_OR_NULL,official_status/status = NULL; temporal status is separate
+9047,23,derived_temporal_status,RAW_RECORD,AVAILABLE,DERIVED; see report,STRING_OR_NULL,
+9047,23,applicant_name,申請商名稱,AVAILABLE,COPY_AS_STRING,STRING_OR_NULL,
+9047,23,applicant_phone,申請商電話,AVAILABLE,COPY_AS_STRING,STRING_OR_NULL,
+9047,23,applicant_address,申請商地址,AVAILABLE,COPY_AS_STRING,STRING_OR_NULL,
+9047,23,manufacturer_name,NULL,NOT_AVAILABLE,NOT_AVAILABLE,STRING_OR_NULL,申請商不得當製造商；類別不得推定原產國或每筆劑型
+9047,23,manufacturer_address,NULL,NOT_AVAILABLE,NOT_AVAILABLE,STRING_OR_NULL,申請商不得當製造商；類別不得推定原產國或每筆劑型
+9047,23,country_of_origin,NULL,NOT_AVAILABLE,NOT_AVAILABLE,STRING_OR_NULL,申請商不得當製造商；類別不得推定原產國或每筆劑型
+9047,23,dosage_form,NULL,NOT_AVAILABLE,NOT_AVAILABLE,STRING_OR_NULL,申請商不得當製造商；類別不得推定原產國或每筆劑型
+9047,23,ingredients_raw,成分,AVAILABLE,COPY_AS_STRING,STRING_OR_NULL,
+9047,23,ingredients_normalized,成分,AVAILABLE,"HTML_ENTITY_DECODE_DRAFT_ONLY; split literal ;; only; opaque ordered tokens, duplicates preserved",STRING_OR_NULL,
+9047,23,source_dataset_id,DATASET_METADATA,AVAILABLE,DATASET_CONSTANT; no product factual inference,STRING_OR_NULL,
+9047,23,source_info_id,DATASET_METADATA,AVAILABLE,DATASET_CONSTANT; no product factual inference,STRING_OR_NULL,
+9047,23,source_url,DATASET_METADATA,AVAILABLE,DATASET_CONSTANT; no product factual inference,STRING_OR_NULL,
+9047,23,retrieved_at,DATASET_METADATA,AVAILABLE,DATASET_CONSTANT; no product factual inference,STRING_OR_NULL,
+9047,23,raw_source_fields_json,RAW_RECORD,AVAILABLE,DERIVED; see report,STRING_OR_NULL,
+9047,23,review_status,RAW_RECORD,AVAILABLE,DERIVED; see report,STRING_OR_NULL,
+9047,23,raw_row_number,RAW_RECORD,AVAILABLE,DERIVED; see report,STRING_OR_NULL,
+9047,23,raw_row_sha256,RAW_RECORD,AVAILABLE,DERIVED; see report,STRING_OR_NULL,
+9047,23,issue_date_raw,RAW_RECORD,AVAILABLE,DERIVED; see report,STRING_OR_NULL,
+9047,23,expiry_date_raw,RAW_RECORD,AVAILABLE,DERIVED; see report,STRING_OR_NULL,
+9047,23,review_reasons,RAW_RECORD,AVAILABLE,DERIVED; see report,STRING_OR_NULL,
+9047,23,signing_document_no,簽審文件編號,AVAILABLE,COPY_AS_STRING,STRING_OR_NULL,
+9047,23,status,NULL,NOT_AVAILABLE,NOT_AVAILABLE; official_status is null; never alias derived_temporal_status to official status,STRING_OR_NULL,供既有 schema mapping 使用；normalized 以 official_status 明確表示
