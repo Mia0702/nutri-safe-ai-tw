@@ -27,6 +27,7 @@ from app.agents.reporter_agent import ReporterAgent, error_payload
 from app.pipeline import (
     AnalysisPipeline,
     context_entities_for_turn,
+    is_multi_product_comparison,
     request_for_package_claims,
     request_for_selected_product,
 )
@@ -76,6 +77,8 @@ def confirmed_product_update(result, request_id: str, source: ProductConfirmatio
     req, bundle = result.normalized_request, result.evidence
     if req is None or bundle is None:
         return None, False
+    if is_multi_product_comparison(req, bundle):
+        return None, True  # 兩個以上產品的比較：不從中挑一個當「已確認產品」，也不沿用更早的
     if is_bound_from_context(req):
         return None, False  # 沿用 context 中已確認的產品：保留原本的確認來源與時間
     match = bundle.product_match
@@ -166,7 +169,8 @@ class AdaptiveResponseService:
                 self._contexts.record(owner_id, session_id, request_id, req.normalized_text or raw.text,
                                       req.intent, context_entities_for_turn(result),
                                       confirmed=confirmed, clear_confirmed=clear,
-                                      pending=pending_clarification_for(result, request_id))
+                                      pending=pending_clarification_for(result, request_id),
+                                      clear_products=is_multi_product_comparison(req, result.evidence))
         self._store.save(record)
         return self._renderer.render_primary(payload, query_label=label)
 
@@ -227,8 +231,10 @@ class AdaptiveResponseService:
             official_product_name=product.product_name_zh,
             confirmation_source=ProductConfirmationSource.USER_CONFIRMED_TARGET,
             confirmed_at=datetime.now(timezone.utc), confirmed_request_id=request_id, discrepancy=pending.discrepancy)
+        multi = is_multi_product_comparison(result.normalized_request, result.evidence)
         self._contexts.record(owner_id, session_id, request_id, request.normalized_text, request.intent,
-                              context_entities_for_turn(result), confirmed=confirmed)
+                              context_entities_for_turn(result), confirmed=None if multi else confirmed,
+                              clear_products=multi)
         return self._renderer.render_primary(result.response, query_label=record.query_label)
 
     def select_product(self, record: RequestRecord, candidate_id: str, owner_id: str | None,
@@ -269,7 +275,8 @@ class AdaptiveResponseService:
         if session_id is not None:  # 所選產品成為目前 task context 的已確認產品（文字 / 圖片 / 字號選擇皆同）
             confirmed, _ = confirmed_product_update(result, request_id, ProductConfirmationSource.USER_SELECTED)
             self._contexts.record(owner_id, session_id, request_id, request.normalized_text, request.intent,
-                                  context_entities_for_turn(result), confirmed=confirmed)
+                                  context_entities_for_turn(result), confirmed=confirmed,
+                                  clear_products=is_multi_product_comparison(result.normalized_request, result.evidence))
         return self._renderer.render_primary(result.response, query_label=record.query_label)
 
     def check_package_claims(self, record: RequestRecord, owner_id: str | None, channel: str = "line",

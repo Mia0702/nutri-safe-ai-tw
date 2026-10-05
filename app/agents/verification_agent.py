@@ -52,6 +52,7 @@ from typing import Any
 from pydantic import BaseModel, ValidationError
 
 from app.agents.prompts import EVIDENCE_ASSESSMENT_INSTRUCTIONS, PLANNER_INSTRUCTIONS, WEB_PLANNER_INSTRUCTIONS
+from app.agents.interaction_research import InteractionResearchMixin
 from app.agents.evidence_tools import (
     EVIDENCE_TOOLS,
     OFFICIAL_WEB_TOOLS,
@@ -120,6 +121,7 @@ from app.schemas.evidence import (
 )
 from app.schemas.user_request import NormalizedUserRequest
 from app.services.errors import ServiceError
+from app.services.interaction_service import InteractionRepository
 from app.services.openai_service import LLMClient
 from app.tools.base import ToolCallRecorder
 from app.tools.graph_tools import GraphQueryType, GraphRepository
@@ -184,7 +186,7 @@ def _openai_not_configured():
     raise ServiceError(ErrorCode.NOT_CONFIGURED, "OpenAI 未設定，無法評估證據相關性", "openai")
 
 
-class VerificationAgent:
+class VerificationAgent(InteractionResearchMixin):
     def __init__(
         self,
         official_repo: OfficialDataRepository | None,
@@ -196,6 +198,7 @@ class VerificationAgent:
         enable_official_web: bool = True,
         enable_llm_planner: bool = True,
         claim_policy_repo: ClaimPolicyRepository | None = None,
+        interaction_repo: InteractionRepository | None = None,
     ):
         self._repo = official_repo
         self._graph = graph_repo
@@ -206,6 +209,7 @@ class VerificationAgent:
         self._enable_official_web = enable_official_web
         self._enable_llm_planner = enable_llm_planner
         self._claim_policy = claim_policy_repo
+        self._interaction = interaction_repo
 
     # ================================================================== main
 
@@ -219,6 +223,8 @@ class VerificationAgent:
             request=request, bundle=bundle, repo=self._repo, graph=self._graph, rag=self._rag, llm=self._llm,
             rag_top_k=self._rag_top_k, rag_min_similarity=self._rag_min_similarity, claim_policy=self._claim_policy,
         )
+        if request.intent == Intent.INTERACTION_INQUIRY:  # Interaction Runtime：獨立研究路徑（其他 intent 流程不變）
+            return self._verify_interaction(request, rec, bundle, state)
         # 前文已查證過的產品 ID 可直接使用
         for entity in request.context_entities_used:
             if entity.entity_type == EntityType.PRODUCT and entity.entity_id:

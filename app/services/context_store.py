@@ -128,7 +128,7 @@ class TaskContextStore:
     def record(self, user_id: str, session_id: str, request_id: str, user_text: str,
                intent: Intent | None, entities: list[ContextEntity],
                confirmed: ConfirmedProduct | None = None, clear_confirmed: bool = False,
-               pending: PendingClarification | None = None) -> bool:
+               pending: PendingClarification | None = None, clear_products: bool = False) -> bool:
         """把一題的結果寫回 context；session 已被重設 / 過期時丟棄（回傳 False）。
 
         pending：這一題留下的產品確認問題；每一題都會取代上一題的 pending（None = 清除）。
@@ -159,6 +159,12 @@ class TaskContextStore:
                 ctx.current_product_id, ctx.current_product_name = confirmed.product_id, confirmed.official_product_name
             elif clear_confirmed:
                 ctx.confirmed_product = None
+            if clear_products:  # 兩個以上產品的比較：沒有單一「它」；清掉所有產品指稱（不從中挑一個，也不沿用更早的產品）
+                ctx.confirmed_product = None
+                ctx.current_product_id = ctx.current_product_name = None
+                ctx.recent_confirmed_entities = [e for e in ctx.recent_confirmed_entities if e.entity_type != EntityType.PRODUCT]
+                ctx.turns = [t.model_copy(update={"entities": [e for e in t.entities if e.entity_type != EntityType.PRODUCT]})
+                             for t in ctx.turns]
             ctx.pending_clarification = (pending.model_copy(update={"created_at": self._clock()})
                                          if pending is not None else None)
             ctx.updated_at = self._clock()

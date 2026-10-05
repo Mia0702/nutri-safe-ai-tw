@@ -46,6 +46,12 @@ from app.schemas.user_request import (
     UrlSource,
 )
 from app.schemas.evidence import EvidenceBundle, ToolCallRecord, utc_now
+from app.schemas.interaction import (
+    InteractionMode,
+    InteractionSubject,
+    InteractionSubjectExtraction,
+    InteractionSubjectKind,
+)
 from app.services.errors import ServiceError
 from app.services.openai_service import LLMClient, MediaClient
 from app.tools.base import ToolCallRecorder
@@ -335,6 +341,14 @@ class IntakeAgent:
         )
         needs_rag = ex.needs_rag or any(c.semantic_category in _REGULATORY_CATEGORIES for c in claims)
 
+        subjects, interaction_mode = interaction_subjects_for(ex, text, products, ingredients)
+        if subjects:
+            # interaction 的產品對象只放 interaction_subjects（逐一由 Agent B 確認）；不放 product_candidates，避免當成單一產品比對
+            products, corrected, mentions = [], [], []
+            needs_product_lookup = needs_claim_check = needs_graph_lookup = needs_rag = False
+            claims = []
+            reference = ProductReferenceStatus.NOT_NEEDED
+
         return NormalizedUserRequest(
             request_id=request_id,
             input_type=raw.input_type,
@@ -365,7 +379,35 @@ class IntakeAgent:
             needs_official_web_search=ex.needs_official_web_search,
             source_url=raw.source_url,
             adapter_notes=raw.adapter_notes,
+            interaction_subjects=subjects,
+            interaction_mode=interaction_mode,
+            interaction_question=ex.interaction_question if subjects else None,
         )
+
+
+def interaction_subjects_for(ex: IntakeExtraction, text: str, products: list[str],
+                             ingredients: list[str]) -> tuple[list[InteractionSubject], InteractionMode | None]:
+    """intent = interaction_inquiry 的對象與問題型態（deterministic 一致化；LLM 只提供線索）。
+
+    * 對象名稱必須能在使用者原文中找到（只差格式 / 小幅錯字）；找不到的一律丟棄——LLM 不能把名稱翻譯或改寫成別的 identity。
+    * identity（成分 / 藥品 / 產品）一律由 Agent B 的 deterministic resolver 決定；kind 只是線索。
+    * LLM 沒給對象時，退回已抽到的產品 / 成分名稱（保持原文）。
+    """
+    if ex.intent != Intent.INTERACTION_INQUIRY:
+        return [], None
+    candidates = list(ex.interaction_subjects) or (
+        [InteractionSubjectExtraction(text=n, kind=InteractionSubjectKind.PRODUCT) for n in products]
+        + [InteractionSubjectExtraction(text=n, kind=InteractionSubjectKind.INGREDIENT) for n in ingredients])
+    subjects: list[InteractionSubject] = []
+    seen: set[str] = set()
+    for c in candidates:
+        raw, _distance = locate_in_text(text, c.text)
+        if raw is None or not raw.strip() or normalize_name(raw) in seen:
+            continue
+        seen.add(normalize_name(raw))
+        subjects.append(InteractionSubject(text=raw.strip(), kind=c.kind))
+    mode = ex.interaction_mode or InteractionMode.PAIRWISE
+    return subjects, mode
 
 
 # 「功效」本身的泛稱：不是任何具體的生理功能或疾病（一般性詞彙，不針對特定產品或問句）

@@ -8,6 +8,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from app.schemas.interaction import InteractionResearch
+
 from app.schemas.enums import (
     ClaimAssessmentStatus,
     ClaimEvidenceRelation,
@@ -547,6 +549,13 @@ class ClaimAssessment(BaseModel):
     claim_risk: RiskLevel | None = None
 
 
+def _interaction_dt(value: str | None) -> datetime | None:
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")) if value else None
+    except ValueError:
+        return None
+
+
 class EvidenceBundle(BaseModel):
     request_id: str
     product_match: ProductMatch
@@ -561,6 +570,8 @@ class EvidenceBundle(BaseModel):
     function_evidence_status: FunctionEvidenceStatus | None = None
     # 已確認產品的成分三層結構（官方原始 / 已確認 identity / 未確認）＋成分是非題答案
     product_ingredients: ProductIngredientEvidence | None = None
+    # Interaction Runtime：只有 intent = interaction_inquiry 才有（InteractionResearch；不是一般功能證據）
+    interaction_research: InteractionResearch | None = None
     illegal_ad_evidence: list[IllegalAdEvidence] = Field(default_factory=list)
     graph_evidence: list[GraphEvidence] = Field(default_factory=list)
     rag_evidence: list[RagEvidence] = Field(default_factory=list)
@@ -603,6 +614,14 @@ class EvidenceBundle(BaseModel):
             self.health_functions,
         ):
             items.extend(item.source for item in group)
+        if self.interaction_research is not None:  # Interaction corpus 的來源（保留 source_type / is_official / retrieved_at）
+            research = self.interaction_research
+            for item in [e for f in research.findings for e in f.evidence] + [
+                    e for d in research.duplicates for e in d.duplicate_rule_evidence]:
+                items.append(SourceRef(
+                    source_name=item.source_title or item.source_id, source_type=SourceType.STRUCTURED_DB,
+                    source_url=item.source_url, source_record_id=item.evidence_id,
+                    retrieved_at=_interaction_dt(item.retrieved_at), is_official=item.is_official))
         seen: set[tuple[str, str | None]] = set()
         unique: list[SourceRef] = []
         for source in items:

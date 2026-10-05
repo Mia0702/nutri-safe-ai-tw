@@ -25,6 +25,12 @@ from app.schemas.enums import (
     UrlSourceRole,
 )
 from app.schemas.evidence import ToolCallRecord
+from app.schemas.interaction import (
+    InteractionMode,
+    InteractionQuestion,
+    InteractionSubject,
+    InteractionSubjectExtraction,
+)
 
 
 class ContextEntity(BaseModel):
@@ -256,6 +262,23 @@ class IntakeExtraction(BaseModel):
     needs_graph_lookup: bool
     needs_rag: bool
     needs_official_web_search: bool
+    # intent = interaction_inquiry 時：被比較 / 被問到的對象（名稱逐字取自使用者原文）與問題型態；其他 intent 給空陣列 / none
+    interaction_subjects: list[InteractionSubjectExtraction] = Field(
+        default_factory=list,
+        description="intent = interaction_inquiry 時，被問「能不能一起吃 / 有沒有衝突 / 是不是重複」的每一個對象；"
+                    "名稱必須逐字取自使用者原文，不可翻譯或改寫；其他 intent 給空陣列",
+    )
+    interaction_mode: InteractionMode | None = Field(
+        default=None,
+        description="pairwise：問兩個以上對象能不能一起吃 / 有沒有衝突；duplicate_comparison：問兩個產品是否都含有同一成分 / 是否重複；"
+                    "不是 interaction 問題時給 null",
+    )
+    interaction_question: InteractionQuestion | None = Field(
+        default=None,
+        description="interaction_inquiry 且 pairwise 時，使用者實際在問什麼：together_use＝能不能一起吃 / 一起使用；"
+                    "interaction_existence＝有沒有交互作用 / 衝突；explanation＝為什麼會影響 / 怎麼影響；"
+                    "不是 interaction 問題或是重複成分問題時給 null",
+    )
 
 
 class DetectedProduct(BaseModel):
@@ -329,6 +352,10 @@ class NormalizedUserRequest(BaseModel):
     claims_from_package: bool = False  # claims 來自包裝圖片（明確要求查驗、高風險醫療宣稱、或按鈕觸發）
     # 查詢目標由使用者回覆確認（pending clarification → CONFIRM，或之後沿用該產品的 follow-up）
     user_confirmed_target: UserConfirmedTarget | None = None
+    # Interaction inquiry：對象（產品名稱只放這裡，不放 product_candidates；identity 由 Agent B 逐一確認）
+    interaction_subjects: list[InteractionSubject] = Field(default_factory=list)
+    interaction_mode: InteractionMode | None = None
+    interaction_question: InteractionQuestion | None = None
 
     @property
     def has_product_identifiers(self) -> bool:

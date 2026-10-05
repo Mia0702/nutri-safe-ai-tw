@@ -33,6 +33,8 @@ ACTION_LABELS = {
     ResponseAction.FULL_EFFICACY: "查看完整功效",
     ResponseAction.WARNINGS: "警語與注意事項",
     ResponseAction.POLICY_BASIS: "查看法規依據",
+    ResponseAction.INTERACTION_EVIDENCE: "查看證據",
+    ResponseAction.INTERACTION_MAPPING: "查看成分對應",
 }
 
 # 詳細卡片上的下一層按鈕：只有 primary card 提供了上一層，才允許按下一層（仍是同一個 request_id）
@@ -43,6 +45,8 @@ DETAIL_FOLLOW_UPS: dict[ResponseAction, tuple[ResponseAction, ...]] = {
     ResponseAction.REGISTRATION_INFO: (ResponseAction.SOURCES,),
     # 完整成分 → 成分資料的官方來源
     ResponseAction.INGREDIENTS: (ResponseAction.SOURCES,),
+    # 交互作用證據來源 → 可點擊的來源卡（沿用既有 request-scoped SOURCES）
+    ResponseAction.INTERACTION_EVIDENCE: (ResponseAction.SOURCES,),
 }
 
 

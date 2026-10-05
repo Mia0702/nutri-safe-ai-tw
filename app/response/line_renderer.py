@@ -96,6 +96,7 @@ TYPE_LABELS = {
     ResponseType.MISSING_INFORMATION: "需要補充",
     ResponseType.OUT_OF_SCOPE: "呷安心",
     ResponseType.ERROR: "查詢未完成",
+    ResponseType.INTERACTION_RESULT: "交互作用",
 }
 
 
@@ -274,6 +275,7 @@ TEMPLATES: dict[ResponseType, Callable[[ResponsePayload], list[dict[str, Any]]]]
     ResponseType.PRODUCT_INFO: _standard_body,
     ResponseType.INGREDIENT_LIST: _standard_body,
     ResponseType.CLAIM_RESULT: _standard_body,
+    ResponseType.INTERACTION_RESULT: _standard_body,
     ResponseType.SOURCE_SUMMARY: _source_summary_body,
     ResponseType.MISSING_INFORMATION: _missing_info_body,
     ResponseType.OUT_OF_SCOPE: _minimal_body,

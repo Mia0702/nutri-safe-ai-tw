@@ -39,7 +39,10 @@ from app.schemas.evidence import (
 )
 from app.schemas.user_request import NormalizedUserRequest
 from app.services.errors import ServiceError
-from app.tools import claim_policy_tools, graph_tools, ingredient_tools, official_web_tools, product_tools, rag_tools
+from app.services.interaction_service import DIRECT, VIA_FORM, EntityHandle, Side
+from app.tools import (
+    claim_policy_tools, graph_tools, ingredient_tools, interaction_tools, official_web_tools, product_tools, rag_tools,
+)
 from app.tools.graph_tools import GraphQueryType
 
 MAX_LIST_ITEMS = 8
@@ -97,6 +100,14 @@ class PlannerState:
     policy_decided_claims: set[int] = field(default_factory=set)  # 結構化證據已足以決定的宣稱（不需 RAG / web）
     # 其中連語意比對（assess_evidence）都不需要的命題：結論完全由 deterministic 規則決定
     policy_final_claims: set[int] = field(default_factory=set)
+    # Interaction Runtime：Interaction corpus service、已確認（VERIFIED）的產品、已查到的 interaction（供 guard / 結果保存）
+    interaction_service: Any = None
+    confirmed_product_ids: dict[str, str | None] = field(default_factory=dict)  # product_id → 官方品名
+    known_interaction_ids: set[str] = field(default_factory=set)
+    interaction_findings: dict[str, Any] = field(default_factory=dict)  # interaction_id → InteractionFinding
+    interaction_pairs: list[Any] = field(default_factory=list)
+    duplicate_findings: list[Any] = field(default_factory=list)
+    duplicate_coverage: list[Any] = field(default_factory=list)
 
 
 def _require(dep: Any, source: str) -> Any:
@@ -416,6 +427,113 @@ def h_web(state: PlannerState, args: QueryArgs):
 
 
 # ---------------------------------------------------------------------------
+# Interaction tools（輸入 canonical ID；不讓 LLM 以 display name 猜 identity）
+# ---------------------------------------------------------------------------
+
+
+class InteractionHandleArg(BaseModel):
+    entity_id: str = Field(description="canonical entity ID（N_* 營養素群 / F_* 成分形式 / D_* 藥品 substance），須為 corpus 已知 ID")
+    via_entity_id: str | None = Field(description="此 entity 是由哪個 form 對應到營養素群（form → group lineage）；直接對應給 null")
+
+
+class InteractionSideArg(BaseModel):
+    label: str = Field(description="使用者對象的名稱（只作標示）")
+    handles: list[InteractionHandleArg]
+
+
+class LookupInteractionsArgs(BaseModel):
+    sides: list[InteractionSideArg] = Field(description="兩個以上已確認 identity 的對象；兩兩查 pairwise interaction")
+
+
+class DuplicateIngredientsArgs(BaseModel):
+    product_ids: list[str] = Field(description="兩個以上已確認（VERIFIED）的 product_id")
+    focus_entity_ids: list[str] = Field(description="只看這些營養素 / 成分的重複（canonical ID）；沒有就給空陣列")
+
+
+class InteractionEvidenceArgs(BaseModel):
+    interaction_ids: list[str] = Field(description="先前 lookup_interactions 結果中的 interaction_id")
+
+
+def _interaction_service(state: PlannerState):
+    service = _require(state.interaction_service, "interaction_corpus")
+    if not service.available:
+        raise ServiceError(ErrorCode.NOT_CONFIGURED, "Interaction corpus 尚未匯入或不可用", "interaction_corpus")
+    return service
+
+
+def _guard_interaction_sides(state: PlannerState, args: LookupInteractionsArgs) -> str | None:
+    service = state.interaction_service
+    if service is None or not service.available:
+        return None  # handler 會以 NOT_CONFIGURED 回報（記為工具失敗，不當成「查無」）
+    if len(args.sides) < 2 or any(not s.handles for s in args.sides):
+        return "至少需要兩個對象，且每個對象至少一個 canonical entity"
+    known = service.known_entity_ids()
+    ids = {h.entity_id for s in args.sides for h in s.handles} | {
+        h.via_entity_id for s in args.sides for h in s.handles if h.via_entity_id}
+    unknown = sorted(ids - known)
+    return f"entity_id 必須是 interaction corpus 已知的 canonical ID，未知 ID：{unknown[:3]}" if unknown else None
+
+
+def _guard_duplicate_products(state: PlannerState, args: DuplicateIngredientsArgs) -> str | None:
+    unknown = [p for p in args.product_ids if p not in state.confirmed_product_ids]
+    if len(set(args.product_ids)) < 2 or unknown:
+        return f"需要兩個以上已確認（VERIFIED）的產品，未確認 ID：{unknown[:3]}"
+    return None
+
+
+def _guard_interaction_ids(state: PlannerState, args: InteractionEvidenceArgs) -> str | None:
+    unknown = [i for i in args.interaction_ids if i not in state.known_interaction_ids]
+    if unknown or not args.interaction_ids:
+        return f"interaction_id 必須來自先前 lookup_interactions 結果，未知 ID：{unknown[:3]}"
+    return None
+
+
+def h_lookup_interactions(state: PlannerState, args: LookupInteractionsArgs):
+    service = _interaction_service(state)
+
+    def handle(h: InteractionHandleArg) -> EntityHandle:
+        ref = service.entity_ref(h.entity_id)
+        return EntityHandle(h.entity_id, ref.kind if ref else "", VIA_FORM if h.via_entity_id else DIRECT, h.via_entity_id)
+
+    out = interaction_tools.lookup_interactions(service, [Side(s.label, [handle(h) for h in s.handles]) for s in args.sides])
+    for f in out.findings:
+        state.known_interaction_ids.add(f.interaction_id)
+        state.interaction_findings[f.interaction_id] = f
+    state.interaction_pairs.extend(out.pairs)
+    return out, {
+        "findings": [{"interaction_id": f.interaction_id, "conclusion_status": f.conclusion_status.value,
+                      "severity": f.severity, "certainty": f.certainty, "review_status": f.review_status}
+                     for f in out.findings],
+        "pairs": [{"a": p.subject_a, "b": p.subject_b, "status": p.status.value} for p in out.pairs]}
+
+
+def h_duplicate_ingredients(state: PlannerState, args: DuplicateIngredientsArgs):
+    service = _interaction_service(state)
+    repo = _require(state.repo, "supabase")
+    products = []
+    for pid in dict.fromkeys(args.product_ids):
+        ev = state.ingredient_evidence_by_product.get(pid)
+        if ev is None:
+            ev = ingredient_tools.lookup_product_ingredient_evidence(repo, pid)
+            if ev is not None:
+                state.ingredient_evidence_by_product[pid] = ev
+        products.append((pid, state.confirmed_product_ids.get(pid), ev))
+    out = interaction_tools.lookup_duplicate_ingredients(service, products, args.focus_entity_ids or None)
+    state.duplicate_findings = list(out.duplicates)
+    state.duplicate_coverage = list(out.coverage)
+    return out, {"duplicates": [{"nutrient": d.nutrient.entity_id, "products": [p.product_id for p in d.products],
+                                 "dose_evaluation": d.dose_evaluation.value} for d in out.duplicates],
+                 "coverage": [c.model_dump() for c in out.coverage]}
+
+
+def h_interaction_evidence(state: PlannerState, args: InteractionEvidenceArgs):
+    service = _interaction_service(state)
+    out = interaction_tools.lookup_interaction_evidence(service, args.interaction_ids)
+    return out, {"evidence": {k: [{"evidence_id": e.evidence_id, "supports_direction": e.supports_direction,
+                                   "counts_as_support": e.counts_as_support} for e in v] for k, v in out.evidence.items()}}
+
+
+# ---------------------------------------------------------------------------
 # registry
 # ---------------------------------------------------------------------------
 
@@ -459,6 +577,22 @@ EVIDENCE_TOOLS: dict[str, ToolSpec] = {
                  ClaimTextsArgs, h_policy_examples),
         ToolSpec("lookup_health_function", "查健康食品保健功效項目的官方定義與評估方法。", HealthFunctionArgs, h_health_function),
         ToolSpec("search_rag", "在台灣官方法規 / 指引文件中做語意檢索。", QueryArgs, h_rag, _guard_nonempty_query),
+    ]
+}
+
+# Interaction Runtime 的受控 read-only tools：只由 Agent B 的 interaction 研究路徑呼叫（不在 LLM planner 的 allowlist 內）。
+INTERACTION_TOOLS: dict[str, ToolSpec] = {
+    spec.name: spec
+    for spec in [
+        ToolSpec("lookup_interactions",
+                 "以 canonical ID 查兩個以上已確認對象之間的 pairwise interaction（成分↔成分、成分↔藥品 substance）；"
+                 "回傳結論資格、applicability、證據。沒有紀錄 ≠ 沒有交互作用。",
+                 LookupInteractionsArgs, h_lookup_interactions, _guard_interaction_sides),
+        ToolSpec("lookup_duplicate_ingredients",
+                 "查兩個以上已確認產品是否對應到同一營養素群（重複成分存在）；不評估劑量、不判斷過量。",
+                 DuplicateIngredientsArgs, h_duplicate_ingredients, _guard_duplicate_products),
+        ToolSpec("lookup_interaction_evidence", "查已找到的 interaction 的逐筆證據（保留 supports_direction）。",
+                 InteractionEvidenceArgs, h_interaction_evidence, _guard_interaction_ids),
     ]
 }
 

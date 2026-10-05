@@ -18,6 +18,7 @@ import re
 
 from pydantic import BaseModel
 
+from app.agents import interaction_reporter as ir
 from app.agents.prompts import REPORTER_INSTRUCTIONS
 from app.schemas.analysis import ReporterOutput
 from app.risk.assessment_rules import QUESTION_MEDICAL_PROPOSITION
@@ -243,6 +244,8 @@ class ReporterAgent:
     ) -> ReporterOutput:
         if request.intent == Intent.OUT_OF_SCOPE and not request.claims and not request.has_product_identifiers:
             return ReporterOutput(text=OUT_OF_SCOPE_TEXT + "\n如果你有想查證的保健食品或廣告說法，可以直接傳給我。")
+        if ir.is_interaction_request(request, bundle) and ir.interaction_response_type(bundle) == ResponseType.INTERACTION_RESULT:
+            return self._report_interaction(request, bundle)
 
         used_fallback = False
         body = ""
@@ -287,12 +290,34 @@ class ReporterAgent:
         cited = sources_text.count("・")
         return ReporterOutput(text="\n\n".join(p for p in parts if p), used_fallback_template=used_fallback, cited_source_count=cited)
 
+    def _report_interaction(self, request: NormalizedUserRequest, bundle: EvidenceBundle) -> ReporterOutput:
+        """交互作用完整分析：LLM 只收到 interaction_research 的 structured facts（不重新查資料）；
+        標題、限制 / 劑量未評估說明、來源由程式附上。"""
+        def warn(event: str, code: str | None) -> None:
+            logger.warning(event, extra={"request_id": request.request_id, "agent": "reporter", "error_code": code})
+
+        body, used_fallback = ir.generate_body(self._llm, request, bundle, warn)
+        sources_text = format_sources(bundle.all_sources())
+        parts = [ir.headline_block(request, bundle), body, ir.evidence_digest(bundle), ir.limitation_block(bundle), sources_text]
+        return ReporterOutput(text="\n\n".join(p for p in parts if p), used_fallback_template=used_fallback,
+                              cited_source_count=sources_text.count("・"))
+
     def compose(self, request: NormalizedUserRequest, bundle: EvidenceBundle, risk: RiskAssessment) -> ResponsePayload:
         return compose_payload(request, bundle, risk)
 
     def detail(
         self, action: ResponseAction, request: NormalizedUserRequest, bundle: EvidenceBundle, risk: RiskAssessment
     ) -> DetailPayload:
+        if action in (ResponseAction.INTERACTION_EVIDENCE, ResponseAction.INTERACTION_MAPPING) and ir.is_interaction_request(
+                request, bundle):  # 交互作用的證據來源 / 成分對應：只整理已保存的 interaction_research（deterministic）
+            evidence = action == ResponseAction.INTERACTION_EVIDENCE
+            return DetailPayload(
+                request_id=request.request_id, action=action, title=DETAIL_TITLES[action], query_text=request.normalized_text,
+                body=ir.evidence_detail(request, bundle) if evidence else ir.mapping_detail(request, bundle),
+                available_actions=[ResponseAction.SOURCES] if evidence and bundle.all_sources() else [])
+        if action == ResponseAction.WHY and ir.is_interaction_request(request, bundle):  # 交互作用的「為什麼？」：deterministic
+            return DetailPayload(request_id=request.request_id, action=action, title=DETAIL_TITLES[action],
+                                 query_text=request.normalized_text, body=ir.why_detail(request, bundle))
         if action == ResponseAction.DETAIL:  # 只有完整分析需要 LLM；其他都是證據的 deterministic 整理
             out = self.report(request, bundle, risk)
             return DetailPayload(request_id=request.request_id, action=action, title=DETAIL_TITLES[action],
@@ -325,6 +350,8 @@ DETAIL_TITLES = {
     ResponseAction.FULL_EFFICACY: "完整核准功效",
     ResponseAction.WARNINGS: "警語與注意事項",
     ResponseAction.POLICY_BASIS: "法規依據",
+    ResponseAction.INTERACTION_EVIDENCE: "證據來源",
+    ResponseAction.INTERACTION_MAPPING: "成分對應",
 }
 MAX_EFFICACY_SUMMARY_CHARS = 40
 MAX_RAW_INGREDIENT_CHARS = 900  # 明細段落上限 1000 字內
@@ -534,6 +561,9 @@ def select_response_type(request: NormalizedUserRequest, bundle: EvidenceBundle,
     """
     if request.intent == Intent.OUT_OF_SCOPE and not request.claims and not request.has_product_identifiers:
         return ResponseType.OUT_OF_SCOPE
+    if ir.is_interaction_request(request, bundle):
+        # 交互作用：不經風險卡（產品風險與 interaction finding 分開）；對象未全部確認時先請使用者確認
+        return ir.interaction_response_type(bundle)
     if risk.risk_level == RiskLevel.HIGH:
         return ResponseType.RISK
     if any(c.is_product_side_assertion for c in request.claims) and not (
@@ -1154,6 +1184,16 @@ def _available_actions(rtype: ResponseType, bundle: EvidenceBundle, risk: RiskAs
 
 def compose_payload(request: NormalizedUserRequest, bundle: EvidenceBundle, risk: RiskAssessment) -> ResponsePayload:
     rtype = select_response_type(request, bundle, risk)
+    if ir.is_interaction_request(request, bundle):
+        card = ir.build_card(request, bundle)
+        if not card.defer_to_generic:  # 產品候選確認以外：交互作用卡 / 補充資訊卡（deterministic）
+            official = [s for s in bundle.all_sources() if s.is_official] if rtype == ResponseType.INTERACTION_RESULT else []
+            return ResponsePayload(
+                request_id=request.request_id, response_type=card.response_type,
+                is_conclusive=bool(rtype == ResponseType.INTERACTION_RESULT and bundle.interaction_research.conclusion_eligible),
+                title=card.title, summary=card.summary, key_points=card.key_points, warnings=card.warnings,
+                available_actions=card.actions, source_count=0, sources=official,  # 來源筆數不放在 primary（在「查看證據」）
+                status_line=card.status_line, status_tone=card.status_tone)
     summary, points = _summary_and_points(rtype, request, bundle, risk)
     # 使用者確認的目標已說明差異（字號來自使用者確認，不是圖片）；否則才說明圖片文字辨識差異
     note = user_confirmed_target_note(request) or image_text_difference_note(request, bundle)

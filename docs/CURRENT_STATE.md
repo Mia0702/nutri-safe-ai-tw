@@ -991,6 +991,112 @@
 - 已知（不影響 freeze）：Controller 對未收錄裸名稱偶發判成產品時，已由原文優先規則攔下（一般成分用語）；Supabase deprecation warnings 待後續處理。
 - 文件用語：Controller Agent / Researcher Agent / Reporter Agent（Agent A/B/C 為內部識別字，程式未改名）。
 
+## Interaction Runtime（Phase 1 資料層 production / Phase 2 Researcher tools，2026-10-05）
+
+**Phase 1 資料層（production / VERIFIED）**：0006 已由使用者套用；`import_interaction_corpus --apply` 已執行（marker `interaction_corpus_import:1.0`）。
+Supabase：15 DrugSubstance / 25 pairwise Interaction / 17 DuplicateIntakeRule / 67 participants / 60 evidence，其中 12 筆 pairwise
+`deterministic_conclusion_allowed`（`interaction_conclusion_eligible` view）；Neo4j：`HAS_EVIDENCE`（中性關係，方向在 `supports_direction`）、
+`FROM_SOURCE`、`PARTICIPATES_IN`，沒有 Bridge 節點被新建。Neo4j `CONTAINS` 基線（唯讀確認）：Product→Ingredient 770 ＋
+→IngredientForm 24583 ＋ →NutrientGroup 2294（成分 Bridge 兩類共 26877）＝ 27647。
+
+**Phase 2 Researcher tools（本輪；未改 schema / production data / frozen identity、resolver、ingredient 語意）**：
+- Controller（Agent A）：新 `Intent.INTERACTION_INQUIRY`；`IntakeExtraction.interaction_subjects` / `interaction_mode`
+  （pairwise / duplicate_comparison）→ `NormalizedUserRequest.interaction_subjects`。對象名稱必須逐字出現在使用者原文，否則丟棄
+  （LLM 不能把名稱翻成英文 / 別的 identity）；產品對象只放 `interaction_subjects`、不放 `product_candidates`（逐一由 Researcher 確認）。
+- Researcher（Agent B）：`VerificationAgent.verify()` 最前面對 interaction intent 分派到 `app/agents/interaction_research.py`
+  （其他 intent 流程不變；要改 frozen 檔 verification_agent.py 的原因：路徑分派 / 「結構化證據足夠就不跑 RAG / 官方網站」屬於控制流程，
+  evidence tool registry 這個 extension point 無法表達；只加 constructor 參數、mixin 繼承與 6 行分派）。
+  流程：逐一確認對象 identity（成分 = Bridge exact、藥品 = corpus DrugSubstance exact、產品 = 既有 deterministic resolver 各自解析）→
+  任一未確認 → `structured_clarification`（不做 interaction research；未確認產品以 `bundle.product_match` 呈現候選，沿用既有確認卡）→
+  全部確認 → `INTERACTION_TOOLS`（`lookup_interactions` / `lookup_duplicate_ingredients` / `lookup_interaction_evidence`；
+  輸入 canonical ID、strict schema、guard、不在 LLM planner allowlist）。
+- 結論資格（`app/services/interaction_service.py`，deterministic、不產生句子）：`InteractionConclusionStatus` =
+  CONCLUSION_ELIGIBLE（只有 corpus `deterministic_conclusion_allowed` ＋ 有支持的 DECISION_ELIGIBLE evidence ＋ identity 直接對應，
+  仍附 applicability 條件原文、`evaluated = False`）/ LINEAGE_NOT_INHERITED / EVIDENCE_CONFLICT / NEEDS_REVIEW /
+  INSUFFICIENT_FOR_CONCLUSION。**lineage 是資料驅動**：產品只經 form → group 對應、而 Bridge link 的
+  `automatic_interaction_inheritance` 不是 true（目前全是 false）→ 只說明、不肯定（判斷題：若要放寬，改 link 資料而非程式）。
+  INT_FISH_WAR 維持 EVIDENCE_CONFLICT / CONFLICTING / 不 eligible。NO_CORPUS_RECORD ≠ 沒有交互作用。
+- Evidence：逐筆保留 source / `supports_direction` / `evidence_use` / `is_official` / 取得狀態；`direction_role` 為 deterministic 分類
+  （NO_SIGNIFICANT_EFFECT 等 `counts_as_support = False`；未知新值 UNCLASSIFIED = 不支持）。
+- 重複成分（產品 ↔ 產品）：只經 Bridge 已確認的 form / group（form → group lineage；不用 display string）→
+  `DUPLICATE_INGREDIENT_DETECTED`，一律 `dose_evaluation = NOT_EVALUATED`、`severity = DOSE_DEPENDENT_NOT_ASSIGNED`，
+  `prohibited_inferences` 列出不得推論的事項（OVERDOSE / EXCEEDS_UPPER_LIMIT / TOXICITY / UNSAFE_COMBINATION…）；
+  候選 / 未解析成分不參與，`duplicate_coverage` 回報每個產品尚有幾個官方成分未識別。沒有 Product↔Product edge / record。
+- DrugSubstance：只支援 corpus 已知 canonical identity（英文 canonical / 來源同義詞 exact）；中文譯名 / 商品名 / NEEDS_REVIEW 的官方中文名
+  不用於比對 → `DRUG_ACTIVE_SUBSTANCE_UNMAPPED` → clarification。**尚未**提供台灣藥品商品名 → active ingredient 對應。
+- 資料不足才依既有 Researcher policy：只有 corpus 完全沒紀錄（NO_CORPUS_RECORD）才補 RAG 一次 ＋（必要時）官方網站一次；結果不會變成 interaction 結論。
+- 候選選定：`request_for_selected_product` 對 interaction request 只固定那一個產品對象（`pinned_permit_number`，以名稱相似度選最接近的未固定產品對象），
+  其餘對象不變，不重跑 Controller。
+- 已知限制：兩個產品必須都以名稱 / 字號寫在同一句（「這兩個」指代前文兩個產品不支援）；產品↔產品 pairwise 目前也會同時查重複成分。
+- tests：`tests/unit/test_interaction_runtime.py`（40）；fixture `tests/fixtures/interaction_data.py`、`InMemoryInteractionRepo`（tests/fakes.py）。
+
+**Phase 3 Reporter Agent ＋ LINE UI（2026-10-05；未改 DB schema / production data / eligibility 語意 / 其他 frozen runtime）**：
+- 新 `ResponseType.INTERACTION_RESULT`（無風險燈號；產品風險與 interaction finding 分開，不會因 finding 把產品標 HIGH）、
+  `ResponseAction.INTERACTION_EVIDENCE`（查看證據來源）/ `INTERACTION_MAPPING`（查看成分對應）。
+  Reporter 邏輯集中在 `app/agents/interaction_reporter.py`（deterministic；只讀 `bundle.interaction_research`，不查資料、不新增證據）。
+- Primary card（一則 Flex、最多 3 點、每點 ≤ 78 字，Renderer 不會截斷關鍵限制；status 短語一律 ORANGE，沒有 🟢/🔴）：
+  * CONCLUSION_ELIGIBLE →「有可用的交互作用證據」＋資料庫記載的影響；一律說明「是否適用於你的實際劑量、用法與族群，目前無法自動判斷」
+    （applicability.evaluated = false）。不寫「不能一起吃」。
+  * LINEAGE_NOT_INHERITED →「目前不能直接套用交互作用結論」：說明產品成分形式可追到某營養素類別，但資料不允許自動繼承。
+  * EVIDENCE_CONFLICT →「目前證據不一致」；NEEDS_REVIEW / INSUFFICIENT →「目前證據不足以確定」；皆不下肯定結論。
+  * NO_CORPUS_RECORD →「目前交互作用資料庫沒有收錄這組關係」＋「未收錄只代表資料庫尚無紀錄，不能當作可以放心一起使用的依據」
+    （不出現「沒有交互作用」）；補查過官方文件時只說「僅供參考，不能當結論」。
+  * 重複成分 →「重複成分提醒」：「兩項產品都含有「X」；尚未完成劑量評估」＋尚有 N 項成分未完成辨識；成分形式不同另標示。
+    不出現過量 / 超過上限 / 有毒 / 不能一起吃 / 一定有風險。
+  * pairwise ＋ 重複成分同時存在 → 同一張 primary：重點 1 = 最重要的 interaction 結果、重點 2 = 重複成分、重點 3 = 限制 / 不確定性。
+  * 對象未全部確認 → 先出既有產品候選確認卡（MISSING_INFORMATION，不顯示任何 interaction 結論）；藥品無有效成分對應 →
+    「請補充藥品的有效成分」（不說已能辨識所有台灣藥品商品名、不猜）；corpus 不可用 → 如實說明暫時查詢不到（附「重新查詢」）。
+- 按鈕（最多 3）：查看完整分析 / 查看證據來源 /（有已確認產品才有）查看成分對應；全部 request-scoped postback（同 user + 同 request_id）。
+  * 證據來源：逐筆列出標題 / 官方或非官方 / 證據方向白話；NO_SIGNIFICANT_EFFECT →「未發現明顯影響（不支持有交互作用）」、
+    MIXED →「結果不一致（不能視為支持）」、CONTEXT_NOT_PAIR_SPECIFIC →「背景資料，不是這一組的直接證據」；未知新值 →「方向尚未分類，不當作支持」；
+    重複成分規則的證據標為「支持這項重複成分的說明」。下一層沿用既有 SOURCES（可點擊來源卡）。
+  * 成分對應：官方成分 → 成分形式 → 營養素類別（只列已確認的正式對應；未辨識成分只計數）。
+    Researcher 在 `SubjectResolution.ingredient_mappings`（新增可選欄位）保存這份對應。
+  * 完整分析：Reporter LLM 只收到 `interaction_research` 的 structured facts（白話名稱，無內部 ID / enum）；不重跑 Controller、不重新查 corpus / RAG / web。
+    LLM 正文過 guard（內部代碼、禁止說法、無可肯定結論時不得斷言存在交互作用），不合格或 LLM 失敗改用固定模板；
+    標題、限制（適用條件尚未評估 / 劑量未評估 / 未收錄意義 / 非醫療建議）一律由程式附上。
+- frozen 檔案的最小修改（extension point 不足的原因：回覆型態選擇 / compose / 候選確認屬於既有流程的控制分派，無法只靠新增 detail action 表達）：
+  * `app/agents/reporter_agent.py`：`select_response_type` / `compose_payload` / `report` / `detail` 各一段 interaction 分派；其他 intent 流程不變。
+  * `app/services/clarification.py`：`request_for_confirmed_target` 對 interaction 題改走 `request_for_selected_interaction_product`
+    （只固定該產品對象；否則「是」會讓同一個低信心候選再被確認一次）。
+  * `app/response/actions.py`（標籤 / DETAIL_FOLLOW_UPS）、`app/response/line_renderer.py`（TYPE_LABELS / TEMPLATES 註冊）；`service.py` 未改。
+- **Answer-first Interaction UI（手機 smoke 後；只改 Controller 問題型態欄位＋Reporter / response 呈現，corpus / Researcher / eligibility / Risk 未動）**：
+  * Controller 新增結構化欄位 `interaction_question`（together_use / interaction_existence / explanation；Prompt 以語意判斷，沒有關鍵字規則；
+    沒給時視為 together_use）；重複成分問題仍由 `interaction_mode = duplicate_comparison` 決定。
+  * Primary card：標題 = 直接回答；summary = 一句原因（eligible 用 clinical_effect）；重點 ≤ 2（重複成分摘要 / 限制）；
+    證據筆數、來源、證據方向、技術說明、「官方資料來源 N 筆」一律不在 primary。
+    together_use：ELIGIBLE / LINEAGE →「目前不能直接判定是否適合一起使用。」（適用條件未評估，絕不說可以 / 不可以）；
+    CONFLICT →「目前無法確定是否適合一起使用，因為現有證據不一致。」；NEEDS_REVIEW / INSUFFICIENT →「目前資料不足，無法確定…」；
+    NO_CORPUS_RECORD →「目前資料不足，不能判定兩者是否可以一起使用。」。interaction_existence：ELIGIBLE →「有，資料庫收錄了 A 與 B 的交互作用。」，
+    其餘「無法確定 / 資料不足 / 資料庫沒有收錄這組關係，無法判定是否有交互作用」；explanation：ELIGIBLE →「資料庫對 A 與 B 的說明如下。」。
+    重複成分：有 →「有，兩項產品都含有「X」。」＋「目前尚未評估兩項產品的實際攝取量。」；沒有 →「以已確認的成分比對，沒有找到重複的成分。」＋未辨識覆蓋。
+    status 短語：「需要確認實際用量與使用方式」/「現有證據不一致」/「資料不足」/「資料庫未收錄這組關係」/「尚未評估實際攝取量」（一律 ORANGE，無風險燈）。
+  * 按鈕（≤ 3、request-scoped）：為什麼？（deterministic：資料庫記載的影響 / 適用條件 / 尚未評估，不用 LLM）/ 查看證據 / 查看成分對應。
+    「查看完整分析」（LLM 完整分析）不再放在 primary；程式保留（`ReporterAgent.detail(DETAIL)`），postback 未提供時被拒絕。
+  * tests：`test_interaction_reporter.py` 改寫為 answer-first（eligible / conflict / no-record / lineage × 三種問法、duplicate 有 / 無、
+    適用條件未知不變成可以 / 不可以、primary 無證據洩漏、證據在按鈕後）；targeted 13 檔 311 passed（含 LINE validate API 41 則 Flex）。
+- **Task-context safety patch（Phase 3 後）**：兩個以上產品對象的 interaction 題（`pipeline.is_multi_product_comparison`，以 Researcher 的
+  已確認 / 待確認產品對象計數）不再把 `bundle.product_match` 的任一產品寫成 confirmed_product，也不留產品實體；
+  `TaskContextStore.record(clear_products=True)` 同時清掉 confirmed_product、current_product 與更早的產品指稱，
+  所以比較後的「它有哪些成分？」→ MISSING_INFORMATION（不悄悄選任一產品、也不退回更早的產品）；下一題明確寫產品照常；
+  單一產品 ＋ 藥品維持既有單一產品 context。修改處：`service.py` / `context_store.py`（frozen，只加參數與守門）、`pipeline.py`。
+  tests：`tests/unit/test_interaction_context_safety.py`（6，已確認移除守門後 4 個會失敗）。尚未提供台灣藥品商品名 → 有效成分對應。
+- **Production READ-ONLY 手機 smoke 候選（2026-10-05，真實 Controller ＋ Supabase / Neo4j，未寫 log）**：
+  * 1 eligible 成分↔成分：「鋅跟銅可以一起吃嗎」「鐵和鋅可以一起吃嗎」→ pairwise；RESOLVED×2；COMPLETE；INT_ZN_CU / INT_FE_ZN ELIGIBLE；
+    標題「有可用的交互作用證據」＋適用條件尚未評估；按鈕 完整分析 / 證據來源；只 lookup_interactions（無 RAG / web）；5–10s。
+  * 2 eligible 成分↔藥品（canonical 名稱）：「維生素K跟Warfarin可以一起吃嗎」「鈣跟Levothyroxine可以一起吃嗎」→ 同上（INT_K_WAR / INT_CA_LT4）；6–8s。
+  * 3 重複成分（產品↔產品，兩者皆 VERIFIED、只用正式 mapping）：「檸檬酸鈣細顆粒跟高鈣脫脂奶粉有沒有重複的成分」→ 鈣（形式相同）；
+    覆蓋 1/1 與 1/3（未辨識 0 與 2）；「優鎂錠狀食品跟檸檬酸鎂膠囊有沒有重複的成分」→ 鎂（成分形式不同）；覆蓋 1/5、1/4（未辨識 4 與 3）。
+    mode = duplicate_comparison；標題「重複成分提醒」；按鈕 完整分析 / 證據來源 / 成分對應；只查產品＋成分＋重複（無 RAG / web）；8–11s。
+  * 4 EVIDENCE_CONFLICT：「魚油跟Warfarin可以一起吃嗎」；「樂活保健魚油跟Warfarin可以一起吃嗎」（產品直接含魚油形式；覆蓋 1/7，未辨識 6）
+    → INT_FISH_WAR CONFLICT；標題「目前證據不一致」；無 RAG / web；7–8s。corpus 只有這一筆衝突。
+  * 5 NO_CORPUS_RECORD：「鈣跟鋅可以一起吃嗎」「維生素C跟Warfarin可以一起吃嗎」→ pairs NO_CORPUS_RECORD；標題「目前交互作用資料庫沒有收錄這組關係」；
+    只有「查看完整分析」；依既有 Researcher policy 會補 RAG ＋ 官方網站（33–43s，reply token 仍在 50s 內，但接近）。
+  * 以上不更動 automatic_interaction_inheritance；藥品只用 corpus canonical 名稱（沒有台灣商品名對應）。
+- tests：`tests/unit/test_interaction_reporter.py`（35，虛構資料）；`tests/integration/test_interaction_line_validate.py`
+  （11 種狀態 ＋ 全部 detail / 來源卡共 41 則 Flex 通過 LINE validate API）。
+  targeted unit 21 檔 470 passed ＋ 12 檔 264 passed（含 Windows 暫存目錄 PermissionError 的 1 個 error，換 basetemp 重跑 49 passed）；未跑 full pytest。
+
 ## 注意事項
 
 - DB 目前為正式 565 health_food＋9112 查驗登記／核備（共 9677 products，DATA FREEZE）；寫入 / reset 需使用者同意。

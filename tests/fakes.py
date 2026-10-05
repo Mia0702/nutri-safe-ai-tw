@@ -105,6 +105,48 @@ class InMemoryOfficialRepo:
         return [dict(m) for m in data.INGREDIENT_ENTITY_MAPPINGS if m["product_id"] in product_ids]
 
 
+class InMemoryInteractionRepo:
+    """Interaction corpus 的 fake（InteractionRepository）：資料來自 tests/fixtures/interaction_data（TEST_ONLY）。"""
+
+    def __init__(self, version: str | None = "T1.0", interactions=None, evidence=None, links=None, fail: bool = False):
+        from tests.fixtures import interaction_data as idata
+
+        self.version = version
+        self.interactions = idata.INTERACTIONS if interactions is None else interactions
+        self.evidence = idata.EVIDENCE if evidence is None else evidence
+        self.links = [dict(l) for l in (idata.FORM_LINKS if links is None else links)]
+        self.fail = fail
+        self.calls: list[str] = []
+
+    def _check(self, name: str):
+        self.calls.append(name)
+        if self.fail:
+            raise ServiceError(ErrorCode.UNAVAILABLE, "TEST_ONLY simulated failure", "interaction_corpus")
+
+    def interaction_corpus_version(self):
+        return self.version
+
+    def get_drug_reference(self):
+        from tests.fixtures import interaction_data as idata
+
+        self._check("get_drug_reference")
+        return {"drugs": [dict(d) for d in idata.DRUGS], "aliases": [dict(a) for a in idata.DRUG_ALIASES]}
+
+    def get_interactions_involving(self, entity_ids):
+        self._check("get_interactions_involving")
+        wanted = set(entity_ids)
+        return [dict(i) for i in self.interactions
+                if any((p.get("ingredient_entity_id") or p.get("drug_substance_id")) in wanted for p in i["participants"])]
+
+    def get_interaction_evidence(self, interaction_ids):
+        self._check("get_interaction_evidence")
+        return [dict(e) for e in self.evidence if e["interaction_id"] in interaction_ids]
+
+    def get_form_nutrient_links(self, form_entity_ids):
+        self._check("get_form_nutrient_links")
+        return [dict(l) for l in self.links if l["form_entity_id"] in form_entity_ids]
+
+
 class InMemoryGraphRepo:
     def __init__(self, fail: bool = False):
         self.fail = fail

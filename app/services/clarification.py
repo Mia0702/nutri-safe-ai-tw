@@ -122,6 +122,10 @@ def request_for_confirmed_target(
     保留上一題看到的品名，讓 deterministic resolver 照原規則判定：字號與品名不一致仍是 CONFLICT，
     使用者確認不會把衝突改成官方 VERIFIED；差異另以 user_confirmed_target 標示給 Agent C。
     """
+    if original.interaction_subjects:  # 交互作用題：只固定這一個產品對象（與確認卡選擇相同），不改寫其他對象
+        from app.pipeline import request_for_selected_interaction_product
+
+        return request_for_selected_interaction_product(original, product, request_id)
     names = list(original.product_candidates) or [product.product_name_zh]
     return original.model_copy(deep=True, update={
         "request_id": request_id,

@@ -343,3 +343,87 @@ class SupabaseClaimPolicyRepository:
                 f"source:claim_policy_sources!catalog_source_id({_POLICY_SOURCE_COLUMNS})"))
 
         return self._cached("health_functions", load)
+
+
+INTERACTION_MARKER_PREFIX = "interaction_corpus_import:"
+_INTERACTION_COLUMNS = (
+    "interaction_id,record_kind,interaction_type,directionality,clinical_effect,severity,severity_basis,certainty,"
+    "evidence_level,evidence_use,decision_mode,review_status,mechanism_summary,recommendation,timing_advice,dose_context,"
+    "population_context,applicability_conditions,dose_evaluation_default,deterministic_conclusion_allowed,corpus_version")
+_EVIDENCE_COLUMNS = (
+    "evidence_id,interaction_id,source_id,source_type,authority,is_official,title,study_type,pmid,doi,publication_date,"
+    "retrieved_at,source_retrieval_status,population,dose_context,result_summary_zh,limitations_zh,supports_direction,"
+    "evidence_level,certainty,evidence_use,review_status,source_url,article_or_section,applicability_scope")
+
+
+class SupabaseInteractionRepository:
+    """InteractionRepository 的 Supabase 實作（唯讀；0006 表 / Interaction Data Layer）。
+
+    drug reference 很小（15 筆）：process 內快取。interaction / evidence 依 canonical ID 查詢，不快取。
+    """
+
+    def __init__(self, service: SupabaseService, cache_seconds: float = BRIDGE_CACHE_SECONDS):
+        self._db = service
+        self._ttl = cache_seconds
+        self._cache: dict[str, tuple[float, Any]] = {}
+
+    def _cached(self, key: str, load):
+        import time
+
+        hit = self._cache.get(key)
+        if hit is not None and time.monotonic() - hit[0] < self._ttl:
+            return hit[1]
+        value = load()
+        self._cache[key] = (time.monotonic(), value)
+        return value
+
+    def interaction_corpus_version(self) -> str | None:
+        def load():
+            markers = self._db.select(self._db.table("app_schema_meta").select("key,value")
+                                      .like("key", f"{INTERACTION_MARKER_PREFIX}%"))
+            complete = sorted(m["key"] for m in markers if str(m.get("value") or "").startswith("complete"))
+            return complete[0].split(":", 1)[1] if len(complete) == 1 else None  # 多個版本同時完成時不猜
+
+        return self._cached("version", load)
+
+    def get_drug_reference(self) -> dict[str, Any]:
+        def load():
+            return {
+                "drugs": self._db.select(self._db.table("drug_substances").select(
+                    "drug_substance_id,canonical_name_en,official_name_zh,identity_level,parent_active_moiety_id,"
+                    "taiwan_code_mapping_status")),
+                "aliases": self._db.select(self._db.table("drug_substance_aliases").select(
+                    "alias_id,drug_substance_id,alias_text,language,match_policy")),
+            }
+
+        return self._cached("drugs", load)
+
+    def get_interactions_involving(self, entity_ids: list[str]) -> list[dict[str, Any]]:
+        if not entity_ids:
+            return []
+        hits = self._db.select(self._db.table("interaction_participants").select("interaction_id")
+                               .in_("ingredient_entity_id", entity_ids))
+        hits += self._db.select(self._db.table("interaction_participants").select("interaction_id")
+                                .in_("drug_substance_id", entity_ids))
+        interaction_ids = sorted({h["interaction_id"] for h in hits})
+        if not interaction_ids:
+            return []
+        rows = self._db.select(self._db.table("interactions").select(_INTERACTION_COLUMNS).in_("interaction_id", interaction_ids))
+        participants = self._db.select(self._db.table("interaction_participants").select(
+            "interaction_id,role,participant_kind,ingredient_entity_id,drug_substance_id").in_("interaction_id", interaction_ids))
+        for row in rows:
+            row["participants"] = [p for p in participants if p["interaction_id"] == row["interaction_id"]]
+        return rows
+
+    def get_interaction_evidence(self, interaction_ids: list[str]) -> list[dict[str, Any]]:
+        if not interaction_ids:
+            return []
+        return self._db.select(self._db.table("interaction_evidence").select(_EVIDENCE_COLUMNS)
+                               .in_("interaction_id", interaction_ids))
+
+    def get_form_nutrient_links(self, form_entity_ids: list[str]) -> list[dict[str, Any]]:
+        if not form_entity_ids:
+            return []
+        return self._db.select(self._db.table("interaction_form_nutrient_links").select(
+            "form_entity_id,nutrient_entity_id,relationship_id,automatic_interaction_inheritance,amount_conversion_allowed")
+            .in_("form_entity_id", form_entity_ids))

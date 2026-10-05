@@ -20,6 +20,7 @@ class Intent(StrEnum):
     EFFICACY_INQUIRY = "efficacy_inquiry"  # 這個產品 / 成分可以補什麼
     INGREDIENT_INQUIRY = "ingredient_inquiry"  # 成分相關問題
     SAFETY_INQUIRY = "safety_inquiry"  # 警語、注意事項、能不能吃
+    INTERACTION_INQUIRY = "interaction_inquiry"  # 成分 / 藥品 / 產品之間能不能一起吃、有沒有衝突、是否重複成分
     GENERAL_QUESTION = "general_question"  # 其他保健食品一般問題
     OUT_OF_SCOPE = "out_of_scope"  # 與保健食品無關
     UNCLEAR = "unclear"
@@ -342,6 +343,7 @@ class ResponseType(StrEnum):
     MISSING_INFORMATION = "MISSING_INFORMATION"
     OUT_OF_SCOPE = "OUT_OF_SCOPE"
     ERROR = "ERROR"
+    INTERACTION_RESULT = "INTERACTION_RESULT"  # 交互作用 / 重複成分查詢（無風險燈號；產品風險與 interaction 發現分開）
 
 
 class SemanticTone(StrEnum):
@@ -372,6 +374,8 @@ class ResponseAction(StrEnum):
     CHECK_PACKAGE_CLAIMS = "check_claims"  # 查驗圖片中觀察到的包裝宣稱（使用原 request 保存的內容）
     POLICY_BASIS = "policy_basis"  # 為什麼 → 法規依據（結構化 claim-policy 規則 / 例示 / 保健功效定義）
     REGISTRATION_INFO = "registration_info"  # 查驗登記／核備類別的產品登記資料（與官方資訊同內容，用語不同）
+    INTERACTION_EVIDENCE = "interaction_evidence"  # 交互作用卡 → 證據來源（逐筆保留 supports_direction 語意）
+    INTERACTION_MAPPING = "interaction_mapping"  # 交互作用卡 → 成分對應（官方成分 → 成分形式 / 營養素類別）
 
 
 class IngredientPresence(StrEnum):

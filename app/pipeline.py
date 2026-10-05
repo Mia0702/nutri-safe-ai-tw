@@ -43,12 +43,33 @@ class ConversationStore(Protocol):
     def append(self, conversation_id: str, turn: ConversationTurn) -> None: ...
 
 
+def is_multi_product_comparison(req: NormalizedUserRequest | None, bundle) -> bool:
+    """交互作用題中同時有兩個以上產品對象（已確認或待確認）：沒有單一「它」可指，不可從中挑一個寫進 task context。
+
+    以 Researcher 的結構化對象計數（已確認的產品 / 待確認的產品）；沒有研究結果時用 Controller 的對象種類。
+    """
+    if req is None or req.intent != Intent.INTERACTION_INQUIRY:
+        return False
+    research = getattr(bundle, "interaction_research", None)
+    if research is not None:
+        from app.schemas.interaction import SubjectResolutionStatus
+
+        return sum(1 for s in research.subjects if s.product_confirmed
+                   or s.status == SubjectResolutionStatus.PRODUCT_NEEDS_CONFIRMATION) >= 2
+    from app.schemas.interaction import InteractionSubjectKind
+
+    return sum(1 for s in req.interaction_subjects if s.kind == InteractionSubjectKind.PRODUCT) >= 2
+
+
 def context_entities_for_turn(result: AnalysisResult) -> list[ContextEntity]:
     """本回合可供之後「它 / 這個」指回的實體：已確認的產品優先（帶 canonical ID）。"""
     req, bundle = result.normalized_request, result.evidence
     if req is None:
         return []
     entities: list[ContextEntity] = []
+    if is_multi_product_comparison(req, bundle):  # 兩個以上產品的比較：不留任何產品實體（只留成分 / 品牌 / 公司）
+        entities += [ContextEntity(entity_type=EntityType.INGREDIENT, name=n) for n in req.ingredient_candidates]
+        return entities
     best = bundle.product_match.best_match if bundle else None
     if best and bundle.product_match.status == ProductVerificationStatus.VERIFIED:
         entities.append(ContextEntity(entity_type=EntityType.PRODUCT, name=best.product.product_name_zh,
@@ -73,6 +94,8 @@ def request_for_selected_product(
     以所選產品的許可證字號與官方品名作為識別，交給 Agent B 既有的 deterministic resolver
     （PERMIT_NUMBER → VERIFIED → 資料足夠時走 structured fast path）；不重新做語意理解。
     """
+    if original.interaction_subjects:
+        return request_for_selected_interaction_product(original, product, request_id)
     return original.model_copy(deep=True, update={
         "request_id": request_id,
         "product_candidates": [product.product_name_zh],
@@ -84,6 +107,36 @@ def request_for_selected_product(
         "context_entities_used": [],
         "needs_product_lookup": True,
         "input_tools_called": [],
+        "adapter_notes": original.adapter_notes + ["使用者從確認卡選定產品"],
+    })
+
+
+def request_for_selected_interaction_product(
+    original: NormalizedUserRequest, product: ProductRecord, request_id: str
+) -> NormalizedUserRequest:
+    """Interaction inquiry：使用者從確認卡選定產品後，只固定「那一個」產品對象（以所選官方紀錄的字號），其餘對象不變；
+    沿用原題（intent / 對象 / 問題型態），不重跑 Agent A。
+
+    確認卡對應的是尚未確認的那個產品對象：在尚未固定的產品對象中，選與所選官方品名最相近者
+    （候選本來就是由該對象的寫法比對出來的）；並列時取排序最前者。
+    """
+    from difflib import SequenceMatcher
+
+    from app.normalization import normalize_name
+    from app.schemas.interaction import InteractionSubjectKind
+
+    subjects = [s.model_copy() for s in original.interaction_subjects]
+    open_idx = [i for i, s in enumerate(subjects)
+                if s.kind == InteractionSubjectKind.PRODUCT and not s.pinned_permit_number]
+    if open_idx and product.permit_number:
+        target = max(open_idx, key=lambda i: (
+            SequenceMatcher(None, normalize_name(subjects[i].text), normalize_name(product.product_name_zh)).ratio(), -i))
+        order = max([s.selection_order or 0 for s in subjects] + [0]) + 1
+        subjects[target] = subjects[target].model_copy(update={
+            "pinned_permit_number": product.permit_number, "pinned_product_name": product.product_name_zh,
+            "selection_order": order})
+    return original.model_copy(deep=True, update={
+        "request_id": request_id, "interaction_subjects": subjects, "input_tools_called": [],
         "adapter_notes": original.adapter_notes + ["使用者從確認卡選定產品"],
     })
 
