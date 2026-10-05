@@ -44,7 +44,7 @@ from app.schemas.enums import (
 )
 from app.schemas.evidence import ApprovedClaimEvidence, ClaimEvidenceLink, SourceRef
 from app.schemas.user_request import IntakeExtraction, MediaInput, RawUserInput
-from tests.builders import claim, extraction
+from tests.builders import claim, extraction, user_text
 from tests.fakes import FakeLLM, InMemoryGraphRepo, InMemoryOfficialRepo, InMemoryRagStore
 from tests.fixtures import synthetic_data as data
 from tests.fixtures.synthetic_data import SOURCE, _product
@@ -217,7 +217,8 @@ def run(ex: IntakeExtraction, relation=None, *, image: bytes | None = None, fail
     from app.agents.verification_agent import _EvidenceAssessment
 
     llm = FakeLLM(structured={IntakeExtraction: lambda _: ex.model_copy(deep=True),
-                              _EvidenceAssessment: _assessment(relation)}, fail=fail)
+                              _EvidenceAssessment: _assessment(relation)}, fail=fail,
+                  image_text=user_text(ex, "TEST_ONLY 廣告圖片文字"))
     pipe = AnalysisPipeline(
         intake=IntakeAgent(llm),
         verifier=VerificationAgent(InMemoryOfficialRepo(), InMemoryGraphRepo(), InMemoryRagStore(), llm),
@@ -226,7 +227,7 @@ def run(ex: IntakeExtraction, relation=None, *, image: bytes | None = None, fail
     if image is not None:
         raw = RawUserInput(input_type=InputType.IMAGE, media=[MediaInput(kind="image", content=image, mime_type="image/png")])
     else:
-        raw = RawUserInput(input_type=InputType.TEXT, text="TEST_ONLY 廣告文字")
+        raw = RawUserInput(input_type=InputType.TEXT, text=user_text(ex, "TEST_ONLY 廣告文字"))
     return pipe.run(raw), llm
 
 
@@ -364,7 +365,7 @@ def test_pipeline_8b_comparison_failure_is_conservative_not_high():
     pipe = AnalysisPipeline(intake=IntakeAgent(llm), verifier=VerificationAgent(
         InMemoryOfficialRepo(), InMemoryGraphRepo(), InMemoryRagStore(), llm, enable_official_web=False),
         risk_engine=RiskEngine(), reporter=ReporterAgent(llm))
-    result = pipe.run(RawUserInput(input_type=InputType.TEXT, text="TEST_ONLY"))
+    result = pipe.run(RawUserInput(input_type=InputType.TEXT, text=user_text(ex, "TEST_ONLY")))
     assert result.evidence.claim_assessment[0].policy.policy_result == ClaimPolicyResult.INSUFFICIENT_EVIDENCE
     assert result.risk.risk_level == RiskLevel.MEDIUM
 
@@ -403,7 +404,7 @@ def test_routing_regulation_contradicting_rule_decided_claim_is_not_evidence_con
     pipe = AnalysisPipeline(intake=IntakeAgent(llm), verifier=VerificationAgent(
         InMemoryOfficialRepo(), InMemoryGraphRepo(), InMemoryRagStore(), llm),
         risk_engine=RiskEngine(), reporter=ReporterAgent(llm))
-    result = pipe.run(RawUserInput(input_type=InputType.TEXT, text="TEST_ONLY"))
+    result = pipe.run(RawUserInput(input_type=InputType.TEXT, text=user_text(ex, "TEST_ONLY")))
     assert result.evidence.planner_mode == CLAIM_COMPARISON_MODE
     assert not (set(tools(result)) & SLOW) and tools(result).count(ASSESSMENT_STEP) == 1
     assert result.risk.risk_level == RiskLevel.HIGH

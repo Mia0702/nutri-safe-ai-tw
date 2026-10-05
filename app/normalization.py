@@ -111,3 +111,45 @@ def extract_permit_code(text: str) -> str | None:
 def extract_permit_type(text: str) -> str | None:
     match = _PERMIT_TYPE_RE.search(unicodedata.normalize("NFKC", text or ""))
     return match.group(1) if match else None
+
+
+def _normalized_with_positions(text: str) -> tuple[str, list[int]]:
+    """normalize_name 逐字版本：回傳正規化字串與每個字對應的原文位置。"""
+    chars, positions = [], []
+    for i, ch in enumerate(text or ""):
+        for out in normalize_name(ch):
+            chars.append(out)
+            positions.append(i)
+    return "".join(chars), positions
+
+
+def locate_in_text(text: str, mention: str) -> tuple[str | None, int]:
+    """在使用者輸入中找出 mention 對應的原文片段（近似子字串比對，只看格式正規化後的字元）。
+
+    回傳 (原文片段, 編輯距離)。完全相同（只差大小寫 / 全半形 / 空白 / 標點）→ 距離 0；
+    差異超過 mention 長度的三分之一（至少容忍 2 字）→ (None, 距離)，代表輸入中沒有這個名稱。
+    """
+    target = normalize_name(mention)
+    norm, positions = _normalized_with_positions(text)
+    if not target or not norm:
+        return None, len(target)
+    start = norm.find(target)
+    if start >= 0:
+        return text[positions[start]:positions[start + len(target) - 1] + 1], 0
+    m, n = len(target), len(norm)
+    # Sellers 近似子字串：dp[i][j] = target[:i] 對齊到結束於 norm[j-1] 的子字串的最小編輯距離
+    prev = [0] * (n + 1)
+    starts_prev = list(range(n + 1))
+    for i in range(1, m + 1):
+        cur, starts = [i] + [0] * n, [0] + [0] * n
+        for j in range(1, n + 1):
+            options = [(prev[j - 1] + (target[i - 1] != norm[j - 1]), starts_prev[j - 1]),
+                       (prev[j] + 1, starts_prev[j]), (cur[j - 1] + 1, starts[j - 1])]
+            cur[j], starts[j] = min(options)
+        prev, starts_prev = cur, starts
+    distance, end = min((prev[j], -j) for j in range(1, n + 1))
+    end = -end  # 同距離時取較長的片段（替換字優先於刪字）
+    if distance > max(2, m // 3):
+        return None, distance
+    begin = min(starts_prev[end], end - 1)
+    return text[positions[begin]:positions[end - 1] + 1], distance

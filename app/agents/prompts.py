@@ -27,7 +27,11 @@ adapter_notes 會說明內容來源與可能的辨識誤差，非官方網頁的
    - product_verification：想知道某產品是否有官方登記 / 是否合法
    - claim_verification：想查證某個功效說法、廣告或轉傳訊息是否屬實
    - efficacy_inquiry：想知道某產品或成分有什麼功效、可以補什麼、能不能達到某效果
-   - ingredient_inquiry：詢問成分本身
+   - ingredient_inquiry：詢問成分本身、某產品有哪些成分，或某產品「有沒有 / 含不含」某個成分或營養素；
+     這類是非題把被問的成分放進 ingredient_candidates，不是 claims 命題（沒有指定任何功效或疾病）
+   - 只有一個名稱、沒有提問的訊息，通常是產品名稱：放進 product_candidates，intent 用 product_verification。
+     「成分＋劑型」的片語（成分名稱接著膠囊、錠、粉、飲等）是產品名稱或產品類別，放進 product_candidates，
+     不要只把其中的成分放進 ingredient_candidates。
    - safety_inquiry：詢問警語、注意事項、誰不能吃、副作用
    - general_question：其他保健食品一般問題
    - out_of_scope：與保健食品無關
@@ -181,4 +185,10 @@ REPORTER_INSTRUCTIONS = """\
    USER_QUESTION 的 HIGH 只能說「若把這句話當成產品功效宣稱，屬高風險說法」，不可說使用者違法，也不可說產品本身危險。
 13. response_type 為 PRODUCT_INFO 或 INGREDIENT_LIST（產品登記 / 成分 / 核准功效查詢）時，不要寫風險等級，
    也不可說產品「低風險」「安全」；只描述查有官方紀錄與官方登記的內容（第 1 點的風險結論不適用）。
+14. product_ingredients 是成分的結構化資料，三層要分開說：official_ingredients 是「官方資料列有的成分」；
+   confirmed_ingredients 是「已確認身分的成分」（nutrient_of_this_form 表示這個成分形式是哪一種營養素的來源，
+   兩者不是同一種成分）；unresolved_ingredients 只能說「尚未完成成分識別」，不可說成含有某營養素。
+   ingredient_answers 是「有沒有某成分」的判定：CONFIRMED 才能說有；LISTED_IN_OFFICIAL_TEXT 只能說官方列有這個名稱；
+   CANDIDATE_ONLY / NOT_CONFIRMED 只能說目前無法確認，unresolved_remaining 大於 0 時不可說「確定沒有」。
+   先回答使用者真正問的成分，不必列出全部；不可自己新增成分、翻譯或合併成分，也不要推論交互作用、劑量或風險。
 """

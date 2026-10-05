@@ -42,7 +42,7 @@ from app.schemas.enums import (
 from app.schemas.evidence import ApprovedClaimEvidence, ClaimEvidenceLink, SourceRef
 from app.schemas.user_request import IntakeExtraction, RawUserInput
 from app.tools import claim_policy_tools, rag_tools
-from tests.builders import claim, extraction
+from tests.builders import claim, extraction, user_text
 from tests.fakes import FakeLLM, InMemoryGraphRepo, InMemoryOfficialRepo, InMemoryRagStore
 
 AD = ClaimOrigin.ADVERTISEMENT_CLAIM
@@ -150,7 +150,7 @@ def run(ex: IntakeExtraction, *, repo=None, rag_rows=None, assessment=None):
                                    claim_policy_repo=repo),
         risk_engine=RiskEngine(), reporter=ReporterAgent(llm),
     )
-    return pipe.run(RawUserInput(input_type=InputType.TEXT, text="TEST_ONLY 廣告文字")), llm
+    return pipe.run(RawUserInput(input_type=InputType.TEXT, text=user_text(ex, "TEST_ONLY 廣告文字"))), llm
 
 
 def tools(result):

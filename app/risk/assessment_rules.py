@@ -17,9 +17,14 @@ from app.schemas.enums import (
     ProductAmbiguityReason,
     ProductIdentityFlag,
     ProductMatchType,
+    ProductMentionProvenance,
+    ProductNotFoundReason,
     ProductVerificationStatus,
 )
+from typing import Iterable
+
 from app.normalization import base_product_name, extract_permit_code, name_match_score, normalize_name
+from app.risk.candidate_relevance import core_text, missed_core_terms, supports_product_core
 from app.risk.claim_policy import (
     StructuredPolicyContext,
     approved_function_decision,
@@ -92,10 +97,31 @@ def similarity_confirm_blockers(
     return bool(covering), rivals
 
 
+def scope_foreign_signal(request: NormalizedUserRequest, match: ProductMatch) -> NormalizedUserRequest:
+    """外國 / 非台灣範圍只指「沒有台灣官方紀錄」的產品：resolver 已 VERIFIED 到本資料庫（台灣 TFDA 登記，
+    含 imported_tablet_capsule）的產品，不因產品名稱或廠牌帶有國名而被當成外國產品。
+    只依 resolver 結果判斷，不看名稱字樣；沒有確認到台灣紀錄時維持原本的外國產品處理。"""
+    best = match.best_match
+    if (not request.foreign_country_codes or match.status != ProductVerificationStatus.VERIFIED or best is None
+            or best.product.country_code != request.country_code):
+        return request
+    return request.model_copy(update={"mentioned_country_codes": [
+        c for c in request.mentioned_country_codes if c.upper() == request.country_code]})
+
+
+def user_written_products(request: NormalizedUserRequest) -> list[str]:
+    """product_candidates 中真的是使用者寫法者：Agent A 在輸入中找不到對應文字的名稱（NOT_IN_USER_TEXT）不算。
+    （改了字的名稱在 Agent A 已換成使用者原文片段，修正寫法另存在 corrected_product_candidates。）"""
+    inferred = {normalize_name(m.extracted_text) for m in request.product_mentions
+                if m.provenance == ProductMentionProvenance.NOT_IN_USER_TEXT}
+    return [n for n in request.product_candidates if normalize_name(n) not in inferred]
+
+
 def user_product_queries(request: NormalizedUserRequest) -> list[str]:
     """使用者實際提供的產品名稱寫法（含「品牌＋品名」組合），與 lookup_product 的查詢方式一致。"""
-    queries = list(request.product_candidates)
-    for name in request.product_candidates:
+    products = user_written_products(request)
+    queries = list(products)
+    for name in products:
         for brand in request.brand_candidates:
             if normalize_name(brand) and normalize_name(brand) not in normalize_name(name):
                 queries.append(f"{brand}{name}")
@@ -159,6 +185,83 @@ def resolve_product_match(
     queried_terms: list[str],
     lookup_completed: bool,
     inferred_links: list[InferredEntityLink] | None = None,
+    generic_terms: Iterable[str] = (),
+) -> ProductMatch:
+    """Deterministic product resolver＋Candidate Relevance Gate（見 apply_candidate_relevance_gate）。"""
+    match = _resolve_product_match(request, name_matches, permit_matches, company_names_found, queried_terms,
+                                   lookup_completed, inferred_links)
+    return apply_candidate_relevance_gate(request, match, company_names_found, inferred_links, generic_terms)
+
+
+GATED_MATCH_TYPES = (ProductMatchType.NAME_SIMILARITY, ProductMatchType.NAME_COMPANY_CORROBORATED)
+
+
+def _identity_queries(request: NormalizedUserRequest, generic_terms: Iterable[str]) -> list[str]:
+    """要檢查的使用者寫法：最完整的那些（品牌＋品名優先於只有品名；只給品牌 / 公司時用它們）。"""
+    queries = user_product_queries(request) or list(request.brand_candidates + request.company_candidates)
+    cores = {q: core_text(q, generic_terms) for q in queries}
+    return [q for q in queries if not any(cores[q] != cores[o] and cores[q] in cores[o] for o in queries)]
+
+
+def apply_candidate_relevance_gate(
+    request: NormalizedUserRequest, match: ProductMatch, company_names_found: list[str],
+    inferred_links: list[InferredEntityLink] | None, generic_terms: Iterable[str] = (),
+) -> ProductMatch:
+    """Product-Core Relevance Gate：「名稱相似 / 名稱＋品牌佐證」但未確認的候選，必須支持使用者寫法的產品核心。
+
+    品牌 / 公司相同只代表可能同品牌；使用者寫了產品核心描述時，候選必須也有該核心（見 app.risk.candidate_relevance）。
+    VERIFIED、字號、完全相同、官方別名、基本品名、修正寫法佐證都不經過這裡（判定與門檻完全不變）；
+    這裡只會「移除」候選，不會因此確認任何產品：
+    * 全部被移除 → 有公司 / 推測品牌對應時同既有 COMPANY_ONLY，否則 NOT_FOUND（NO_PRODUCT_IDENTITY_SUPPORT）
+    * 多候選只剩一項 → 改為單一候選請使用者確認（LOW_MATCH_CONFIDENCE），不自動確認
+    """
+    if match.status != ProductVerificationStatus.PARTIAL_MATCH or match.match_type not in GATED_MATCH_TYPES:
+        return match
+    queries = _identity_queries(request, generic_terms)
+    if not queries:
+        return match
+    corrected = {normalize_name(n) for n in request.corrected_product_candidates} - {""}
+
+    def keep(m: ProductCandidateMatch) -> bool:
+        name = m.product.product_name_zh
+        if normalize_name(name) in corrected or normalize_name(base_product_name(name)) in corrected:
+            return True  # Agent A 修正寫法與官方品名相同（既有 3b 規則的候選）
+        return supports_product_core(queries, name, m.product.company_name, generic_terms)
+
+    kept = [m for m in match.candidates if keep(m)]
+    removed = len(match.candidates) - len(kept)
+    if not removed:
+        return match
+    update: dict = {"filtered_candidate_count": removed, "candidates": kept, "candidate_count": len(kept)}
+    if not kept:
+        if company_names_found or inferred_links:
+            notes = [f"官方紀錄中有申請商「{name}」，但無法確認是哪一項產品" for name in company_names_found[:3]]
+            notes += [inferred_link_note(link) for link in (inferred_links or [])[:3]]
+            return match.model_copy(update={**update, "match_type": ProductMatchType.COMPANY_ONLY, "best_match": None,
+                                            "match_confidence": None, "ambiguity_reason": None, "notes": notes})
+        top = match.candidates[0].product
+        missing = missed_core_terms(queries[0], top.product_name_zh, top.company_name, generic_terms)[1]
+        return match.model_copy(update={
+            **update, "status": ProductVerificationStatus.NOT_FOUND, "best_match": None, "match_type": None,
+            "match_confidence": None, "ambiguity_reason": None,
+            "not_found_reason": ProductNotFoundReason.NO_PRODUCT_IDENTITY_SUPPORT,
+            "unsupported_identity_terms": [t for t in missing if len(t) >= 2] or missing})
+    best = match.best_match if match.best_match in kept else None
+    if len(kept) == 1 or match.ambiguity_reason == ProductAmbiguityReason.LOW_MATCH_CONFIDENCE:
+        update.update(best_match=best or kept[0], ambiguity_reason=ProductAmbiguityReason.LOW_MATCH_CONFIDENCE)
+    else:
+        update.update(best_match=best)
+    return match.model_copy(update=update)
+
+
+def _resolve_product_match(
+    request: NormalizedUserRequest,
+    name_matches: list[ProductCandidateMatch],
+    permit_matches: list[ProductCandidateMatch],
+    company_names_found: list[str],
+    queried_terms: list[str],
+    lookup_completed: bool,
+    inferred_links: list[InferredEntityLink] | None = None,
 ) -> ProductMatch:
     """Deterministic product resolver：依固定順序判定 Product Verification。
 
@@ -168,8 +271,10 @@ def resolve_product_match(
     2. 正規化後與官方品名 / 官方別名完全相同：唯一 → VERIFIED；多筆 → ambiguous
     3. 與官方品名去掉尾端括號規格後相同：唯一 → VERIFIED；多個品項 → ambiguous
     3b. Agent A 的錯字 / 同音修正寫法（查資料庫之前、只根據使用者輸入產生）與官方品名 / 基本品名相同的唯一產品，
-       且「使用者原始寫法」的合理候選中它是第一名、沒有其他候選在 AMBIGUITY_MARGIN 內 → VERIFIED
-       （兩個獨立訊號一致才確認；只有修正寫法命中、原始寫法不支持 → 不確認）
+       且「使用者原始寫法」的合理候選中它是第一名、沒有其他候選在 AMBIGUITY_MARGIN 內 → 單一候選請使用者確認
+       （2026-10-04 起不自動確認：修正寫法是 Agent A 的推測，不是使用者 exact 輸入）
+    exact（2 / 3）只比對使用者寫法：product_candidates 中 Agent A 改過字的名稱已換回使用者原文片段，
+    輸入中找不到的推測名稱（NOT_IN_USER_TEXT）不算使用者寫法（見 user_written_products）。
     4. 名稱相似度（一律以使用者原始寫法計分，LLM / planner 提出的名稱不能抬高分數）：
        分數接近最高分的候選有多個：其中只有一項對應到本次看到的公司 / 品牌 → 以它為準
        （分數 >= VERIFIED_MIN_SCORE → VERIFIED，否則請使用者確認這一項）；否則 ambiguous；
@@ -274,7 +379,8 @@ def resolve_product_match(
     # 使用者原始寫法的分數（沒有產品品名、只有公司 / 品牌時沿用工具分數）
     def raw_score(m: ProductCandidateMatch) -> float:
         if not raw_queries:
-            return m.match_score
+            # 只有公司 / 品牌時沿用工具分數；產品名稱全是 Agent A 推測（不在輸入中）時，名稱相似度不能當證據
+            return 0.0 if request.product_candidates else m.match_score
         return max(name_match_score(q, m.product.product_name_zh) for q in raw_queries)
 
     by_raw = sorted(((m, raw_score(m)) for m in ranked), key=lambda x: x[1], reverse=True)
@@ -291,9 +397,12 @@ def resolve_product_match(
         top, top_score = by_raw[0]
         competitors = [m for m, score in by_raw[1:] if score >= max(PARTIAL_MIN_SCORE, top_score - AMBIGUITY_MARGIN)]
         if top.product.product_id == target.product.product_id and not competitors:
-            return result(ProductVerificationStatus.VERIFIED, best=target, candidates=[target],
+            # 修正寫法只是 Agent A 的推測：與使用者寫法一致也只列為單一候選請使用者確認（2026-10-04 經使用者同意，
+            # 不再自動確認），不把改字後的名稱當成使用者 exact 輸入
+            return result(ProductVerificationStatus.PARTIAL_MATCH, best=target, candidates=[target],
                           match_type=ProductMatchType.CORRECTED_NAME_CORROBORATED,
-                          confidence=name_match_score(target.query, target.product.product_name_zh))
+                          confidence=name_match_score(target.query, target.product.product_name_zh),
+                          ambiguity=ProductAmbiguityReason.LOW_MATCH_CONFIDENCE, candidate_count=1)
 
     # 4. 名稱相似度（使用者原始寫法）
     if plausible:

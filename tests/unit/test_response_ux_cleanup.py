@@ -21,7 +21,7 @@ from app.response.line_renderer import AdaptiveLineRenderer
 from app.risk.risk_engine import RiskEngine
 from app.schemas.enums import InputType, Intent, ResponseAction, ResponseType, RiskLevel
 from app.schemas.user_request import IntakeExtraction, MediaInput, RawUserInput
-from tests.builders import extraction
+from tests.builders import extraction, user_text
 from tests.fakes import FakeLLM, InMemoryGraphRepo, InMemoryOfficialRepo, InMemoryRagStore
 from tests.fixtures import synthetic_data as data
 from tests.fixtures.synthetic_data import SOURCE, _product
@@ -61,7 +61,7 @@ def build_pipeline(llm):
 
 def run_text(ex: IntakeExtraction):
     llm = FakeLLM(structured={IntakeExtraction: ex})
-    return build_pipeline(llm).run(RawUserInput(input_type=InputType.TEXT, text="TEST_ONLY")), llm
+    return build_pipeline(llm).run(RawUserInput(input_type=InputType.TEXT, text=user_text(ex, "TEST_ONLY"))), llm
 
 
 def run_image(ex: IntakeExtraction):

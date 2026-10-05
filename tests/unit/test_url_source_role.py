@@ -245,7 +245,7 @@ def test_official_url_product_verification_uses_fast_path_and_keeps_provenance()
 def test_official_page_not_mapped_to_product_keeps_general_scope():
     """官方網域只代表來源角色：頁面對不到已確認產品時不走 early-stop，證據範圍只是一般背景。"""
     ex = extraction(intent=Intent.CLAIM_VERIFICATION, product_candidates=[PRODUCT])
-    result, llm = run(ex, _page(OFFICIAL_URL, "TEST_ONLY 與任何產品無關的官方公告"))
+    result, llm = run(ex, _page(OFFICIAL_URL, "TEST_ONLY 與任何產品無關的官方公告"), text=f"TEST_ONLY {PRODUCT}")
     bundle = result.evidence
     assert bundle.planner_mode != URL_EVIDENCE_MODE
     assert bundle.fast_path_reason == "url_path_declined:official_page_not_mapped_to_product"
@@ -276,7 +276,7 @@ def _shop_health_claim_run(llm, claim_text="TEST_ONLY 可以維持測試機能�
     c = claim(claim_text, origin=ClaimOrigin.ADVERTISEMENT_CLAIM, function="測試機能甲")
     c.content_source = URL
     ex = extraction(intent=Intent.CLAIM_VERIFICATION, product_candidates=[PRODUCT], claims=[c])
-    return run(ex, _page(SHOP_URL, "TEST_ONLY 商品頁"), url=SHOP_URL, llm=llm)
+    return run(ex, _page(SHOP_URL, f"TEST_ONLY 商品頁 {PRODUCT}"), url=SHOP_URL, llm=llm)
 
 
 def _links(*links):

@@ -11,6 +11,8 @@
 
 ## A. Agent / Tool 邊界
 
+> 文件用語：Agent A = Controller Agent、Agent B = Researcher Agent、Agent C = Reporter Agent（僅文件命名；程式識別字與測試名稱不變，契約內容未改）。
+
 | ID | Contract | Regression tests |
 |---|---|---|
 | FC-A1 | Agent A 只用 Input Tools（analyze_image / transcribe_audio / fetch_url_content / reinspect_image_identity），碰不到 Evidence Tools 與資料服務；文字輸入不呼叫任何 Input Tool。 | `test_tool_boundaries.py::test_agent_a_cannot_reach_evidence_tools_or_data_services`, `::test_text_input_uses_no_input_tool`, `::test_input_and_evidence_tools_are_disjoint_and_complete` |
@@ -23,12 +25,16 @@
 
 | ID | Contract | Regression tests |
 |---|---|---|
-| FC-B1 | 證據優先序：使用者提供的許可證字號（唯一）> 官方品名 / 官方別名 exact > 基本品名 exact > 修正寫法＋原始寫法佐證 > 品名＋公司 / 品牌 > 名稱相似 > 公司 / 推測品牌（只能 PARTIAL）。（2026-10-04 經使用者同意調整）**Exact strong evidence 可確認**：唯一字號 / 官方品名 / 官方別名完全相同 → VERIFIED；同一字號對應多筆 → 候選確認。 | `test_resolver_parity.py`, `test_p1_fastpath_dedup.py`, `test_image_identity_robustness.py::test_name_with_company_picks_the_corroborated_candidate`, `test_resolver_safety_audit.py`::test_exact_canonical_name_verifies`, `::test_exact_official_alias_verifies`, `::test_exact_registration_number_verifies`, `::test_name_company_corroboration_does_not_regress`, `test_product_coverage_runtime.py::test_registration_number_matching_multiple_records_asks_for_choice` |
+| FC-B1 | （2026-10-05 修訂：修正寫法佐證不再自動 VERIFIED，見 FC-B8）證據優先序：使用者提供的許可證字號（唯一）> 官方品名 / 官方別名 exact > 基本品名 exact > 修正寫法＋原始寫法佐證 > 品名＋公司 / 品牌 > 名稱相似 > 公司 / 推測品牌（只能 PARTIAL）。（2026-10-04 經使用者同意調整）**Exact strong evidence 可確認**：唯一字號 / 官方品名 / 官方別名完全相同 → VERIFIED；同一字號對應多筆 → 候選確認。 | `test_resolver_parity.py`, `test_p1_fastpath_dedup.py`, `test_image_identity_robustness.py::test_name_with_company_picks_the_corroborated_candidate`, `test_resolver_safety_audit.py`::test_exact_canonical_name_verifies`, `::test_exact_official_alias_verifies`, `::test_exact_registration_number_verifies`, `::test_name_company_corroboration_does_not_regress`, `test_product_coverage_runtime.py::test_registration_number_matching_multiple_records_asks_for_choice` |
 | FC-B2 | 兩個以上真正合理的候選（ambiguous）不猜：PARTIAL_MATCH、不設 best_match；資訊類問題走 `structured_clarification`（不跑 planner / RAG / web / assess）。（2026-10-04）**Fuzzy name similarity 在 ambiguity 時必須 clarification**：純名稱相似只有在 A 使用者文字只靠省略字即可由官方品名得到（沒有替換字）、B 沒有其他候選品名也包含同一段文字、C 第二名 < 0.80 或領先 >= 0.10 全部成立才自動確認；有對手 → 候選卡，只有替換字 → 單一候選確認。同名、跨類別同名 / 相似名、一般品名一律候選。 | `test_resolver_parity.py`, `test_p1_fastpath_dedup.py`, `test_resolver_safety_audit.py`, `test_product_selection.py::test_fuzzy_typo_goes_to_candidate_card_and_selection_resumes_original_intent` |
 | FC-B3 | 名稱相似度一律以使用者原始寫法計分；planner 查詢名稱 / 抄來的字號不能確認產品；resolver 鎖定的結果 planner 不可改寫。（2026-10-04）**不得為提高命中率犧牲 identity safety**：分數高於固定門檻不能覆蓋 ambiguity；wrong auto-confirm 比多一次確認更危險。 | `test_resolver_parity.py`, `test_p1_fastpath_dedup.py`, `test_resolver_safety_audit.py`::test_typo_closer_to_a_wrong_shorter_product_asks_for_choice`, `::test_top_gap_0057_asks_for_choice` |
 | FC-B4 | 圖片品名＋字號唯一命中：OCR 差異只標 `OCR_UNCERTAIN` / `IMAGE_TEXT_CONFLICT`（VERIFIED，不單獨造成 HIGH）；只有清楚完整的官方品名指向另一產品才是 CONFLICT。使用者打字的字號＋不同品名仍是 CONFLICT。 | `test_image_identity_robustness.py::test_permit_exact_with_ocr_name_typo_is_verified_with_flags`, `::test_permit_a_with_clear_official_name_b_is_identity_conflict`, `::test_typed_text_permit_with_different_name_keeps_conflict` |
 | FC-B5 | 認證標章是視覺證據，只能輔助；標章文字不能當品名 / 品牌、不能單獨確認產品。 | `test_image_identity_robustness.py::test_permit_exact_with_unreadable_certification_mark`, `::test_certification_mark_alone_cannot_confirm_product` |
+| FC-B7 | （2026-10-04 新增，additive）**Candidate suggestion 必須有 identity relevance，generic ingredient overlap alone 不足以建立 product candidate**：純名稱相似（PARTIAL_MATCH＋NAME_SIMILARITY）的候選必須支持使用者寫法中有辨識力的部分（品牌 / 公司 / 品名特有字樣）；只有營養素 / 成分 / 劑型 / 類別字樣重疊 → 不列候選，NOT_FOUND（`NO_PRODUCT_IDENTITY_SUPPORT`），不跑 planner / RAG / web。只過濾、不確認；exact / alias / 字號 / 基本品名 / 自動確認門檻不變；無辨識字樣的一般查詢照常列多候選；錯字仍可候選確認。（2026-10-04 補充）**Brand match alone 不足以建立 product candidate**：品牌 / 公司相同只代表可能同品牌；使用者寫了產品核心描述時，未確認候選（含名稱＋品牌佐證的單一候選）必須同時支持該核心，核心衝突即使同品牌也不顯示。 | `test_candidate_relevance_gate.py` |
 | FC-B6 | 局部二次 Vision 只在圖片產品身份未確認、且字號未命中時做，最多一次；readable=false 的欄位不採用。 | `test_image_identity_robustness.py::test_no_second_pass_when_identity_resolved`, `::test_no_permit_uncertain_name_reread_*`, `::test_reread_ignores_unreadable_fields` |
+| FC-B8 | （2026-10-05 新增）**Product mention provenance**：Agent A 抽出的產品名稱與使用者原文分開保存（`product_mentions`：USER_TEXT / AGENT_CORRECTED / NOT_IN_USER_TEXT）。`product_candidates` 只放使用者寫法；Agent A 改字後的名稱只是線索（`corrected_product_candidates`），不得成為 CANONICAL_EXACT；修正寫法與官方品名相同也只列為單一候選請使用者確認（`CORRECTED_NAME_CORROBORATED`），不自動 VERIFIED；輸入中找不到的名稱不當使用者寫法。exact / 基本品名 / 字號 / 官方別名行為不變。 | `test_product_mention_provenance.py`, `test_p1_fastpath_dedup.py::test_corrected_name_corroborated_by_user_wording_needs_user_confirmation` |
+| FC-B9 | （2026-10-05 新增）**Clarification before research**：產品身份未確定（PARTIAL / 多候選 / 修正寫法待確認 / 名稱 collision）時不跑 planner / RAG / 官方網頁 / assess / graph / 違規廣告查詢，直接請使用者確認；選定後以原題續跑（不重跑 Controller Agent）。有宣稱者仍走既有 claims-pending 路徑。 | `test_bare_name_routing.py::test_unconfirmed_typo_candidate_stops_before_any_research`, `::test_selected_candidate_resumes_original_intent_without_controller_rerun`, `test_p1_fastpath_dedup.py::test_unconfirmed_candidate_stops_before_planner_so_no_requery_can_verify` |
+| FC-B10 | （2026-10-05 新增）**台灣官方登記的進口產品不是外國產品**：resolver 已 VERIFIED 到本資料庫（台灣 TFDA 登記，含 imported_tablet_capsule）的產品，不因國別 / 名稱字樣被當成 foreign_product（`scope_foreign_signal`）；沒有台灣紀錄的外國產品維持原行為。 | `test_bare_name_routing.py::test_taiwan_registered_product_with_country_word_is_not_foreign_scope`, `::test_unregistered_overseas_product_keeps_foreign_behavior` |
 
 ## C. Risk / Claim
 
@@ -62,6 +68,7 @@
 | FC-E6 | 圖片 query label 在收到時固定，所有 postback 沿用原題 label。 | `test_image_context_sources.py` |
 | FC-E7 | Flex text / button 跟隨 LINE 字體設定（scaling / wrap）。 | `test_context_binding_fonts.py` |
 | FC-E8 | **Primary Flex card = 摘要，不是資料 dump**：只顯示最重要結論與最多 3 個重點（`MAX_KEY_POINTS = 3`）；長篇功效、完整警語、完整來源、詳細證據放 on-demand detail card；MISSING_INFORMATION 不顯示無價值的「完整分析 / 為什麼」；官方資訊第一層只顯示核心欄位（品名、字號、狀態、申請商、功效摘要），完整功效 / 警語 / 來源在下一層。新功能不得因為有更多資料就把全部資訊塞回 primary card（新內容一律走新的 detail action）。 | `test_adaptive_response.py::test_every_response_type_renders_one_neutral_flex_message`, `::test_detail_generates_full_analysis_on_demand_only`, `test_response_ux_cleanup.py::test_ambiguous_text_product_is_missing_information_with_choices_only`, `::test_missing_information_offers_retry_only_when_a_source_failed`, `::test_official_info_is_compact_summary_with_follow_up_actions`, `::test_full_efficacy_detail_shows_full_deduped_wording`, `::test_warning_detail_is_split_into_points` |
+| FC-E9 | （2026-10-05 新增）獨立成分 / 營養素回覆只在有可用證據（已確認 identity、官方成分名稱、通過 Gate 的功能證據）時提供「查看完整分析」；沿用 request-scoped DETAIL（同一份證據、不重跑 Controller、不新增證據）；沒有證據不提供；產品成分卡按鈕不變。 | `test_standalone_identity.py::test_function_question_with_evidence_has_full_analysis_and_detail_reuses_request`, `::test_standalone_without_any_usable_evidence_has_no_full_analysis_button`, `::test_product_ingredient_card_buttons_unchanged` |
 
 ## F. Task Context
 
@@ -70,6 +77,7 @@
 | FC-F1 | Task context per user、TTL 30 分鐘、最近 5 題；開始新問題 / 結束本次查證清除；舊 session 的結果不寫回。 | `test_line_webhook.py::test_start_new_question_clears_previous_product`, `::test_end_session_clears_context`, `::test_task_context_ttl_and_stale_session_result_is_dropped`, `::test_task_context_keeps_only_recent_requests` |
 | FC-F2 | 已確認產品是代名詞 follow-up 的 authoritative referent（以字號查證）；明確提出的新產品 / 字號優先；無法解析指稱 → 要求補資訊，不猜。 | `test_context_binding_fonts.py`, `test_line_webhook.py::test_pronoun_without_context_asks_for_product` |
 | FC-F3 | Pending clarification：短回覆 CONFIRM 以候選續上一題（不重跑 Agent A）、REJECT 清候選、明確新產品優先；確認只代表 USER_CONFIRMED_TARGET，衝突保留；new / end / TTL 清除。 | `test_pending_clarification.py` |
+| FC-F4 | （2026-10-05 新增）**Standalone entity 優先於前文產品**：整句原文（不依賴 Controller intent）是 canonical 成分 / 營養素或一般成分用語、沒有品牌 / 公司 / 字號 / 劑型 / 產品字樣 / 代名詞 → 獨立成分詢問，這一題不綁定前一題已確認產品（不改 context）；代名詞 follow-up（「它有含 X 嗎？」）仍綁定；名稱完全等於官方產品名稱（或別名）→ collision 詢問（基本品名相同不算）。 | `test_bare_name_routing.py`, `test_standalone_identity.py::test_bare_entity_after_confirmed_product_does_not_bind_previous_product`, `::test_pronoun_follow_up_still_binds_previous_product`, `::test_bare_generic_nutrient_not_in_corpus_is_standalone_not_product_candidates` |
 
 ## G. Data / Ingestion / Security
 
@@ -83,6 +91,14 @@
 | FC-G6 | `.env` 不進版控；`.env.example` 只有變數名稱或安全 placeholder。 | `test_frozen_contracts.py::test_env_file_is_ignored_and_example_has_no_secret_values` |
 | FC-G7 | Production code 不 hard-code 測試 fixture 的產品 / 字號 / 公司或 TEST_ONLY 標記。 | `test_frozen_contracts.py::test_production_code_contains_no_fixture_identities` |
 
+## H. Ingredient / Standalone Entity
+
+| ID | Contract | Regression tests |
+|---|---|---|
+| FC-H1 | （2026-10-05 新增）**成分 identity 與功能證據分開**：identity 只用 exact（Ingredient Bridge canonical entity / 已接受 alias；官方成分表完全相同名稱），不用相似度 / embedding；候選型 alias 不算 identity。`ingredient_identity_status`（CANONICAL_ENTITY / LEGACY_OFFICIAL_NAME / IDENTITY_NOT_IN_CORPUS）與 `function_evidence_status`（NOT_ASSESSED / SUPPORTED / NO_FUNCTION_EVIDENCE）是不同欄位；未收錄 ≠ 不存在；不稱生理功能為產品核准保健功效；Interaction corpus 不當一般功能證據。 | `test_standalone_identity.py` |
+| FC-H2 | （2026-10-05 新增）獨立成分路徑（`standalone_entity` 模式）每種證據各查一次（lookup_ingredient / RAG / assess_evidence，必要時官方網頁一次），不跑 planner 多輪；同一組工具與 Relevance Gate，不降低證據門檻。 | `test_standalone_identity.py`, `test_bare_name_routing.py::test_function_question_runs_each_evidence_tool_once_and_reports_insufficient_without_evidence` |
+| FC-H3 | Ingredient Bridge / 產品成分三層（官方列有 / 已確認 identity / 待審候選）、「有沒有某成分」答案的既有行為。 | `test_ingredient_retrieval_runtime.py`, `test_ingredient_overlay_bridge.py`, `test_ingredient_entity_mapping.py`, `test_ingredient_bridge_import.py` |
+
 ---
 
 ## Frozen modules（修改前需說明 extension point 為何不足）
@@ -90,7 +106,7 @@
 - `app/risk/risk_engine.py`、`app/risk/assessment_rules.py`（resolver / claim / evidence rules）、`app/risk/claim_policy.py`
 - `app/agents/verification_agent.py` 的 resolver 鎖定、fast path / early-stop 條件
 - `app/agents/reporter_agent.py` 的 `select_response_type`、`compose_payload`、推測關聯 guard
-- `app/services/context_store.py`、`app/services/context_binding.py`、`app/services/clarification.py`
+- `app/services/context_store.py`、`app/services/context_binding.py`、`app/services/clarification.py`、`app/services/bare_name_routing.py`
 - `app/response/service.py`、`app/response/actions.py`、`app/line/`（webhook、queue、handler）
 - `app/tools/input_tools.py` 的 SSRF / 時限、`app/tools/official_web_tools.py` 的網域限制
 - `app/schemas/`（既有欄位的語意；可新增欄位）、`migrations/`（只可新增 migration）

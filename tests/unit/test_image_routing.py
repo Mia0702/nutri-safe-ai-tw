@@ -89,7 +89,8 @@ SCENARIOS = {
 def fake_llm(user_text_extraction=None):
     llm = FakeLLM()
     llm.describe_image = lambda *, instructions, image, mime_type: (
-        llm.calls.append(("describe_image", mime_type)) or f"TEST_ONLY 圖片：{image.decode()}")
+        llm.calls.append(("describe_image", mime_type))
+        or f"TEST_ONLY 圖片：{image.decode()} {' '.join(SCENARIOS[image].product_candidates)}")
 
     def intake(input_text):
         content = json.loads(input_text)["content"]
@@ -240,9 +241,13 @@ def test_on_demand_package_claim_check_uses_stored_claims_without_vision():
     vision, intake = vision_calls(llm), llm.calls.count(("parse_structured", "IntakeExtraction"))
     # 另一張圖片之後才按第一張卡片的按鈕：仍是第一張圖片保存的宣稱與產品
     send(handler, event(kind="image", message_id="unknown"))
+    after_second_image = vision_calls(llm)
+    assert after_second_image > vision  # 第二張圖片（新的未知產品）跑 Vision（可能含一次身份重讀）
+    intake_after_second = llm.calls.count(("parse_structured", "IntakeExtraction"))
+    assert intake_after_second == intake + 1
     send(handler, event(kind="postback", data=build_postback_data(ResponseAction.CHECK_PACKAGE_CLAIMS, rid)))
-    assert vision_calls(llm) == vision + 1  # 只有第二張圖片跑 Vision，按鈕沒有重跑
-    assert llm.calls.count(("parse_structured", "IntakeExtraction")) == intake + 1
+    assert vision_calls(llm) == after_second_image  # 按鈕沒有重跑 Vision
+    assert llm.calls.count(("parse_structured", "IntakeExtraction")) == intake_after_second  # 也沒有重跑 Agent A
     rec = list(store._data.values())[-1]
     assert rec.query_label == label and label in flex(line)
     assert rec.normalized_request.claims_from_package and len(rec.evidence.claim_assessment) == 3

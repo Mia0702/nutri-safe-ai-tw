@@ -35,7 +35,7 @@ from app.schemas.enums import (
 from app.schemas.evidence import ApprovedClaimEvidence, SourceRef
 from app.schemas.response import CLAIM_RISK_LABEL, DetailPayload, ResponsePayload
 from app.schemas.user_request import IntakeExtraction, RawUserInput
-from tests.builders import claim, extraction
+from tests.builders import claim, extraction, user_text
 from tests.fakes import FakeLLM, InMemoryGraphRepo, InMemoryOfficialRepo, InMemoryRagStore
 
 PRODUCT = "虛構牌晶亮測試膠囊"
@@ -63,7 +63,7 @@ def run(*claims, llm_text="TEST_ONLY 白話回覆正文。", intent=Intent.CLAIM
         verifier=VerificationAgent(InMemoryOfficialRepo(), InMemoryGraphRepo(), InMemoryRagStore(), llm),
         risk_engine=RiskEngine(), reporter=ReporterAgent(llm),
     )
-    return pipe.run(RawUserInput(input_type=InputType.TEXT, text="TEST_ONLY")), llm
+    return pipe.run(RawUserInput(input_type=InputType.TEXT, text=user_text(ex, "TEST_ONLY"))), llm
 
 
 def details(result, llm, *actions):

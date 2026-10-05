@@ -51,7 +51,7 @@ def buttons(message):
 
 
 def test_ingredient_inquiry_has_no_risk_level():
-    p = compose(request(intent=Intent.INGREDIENT_INQUIRY, ingredient_candidates=["虛構素甲"]))
+    p = compose(request(intent=Intent.INGREDIENT_INQUIRY, ingredient_candidates=["虛構素甲"], request_id=str(uuid.uuid4())))  # 有官方成分名稱 → 有完整分析按鈕，需有效的 request_id
     assert p.response_type == ResponseType.INGREDIENT_LIST and p.risk_level is None
     assert not any(m in json.dumps(renderer.render_primary(p), ensure_ascii=False) for m in RISK_MARKS)
 
@@ -184,8 +184,8 @@ def test_old_button_returns_old_request_after_new_question():
         extraction(product_candidates=[PRODUCT_1], normalized_text="第一題 晶亮"),
         extraction(intent=Intent.EFFICACY_INQUIRY, product_candidates=[PRODUCT_2], normalized_text="第二題 順暢"),
     ])
-    first = svc.respond(_text("第一題"), owner_id="U1")
-    svc.respond(_text("第二題"), owner_id="U1")
+    first = svc.respond(_text(f"第一題 {PRODUCT_1}"), owner_id="U1")  # 產品名稱須出現在使用者輸入（provenance）
+    svc.respond(_text(f"第二題 {PRODUCT_2}"), owner_id="U1")
     rid = _rid(first, ResponseAction.OFFICIAL_INFO)
     detail = svc.handle_action(build_postback_data(ResponseAction.OFFICIAL_INFO, rid), owner_id="U1")
     dumped = json.dumps(detail, ensure_ascii=False)
@@ -202,7 +202,7 @@ def test_detail_generates_full_analysis_on_demand_only():
 
 def test_action_of_other_user_or_unknown_request_is_rejected():
     _, svc = _service([extraction(product_candidates=[PRODUCT_1])])
-    rid = _rid(svc.respond(_text(), owner_id="U1"))
+    rid = _rid(svc.respond(_text(f"TEST_ONLY {PRODUCT_1}"), owner_id="U1"))
     for data, owner in [(build_postback_data(ResponseAction.WHY, rid), "U2"),
                         (build_postback_data(ResponseAction.WHY, str(uuid.uuid4())), "U1")]:
         assert EXPIRED_ACTION_TEXT in json.dumps(svc.handle_action(data, owner_id=owner), ensure_ascii=False)
@@ -247,7 +247,7 @@ def test_timeout_returns_error_card_and_late_result_is_discarded():
 
 def test_retry_runs_again_with_new_request_id():
     llm, svc = _service([extraction(product_candidates=[PRODUCT_1]), extraction(product_candidates=[PRODUCT_1])])
-    first = svc.respond(_text(), owner_id="U1")
+    first = svc.respond(_text(f"TEST_ONLY {PRODUCT_1}"), owner_id="U1")
     rid = _rid(first)
     again = svc.handle_action(build_postback_data(ResponseAction.RETRY, rid), owner_id="U1")
     assert again["type"] == "flex" and _rid(again) != rid

@@ -206,6 +206,8 @@ def test_source_links_from_record_drop_buttons_for_invalid_stored_urls():
     items = [ev.product_match.best_match.product] + [
         e for group in (ev.approved_claims, ev.warnings, ev.illegal_ad_evidence, ev.graph_evidence,
                         ev.rag_evidence, ev.official_web_evidence) for e in group]
+    if ev.product_ingredients is not None:  # 成分證據（產品成分來源＋每項官方成分來源）
+        items += [ev.product_ingredients] + ev.product_ingredients.official_ingredients
     for item in items:  # 模擬 stored metadata 中的不合格網址
         item.source.source_url = "javascript:alert(1)"
     links = source_links(record)

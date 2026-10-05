@@ -1,0 +1,17 @@
+[
+  {
+    "source_id": "NCBI_COPPER_TABLE",
+    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK610366/table/ch4.tab1/?report=objectonly",
+    "retrieved_at": "2026-10-04T09:11:34.440929+00:00",
+    "status": 200,
+    "sha256": "8275e7cb8d47b85501d191d7b2855bf82c93a7fdeca2cc59434d55c6c83a8183",
+    "bytes": 21480,
+    "local_file": "NCBI_COPPER_TABLE.html"
+  },
+  {
+    "source_id": "TFDA_FISH_BILINGUAL",
+    "source_url": "https://www.fda.gov.tw/tc/includes/GetFile.ashx?cid=47306&id=f638604343249800284&type=2",
+    "retrieved_at": "2026-10-04T09:11:34.441602+00:00",
+    "error": "The read operation timed out"
+  }
+]

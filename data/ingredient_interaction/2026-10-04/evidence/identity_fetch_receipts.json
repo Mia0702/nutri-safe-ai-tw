@@ -1,0 +1,179 @@
+[
+  {
+    "source_id": "ODS_Calcium",
+    "source_url": "https://ods.od.nih.gov/factsheets/Calcium-HealthProfessional/",
+    "retrieved_at": "2026-10-04T09:09:40.113893+00:00",
+    "status": 200,
+    "sha256": "cb725d3bbe1ac67f889c5779d53c3574cfb046237475845f45eb0eed1a459bd8",
+    "bytes": 347958,
+    "local_file": "ODS_Calcium.html"
+  },
+  {
+    "source_id": "ODS_Iron",
+    "source_url": "https://ods.od.nih.gov/factsheets/Iron-HealthProfessional/",
+    "retrieved_at": "2026-10-04T09:09:40.115038+00:00",
+    "status": 200,
+    "sha256": "9e8e54889d1305d6f0a46748e68003211b6b459e9f86f7980425eccb54079020",
+    "bytes": 317667,
+    "local_file": "ODS_Iron.html"
+  },
+  {
+    "source_id": "ODS_Magnesium",
+    "source_url": "https://ods.od.nih.gov/factsheets/Magnesium-HealthProfessional/",
+    "retrieved_at": "2026-10-04T09:09:40.115588+00:00",
+    "status": 200,
+    "sha256": "3c22fdc57efab26821b8eaccb5f1883466a9af8a2b0f1afdae606ae61505b4b9",
+    "bytes": 252943,
+    "local_file": "ODS_Magnesium.html"
+  },
+  {
+    "source_id": "ODS_Zinc",
+    "source_url": "https://ods.od.nih.gov/factsheets/Zinc-HealthProfessional/",
+    "retrieved_at": "2026-10-04T09:09:40.116066+00:00",
+    "status": 200,
+    "sha256": "e4bb272d6c3f3cdc6d35c96cf991a9570e6b44e3f723d20bdd9ddb8b3a82b24e",
+    "bytes": 322052,
+    "local_file": "ODS_Zinc.html"
+  },
+  {
+    "source_id": "ODS_Copper",
+    "source_url": "https://ods.od.nih.gov/factsheets/Copper-HealthProfessional/",
+    "retrieved_at": "2026-10-04T09:09:40.116837+00:00",
+    "status": 200,
+    "sha256": "b1dd754b1decf435593f31c8e10c2a818b2bcf2258392f7a6dc6b1a8865f16ec",
+    "bytes": 193049,
+    "local_file": "ODS_Copper.html"
+  },
+  {
+    "source_id": "ODS_VitaminD",
+    "source_url": "https://ods.od.nih.gov/factsheets/VitaminD-HealthProfessional/",
+    "retrieved_at": "2026-10-04T09:09:40.118771+00:00",
+    "status": 200,
+    "sha256": "d0fdeb7e03a174fca2e9a7dc11aaa86dd161fae10a960e4e867db3dc82a22b8c",
+    "bytes": 464972,
+    "local_file": "ODS_VitaminD.html"
+  },
+  {
+    "source_id": "ODS_VitaminK",
+    "source_url": "https://ods.od.nih.gov/factsheets/VitaminK-HealthProfessional/",
+    "retrieved_at": "2026-10-04T09:09:46.833214+00:00",
+    "status": 200,
+    "sha256": "32f32cd773b79e4cf25d0288c48e33607cb132a7c51334a8264f18946ea91fe9",
+    "bytes": 221008,
+    "local_file": "ODS_VitaminK.html"
+  },
+  {
+    "source_id": "ODS_VitaminC",
+    "source_url": "https://ods.od.nih.gov/factsheets/VitaminC-HealthProfessional/",
+    "retrieved_at": "2026-10-04T09:09:46.837313+00:00",
+    "status": 200,
+    "sha256": "31614e2eb198f1f3885e0f71105ff97bb898e8fe395cf1c32ac64277f022e718",
+    "bytes": 309209,
+    "local_file": "ODS_VitaminC.html"
+  },
+  {
+    "source_id": "ODS_Thiamin",
+    "source_url": "https://ods.od.nih.gov/factsheets/Thiamin-HealthProfessional/",
+    "retrieved_at": "2026-10-04T09:09:46.857499+00:00",
+    "status": 200,
+    "sha256": "14c4e32e3e2ad575fd01ecdfe2a1f3d612f2912a7409055430ba5081d1b89060",
+    "bytes": 219412,
+    "local_file": "ODS_Thiamin.html"
+  },
+  {
+    "source_id": "ODS_Riboflavin",
+    "source_url": "https://ods.od.nih.gov/factsheets/Riboflavin-HealthProfessional/",
+    "retrieved_at": "2026-10-04T09:09:46.908126+00:00",
+    "status": 200,
+    "sha256": "d95aef2455373a782e14d3de8ee801eeb54d3c58d6b847ecf87461cdcb3d8bd2",
+    "bytes": 202032,
+    "local_file": "ODS_Riboflavin.html"
+  },
+  {
+    "source_id": "ODS_Niacin",
+    "source_url": "https://ods.od.nih.gov/factsheets/Niacin-HealthProfessional/",
+    "retrieved_at": "2026-10-04T09:09:46.947610+00:00",
+    "status": 200,
+    "sha256": "66f4a7b0943f3d2476d37c70fa254d71f74e1d86d8826092f17af5d915affbc7",
+    "bytes": 226496,
+    "local_file": "ODS_Niacin.html"
+  },
+  {
+    "source_id": "ODS_PantothenicAcid",
+    "source_url": "https://ods.od.nih.gov/factsheets/PantothenicAcid-HealthProfessional/",
+    "retrieved_at": "2026-10-04T09:09:47.053768+00:00",
+    "status": 200,
+    "sha256": "07cbcefff62e8f60d13946f1c33006ab82c88ae4762c5046a73d2de7c417a514",
+    "bytes": 164283,
+    "local_file": "ODS_PantothenicAcid.html"
+  },
+  {
+    "source_id": "ODS_VitaminB6",
+    "source_url": "https://ods.od.nih.gov/factsheets/VitaminB6-HealthProfessional/",
+    "retrieved_at": "2026-10-04T09:09:52.297603+00:00",
+    "status": 200,
+    "sha256": "90d6649c3a2543955fa2da08090d988838d32fd5e82a8eecd8c29f11f83af05e",
+    "bytes": 211303,
+    "local_file": "ODS_VitaminB6.html"
+  },
+  {
+    "source_id": "ODS_Biotin",
+    "source_url": "https://ods.od.nih.gov/factsheets/Biotin-HealthProfessional/",
+    "retrieved_at": "2026-10-04T09:09:52.308867+00:00",
+    "status": 200,
+    "sha256": "ca66a8f0a50551774047033e71014790ae8abc62fdf7bf01556473d734c5c2e8",
+    "bytes": 179224,
+    "local_file": "ODS_Biotin.html"
+  },
+  {
+    "source_id": "ODS_Folate",
+    "source_url": "https://ods.od.nih.gov/factsheets/Folate-HealthProfessional/",
+    "retrieved_at": "2026-10-04T09:09:52.359155+00:00",
+    "status": 200,
+    "sha256": "1a918b6b309d71c691181ab83dfa09085c6ecf9a9600518bf8062a342414402e",
+    "bytes": 396902,
+    "local_file": "ODS_Folate.html"
+  },
+  {
+    "source_id": "ODS_VitaminB12",
+    "source_url": "https://ods.od.nih.gov/factsheets/VitaminB12-HealthProfessional/",
+    "retrieved_at": "2026-10-04T09:09:52.360125+00:00",
+    "status": 200,
+    "sha256": "3e1ec9f7dd18f5337d77e4ee31cbd9e86f24f4a9bb5421f2f5cdee0ac1111ca5",
+    "bytes": 286786,
+    "local_file": "ODS_VitaminB12.html"
+  },
+  {
+    "source_id": "ODS_Omega3FattyAcids",
+    "source_url": "https://ods.od.nih.gov/factsheets/Omega3FattyAcids-HealthProfessional/",
+    "retrieved_at": "2026-10-04T09:09:52.372254+00:00",
+    "status": 200,
+    "sha256": "82a40a615e33396daa027d421f79c0dce21355569ae3689322f1eb41ec75425a",
+    "bytes": 476142,
+    "local_file": "ODS_Omega3FattyAcids.html"
+  },
+  {
+    "source_id": "PC_COPPER_OXIDE",
+    "source_url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/cupric%20oxide/property/IUPACName,MolecularFormula,InChIKey/JSON",
+    "retrieved_at": "2026-10-04T09:09:52.465941+00:00",
+    "status": 200,
+    "sha256": "72d5b2cc03ebb8e280bbf2f2c177e36640e53c011396dffef9197405fab3adfd",
+    "bytes": 221,
+    "local_file": "PC_COPPER_OXIDE.json"
+  },
+  {
+    "source_id": "PC_COPPER_OXIDE_SYN",
+    "source_url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/cupric%20oxide/synonyms/JSON",
+    "retrieved_at": "2026-10-04T09:09:57.743362+00:00",
+    "status": 200,
+    "sha256": "73212f7982d5effe239644cebd5747d0f7938fa77f7f17c92a0ecce39ce33116",
+    "bytes": 1986,
+    "local_file": "PC_COPPER_OXIDE_SYN.json"
+  },
+  {
+    "source_id": "TFDA_EPA_DHA",
+    "source_url": "https://www.fda.gov.tw/tc/includes/GetFile.ashx?id=f637889177787370640",
+    "retrieved_at": "2026-10-04T09:09:58.686968+00:00",
+    "error": "The read operation timed out"
+  }
+]

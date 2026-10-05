@@ -15,11 +15,16 @@ from app.schemas.enums import (
     ClaimPolicyResult,
     ClaimPolicyType,
     ErrorCode,
+    FunctionEvidenceStatus,
+    IngredientIdentityStatus,
     EvidenceScope,
+    IngredientPresence,
+    IngredientQueryResolution,
     PolicyEvidenceUse,
     EvidenceStrength,
     ProductAmbiguityReason,
     ProductIdentityFlag,
+    ProductNotFoundReason,
     ProductCategory,
     ProductMatchType,
     ProductStatus,
@@ -127,6 +132,10 @@ class ProductMatch(BaseModel):
     candidate_count: int = 0  # 真正合理的候選數（不是 lookup 回傳的列數）
     # 產品已由較強證據確認時，較弱的圖片文字證據與官方紀錄的差異（不改變 status）
     identity_flags: list[ProductIdentityFlag] = Field(default_factory=list)
+    # Candidate Relevance Gate：只有一般用語重疊、無法支持使用者寫法中有辨識力部分的名稱相似候選（不顯示、不參與判定）
+    not_found_reason: ProductNotFoundReason | None = None
+    unsupported_identity_terms: list[str] = Field(default_factory=list)  # 找不到任何官方支持的辨識片段（正規化後）
+    filtered_candidate_count: int = 0
 
     @property
     def is_ambiguous(self) -> bool:
@@ -157,6 +166,8 @@ class ProductMatch(BaseModel):
             "match_type": self.match_type.value if self.match_type else None,
             "match_confidence": self.match_confidence,
             "ambiguity_reason": self.ambiguity_reason.value if self.ambiguity_reason else None,
+            "not_found_reason": self.not_found_reason.value if self.not_found_reason else None,
+            "filtered_candidate_count": self.filtered_candidate_count,
         }
 
 
@@ -190,6 +201,121 @@ class IngredientRecord(BaseModel):
     ingredient_id: str
     name_zh: str
     name_en: str | None = None
+    source: SourceRef
+
+
+# ---------- 產品成分（官方原始成分 / 已確認 canonical identity / 未確認）----------
+# 三個層級分開保存：官方列有的文字 ≠ 已確認 identity ≠ 待審候選。只有結構化事實與狀態，沒有使用者可見句子。
+
+
+class IngredientEntityRef(BaseModel):
+    """Ingredient Bridge 的 canonical entity（NutrientGroup / IngredientForm）。entity_id 是內部 ID，不給使用者看。"""
+
+    entity_id: str
+    entity_type: str  # NutrientGroup | IngredientForm
+    identity_level: str
+    canonical_name_en: str
+    display_name_zh: str | None = None  # 顯示用譯名，不是 identity 證據
+
+
+class OfficialIngredientEntry(BaseModel):
+    """A. 官方資料中列出的成分文字（即使沒有 canonical mapping 也可顯示）。"""
+
+    raw_text: str  # 官方原文（原樣）
+    display_text: str  # 顯示用：health_food 為官方中文名（＋英文名）；登記類為官方 token 原文
+    ingredient_source: str  # HEALTH_FOOD_CANONICAL_INGREDIENT | TFDA_REGISTRATION_INGREDIENTS_RAW
+    ingredient_id: str | None = None  # health_food 既有 canonical Ingredient
+    name_zh: str | None = None
+    name_en: str | None = None
+    token_index: int | None = None  # 登記類 token 序號
+    source: SourceRef
+
+
+class ConfirmedIngredientEntry(BaseModel):
+    """B. 已確認的 canonical ingredient（只有 VERIFIED_EXACT / SUPPORTED_ALIAS / FORM_TO_GROUP）。"""
+
+    entity: IngredientEntityRef
+    mapping_status: str
+    match_method: str
+    review_status: str
+    confidence: float  # mapping 規則信心，不是臨床確定度
+    raw_texts: list[str]  # 對應到的官方原文
+    parent_nutrient: IngredientEntityRef | None = None  # form → CONTRIBUTES_TO_NUTRIENT（不是 SAME_AS）
+    via_entity: IngredientEntityRef | None = None  # FORM_TO_GROUP：由哪個 form 推導
+    relationship_id: str | None = None
+    alias_ids: list[str] = Field(default_factory=list)
+    alias_evidence_status: str | None = None
+
+    @property
+    def is_direct(self) -> bool:
+        """直接 mapping（VERIFIED_EXACT / SUPPORTED_ALIAS）；FORM_TO_GROUP 是由 form 推導的營養素群。"""
+        return self.via_entity is None
+
+
+class UnresolvedIngredientEntry(BaseModel):
+    """C. 尚未確認 identity 的官方成分：只能說「目前尚未確認」，不可當 confirmed、不可進 interaction。"""
+
+    raw_text: str
+    display_text: str
+    mapping_status: str  # AMBIGUOUS | NEEDS_REVIEW | NO_MATCH | BRIDGE_UNAVAILABLE
+    review_status: str
+    candidate_entity_ids: list[str] = Field(default_factory=list)
+
+
+class IngredientCoverage(BaseModel):
+    official_count: int  # 官方成分單位數
+    confirmed_count: int  # 其中至少有一個正式 mapping 的單位數
+    unresolved_count: int
+
+
+class IngredientQueryAnswer(BaseModel):
+    """「有沒有某成分」的結構化答案（Agent B deterministic；Agent C 只依此表達）。"""
+
+    query_text: str  # 使用者所問的寫法
+    resolution: IngredientQueryResolution
+    query_entity: IngredientEntityRef | None = None
+    presence: IngredientPresence
+    matched: list[ConfirmedIngredientEntry] = Field(default_factory=list)  # 支持 CONFIRMED 的正式 mapping
+    # 已確認、但與所問 identity 不同層級 / 形式的同營養素成分（例如問特定鹽類，產品是另一種鹽類）；不是 SAME_AS
+    related_confirmed: list[ConfirmedIngredientEntry] = Field(default_factory=list)
+    candidate_raw_texts: list[str] = Field(default_factory=list)  # 只有候選指向它的官方原文
+    listed_raw_texts: list[str] = Field(default_factory=list)  # 官方原文完全相同的文字
+    unresolved_remaining: int = 0  # 仍有幾個官方成分未識別（NOT_CONFIRMED 不能說成「確定沒有」）
+
+
+class StandaloneEntityIdentity(BaseModel):
+    """使用者所問的成分 / 營養素名稱對應到的 canonical entity（Ingredient Bridge / interaction corpus 的 identity）。
+
+    只代表「這個名稱是證據庫中已確認的成分 / 營養素」，不是產品成分、不是功能證據。
+    """
+
+    query_text: str
+    entity_id: str
+    entity_type: str  # graph_label（NutrientGroup / IngredientForm / …）
+    identity_level: str
+    canonical_name_en: str
+    display_name_zh: str | None = None
+    source_id: str | None = None
+    source_url: str | None = None
+    corpus_version: str | None = None
+
+
+class ProductIngredientEvidence(BaseModel):
+    """lookup_product_ingredients 的結構化輸出：官方原始成分、已確認 identity、未確認成分與 provenance。"""
+
+    evidence_id: str  # product_ingredients:<product_id>
+    product_id: str
+    product_category: ProductCategory
+    ingredient_source: str
+    official_ingredients: list[OfficialIngredientEntry] = Field(default_factory=list)
+    official_ingredients_raw: str | None = None  # 登記類官方成分欄位原文（原樣）
+    confirmed_ingredients: list[ConfirmedIngredientEntry] = Field(default_factory=list)
+    unresolved_ingredients: list[UnresolvedIngredientEntry] = Field(default_factory=list)
+    coverage: IngredientCoverage
+    bridge_available: bool = True  # Ingredient Bridge 匯入完成標記存在（否則沒有任何已確認 identity）
+    corpus_version: str | None = None
+    overlay_version: str | None = None
+    query_answers: list[IngredientQueryAnswer] = Field(default_factory=list)
     source: SourceRef
 
 
@@ -426,7 +552,15 @@ class EvidenceBundle(BaseModel):
     product_match: ProductMatch
     approved_claims: list[ApprovedClaimEvidence] = Field(default_factory=list)
     warnings: list[WarningEvidence] = Field(default_factory=list)
-    ingredients: list[IngredientRecord] = Field(default_factory=list)
+    ingredients: list[IngredientRecord] = Field(default_factory=list)  # 只有已確認產品的官方登記成分
+    # 不針對產品的成分名稱查詢（lookup_ingredient）結果：不是任何產品的成分，不可呈現為產品成分
+    standalone_ingredients: list[IngredientRecord] = Field(default_factory=list)
+    # 獨立成分 / 營養素的 canonical identity（與 legacy ingredients 表、產品成分、功能證據是三件不同的事）
+    standalone_entities: list[StandaloneEntityIdentity] = Field(default_factory=list)
+    ingredient_identity_status: IngredientIdentityStatus | None = None
+    function_evidence_status: FunctionEvidenceStatus | None = None
+    # 已確認產品的成分三層結構（官方原始 / 已確認 identity / 未確認）＋成分是非題答案
+    product_ingredients: ProductIngredientEvidence | None = None
     illegal_ad_evidence: list[IllegalAdEvidence] = Field(default_factory=list)
     graph_evidence: list[GraphEvidence] = Field(default_factory=list)
     rag_evidence: list[RagEvidence] = Field(default_factory=list)
@@ -454,6 +588,9 @@ class EvidenceBundle(BaseModel):
         items: list[SourceRef] = []
         if self.product_match.best_match:
             items.append(self.product_match.best_match.product.source)
+        if self.product_ingredients is not None:
+            items.append(self.product_ingredients.source)
+            items.extend(i.source for i in self.product_ingredients.official_ingredients)
         for group in (
             self.approved_claims,
             self.warnings,

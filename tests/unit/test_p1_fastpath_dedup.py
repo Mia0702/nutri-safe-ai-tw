@@ -29,7 +29,7 @@ from app.schemas.enums import (
 )
 from app.schemas.evidence import ApprovedClaimEvidence, SourceRef
 from app.schemas.user_request import IntakeExtraction, MediaInput, RawUserInput
-from tests.builders import claim, extraction
+from tests.builders import claim, extraction, user_text
 from tests.fakes import FakeLLM, InMemoryGraphRepo, InMemoryOfficialRepo, InMemoryRagStore, plan
 from tests.fixtures import synthetic_data as data
 from tests.fixtures.synthetic_data import SOURCE, _product
@@ -59,9 +59,9 @@ def _pipeline(llm):
 
 
 def run(ex: IntakeExtraction, audio: bool = False):
-    llm = FakeLLM(structured={IntakeExtraction: ex})
+    llm = FakeLLM(structured={IntakeExtraction: ex}, transcript=user_text(ex, "TEST_ONLY 語音"))
     raw = (RawUserInput(input_type=InputType.AUDIO, media=[MediaInput(kind="audio", content=b"a", mime_type="audio/m4a")])
-           if audio else RawUserInput(input_type=InputType.TEXT, text="TEST_ONLY 問題"))
+           if audio else RawUserInput(input_type=InputType.TEXT, text=user_text(ex)))
     return _pipeline(llm).run(raw), llm
 
 
@@ -112,17 +112,18 @@ def test_only_unique_or_exact_matches_take_fast_path(monkeypatch, case, intent):
 
 
 @pytest.mark.parametrize("audio", [False, True])
-def test_corrected_name_corroborated_by_user_wording_is_verified_fast_path(monkeypatch, audio):
-    """語音同音錯字：原始寫法唯一指向某產品（未達門檻），Agent A 的修正寫法與官方品名相同 → 兩者一致才確認。"""
+def test_corrected_name_corroborated_by_user_wording_needs_user_confirmation(monkeypatch, audio):
+    """語音同音錯字：修正寫法只是 Agent A 的推測，與使用者寫法一致也只列為單一候選請使用者確認（不自動 VERIFIED）。"""
     _add_products(monkeypatch, ["虛構晶彩測試錠"])
     ex = extraction(intent=Intent.EFFICACY_INQUIRY, product_candidates=["虛構精采測試錠"],
                     corrected_product_candidates=["虛構晶彩測試錠"])
     result, llm = run(ex, audio=audio)
     m = result.evidence.product_match
-    assert m.status == ProductVerificationStatus.VERIFIED
-    assert m.match_type == ProductMatchType.CORRECTED_NAME_CORROBORATED and m.match_confidence == 1.0
-    assert result.evidence.planner_mode == FAST_PATH_MODE and not slow_tools(result) and not llm.called("plan_step")
-    assert result.response.response_type == ResponseType.PRODUCT_INFO
+    assert m.status == ProductVerificationStatus.PARTIAL_MATCH
+    assert m.match_type == ProductMatchType.CORRECTED_NAME_CORROBORATED and m.needs_confirmation
+    assert m.candidate_count == 1 and not llm.called("plan_step")
+    assert result.evidence.planner_mode == CLARIFICATION_MODE
+    assert result.response.response_type == ResponseType.MISSING_INFORMATION
 
 
 def test_correction_that_disagrees_with_user_wording_is_not_verified(monkeypatch):
@@ -144,14 +145,15 @@ def test_correction_without_any_support_from_user_wording_is_not_verified(monkey
     assert result.evidence.product_match.status != ProductVerificationStatus.VERIFIED
 
 
-def test_planner_requery_of_top_candidate_name_does_not_verify(monkeypatch):
-    """planner 看過查詢結果後用第一名的完整品名再查：不是獨立證據，不可把低信心候選升為 VERIFIED。"""
+def test_unconfirmed_candidate_stops_before_planner_so_no_requery_can_verify(monkeypatch):
+    """低信心候選（身份未確認）：不進 planner / web / assess（Clarification before research），也就不可能被 planner 重查而升為 VERIFIED。"""
     _add_products(monkeypatch, ["虛構甲乙測試軟膠囊組合包"])
-    # safety_inquiry 不走 fast path / clarification，一定經過 planner
+    # safety_inquiry 不走 fast path，過去一定經過 planner；現在身份未確認就先請使用者確認
     llm = FakeLLM(structured={IntakeExtraction: extraction(intent=Intent.SAFETY_INQUIRY, product_candidates=[QUERY])},
                   plans=[plan(("lookup_product", {"product_names": ["虛構甲乙測試軟膠囊組合包"], "brand_names": []})), plan()])
-    result = _pipeline(llm).run(RawUserInput(input_type=InputType.TEXT, text="TEST_ONLY"))
-    assert llm.called("plan_step")
+    result = _pipeline(llm).run(RawUserInput(input_type=InputType.TEXT, text=f"TEST_ONLY {QUERY}"))
+    assert not llm.called("plan_step") and not slow_tools(result)
+    assert result.evidence.planner_mode == CLARIFICATION_MODE
     assert result.evidence.product_match.status == ProductVerificationStatus.PARTIAL_MATCH
 
 

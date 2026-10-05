@@ -56,7 +56,7 @@ from app.schemas.enums import (
 from app.schemas.evidence import EvidenceBundle, ProductCandidateMatch, ProductMatch, ProductRecord, SourceRef
 from app.schemas.user_request import IntakeExtraction, RawUserInput
 from app.tools.product_tools import lookup_permit
-from tests.builders import claim, extraction, request
+from tests.builders import claim, extraction, request, user_text
 from tests.fakes import FakeLLM, InMemoryGraphRepo, InMemoryOfficialRepo, InMemoryRagStore
 from tests.fixtures import synthetic_data as data
 from tests.fixtures.synthetic_data import _product
@@ -101,7 +101,8 @@ def _pipeline(llm):
     )
 
 
-def run(ex: IntakeExtraction, text="TEST_ONLY 問題"):
+def run(ex: IntakeExtraction, text=None):
+    text = text or user_text(ex, "TEST_ONLY 問題")  # 產品名稱須出現在使用者輸入（provenance）
     llm = FakeLLM(structured={IntakeExtraction: ex})
     return _pipeline(llm).run(RawUserInput(input_type=InputType.TEXT, text=text)), llm
 

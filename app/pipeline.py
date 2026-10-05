@@ -12,11 +12,13 @@ from typing import Protocol
 from app.agents.intake_agent import IntakeAgent, needs_identity_reinspection
 from app.agents.reporter_agent import ReporterAgent, error_payload
 from app.agents.verification_agent import VerificationAgent, stage_timings_ms
+from app.risk.assessment_rules import scope_foreign_signal
 from app.risk.risk_engine import RiskEngine
 from app.schemas.analysis import AnalysisResult
 from app.schemas.enums import EntityType, ErrorCode, Intent, ProductReferenceStatus, ProductVerificationStatus
 from app.schemas.evidence import ProductRecord, ToolError
 from app.schemas.user_request import ContextEntity, ConversationTurn, NormalizedUserRequest, RawUserInput
+from app.services.bare_name_routing import route_bare_name
 from app.services.context_binding import bind_confirmed_product
 from app.services.errors import ServiceError
 
@@ -213,6 +215,8 @@ class AnalysisPipeline:
         except ServiceError as exc:
             return failed_result(request_id, UNDERSTANDING_FAILED_TEXT, errors=[exc.to_tool_error()])
         # task context 已確認的產品：產品相關 follow-up 直接以 canonical 產品（字號）查證，不重新比對基本品名
+        # 整則訊息只有一個成分名稱時，先判成獨立成分詢問（不沿用前一題產品）；名稱同時是官方產品名稱 → collision
+        request = self._verifier.route_bare_name(request)
         request = bind_confirmed_product(request, raw.context.confirmed_product)
         return self._evaluate(request, request_id, raw)
 
@@ -230,6 +234,7 @@ class AnalysisPipeline:
                     request = reread
                     if found_new:
                         bundle = self._verifier.verify(request)
+            request = scope_foreign_signal(request, bundle.product_match)  # 台灣官方紀錄已確認者不算外國產品
             risk = self._risk.assess(request, bundle)
             payload = self._reporter.compose(request, bundle, risk)
         except Exception:  # noqa: BLE001 - 不讓 pipeline crash，回傳結構化錯誤

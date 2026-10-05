@@ -32,7 +32,7 @@ from app.schemas.enums import (
 )
 from app.schemas.response import DetailPayload
 from app.schemas.user_request import IntakeExtraction, RawUserInput
-from tests.builders import claim, extraction
+from tests.builders import claim, extraction, user_text
 from tests.fakes import FakeLLM, InMemoryGraphRepo, InMemoryOfficialRepo, InMemoryRagStore
 from tests.fixtures import synthetic_data as data
 from tests.unit.test_claim_policy_runtime import FakeClaimPolicyRepo
@@ -61,7 +61,7 @@ def run(*claims, intent=Intent.CLAIM_VERIFICATION, repo=None, llm_text="TEST_ONL
                                    claim_policy_repo=repo),
         risk_engine=RiskEngine(), reporter=ReporterAgent(llm),
     )
-    return pipe.run(RawUserInput(input_type=InputType.TEXT, text="TEST_ONLY")), llm
+    return pipe.run(RawUserInput(input_type=InputType.TEXT, text=user_text(ex, "TEST_ONLY"))), llm
 
 
 def tools(result):

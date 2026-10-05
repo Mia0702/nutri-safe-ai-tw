@@ -1,0 +1,208 @@
+[
+  {
+    "pmid": "10838651",
+    "title": "Effect of calcium carbonate on the absorption of levothyroxine.",
+    "doi": "10.1001/jama.283.21.2822",
+    "publication_types": [
+      "Journal Article",
+      "Research Support, Non-U.S. Gov't"
+    ],
+    "electronic_dates": [],
+    "journal_date": {
+      "Year": "2000",
+      "Month": "Jun",
+      "Day": "07"
+    }
+  },
+  {
+    "pmid": "21595516",
+    "title": "Absorption of levothyroxine when coadministered with various calcium formulations.",
+    "doi": "10.1089/thy.2010.0296",
+    "publication_types": [
+      "Journal Article",
+      "Research Support, N.I.H., Extramural",
+      "Research Support, Non-U.S. Gov't"
+    ],
+    "electronic_dates": [],
+    "journal_date": {
+      "Year": "2011",
+      "Month": "May"
+    }
+  },
+  {
+    "pmid": "1443969",
+    "title": "Ferrous sulfate reduces thyroxine efficacy in patients with hypothyroidism.",
+    "doi": "10.7326/0003-4819-117-12-1010",
+    "publication_types": [
+      "Clinical Trial",
+      "Journal Article",
+      "Research Support, Non-U.S. Gov't"
+    ],
+    "electronic_dates": [],
+    "journal_date": {
+      "Year": "1992",
+      "Month": "Dec",
+      "Day": "15"
+    }
+  },
+  {
+    "pmid": "25449994",
+    "title": "Pharmacokinetics of dolutegravir when administered with mineral supplements in healthy adult subjects.",
+    "doi": "10.1002/jcph.439",
+    "publication_types": [
+      "Journal Article",
+      "Randomized Controlled Trial",
+      "Research Support, Non-U.S. Gov't"
+    ],
+    "electronic_dates": [
+      {
+        "DateType": "Electronic",
+        "Year": "2014",
+        "Month": "12",
+        "Day": "30"
+      }
+    ],
+    "journal_date": {
+      "Year": "2015",
+      "Month": "May"
+    }
+  },
+  {
+    "pmid": "33758936",
+    "title": "Calcium Intake and Iron Status in Human Studies: A Systematic Review and Dose-Response Meta-Analysis of Randomized Trials and Crossover Studies.",
+    "doi": "10.1093/jn/nxaa437",
+    "publication_types": [
+      "Journal Article",
+      "Meta-Analysis",
+      "Systematic Review"
+    ],
+    "electronic_dates": [],
+    "journal_date": {
+      "Year": "2021",
+      "Month": "May",
+      "Day": "11"
+    }
+  },
+  {
+    "pmid": "33136134",
+    "title": "The Efficacy and Safety of Vitamin C for Iron Supplementation in Adult Patients With Iron Deficiency Anemia: A Randomized Clinical Trial.",
+    "doi": "10.1001/jamanetworkopen.2020.23644",
+    "publication_types": [
+      "Equivalence Trial",
+      "Journal Article"
+    ],
+    "electronic_dates": [
+      {
+        "DateType": "Electronic",
+        "Year": "2020",
+        "Month": "11",
+        "Day": "02"
+      }
+    ],
+    "journal_date": {
+      "Year": "2020",
+      "Month": "Nov",
+      "Day": "02"
+    }
+  },
+  {
+    "pmid": "10767122",
+    "title": "Effects of Marine Fish Oils on the Anticoagulation Status of Patients Receiving Chronic Warfarin Therapy.",
+    "doi": "10.1023/A:1008852127668",
+    "publication_types": [
+      "Journal Article"
+    ],
+    "electronic_dates": [],
+    "journal_date": {
+      "Year": "1998",
+      "Month": "Jul"
+    }
+  },
+  {
+    "pmid": "14742793",
+    "title": "Fish oil interaction with warfarin.",
+    "doi": "10.1345/aph.1D007",
+    "publication_types": [
+      "Case Reports",
+      "Journal Article"
+    ],
+    "electronic_dates": [],
+    "journal_date": {
+      "Year": "2004",
+      "Month": "Jan"
+    }
+  },
+  {
+    "pmid": "27657121",
+    "title": "The Use of Fish Oil with Warfarin Does Not Significantly Affect either the International Normalised Ratio or Incidence of Adverse Events in Patients with Atrial Fibrillation and Deep Vein Thrombosis: A Retrospective Study.",
+    "doi": "10.3390/nu8090578",
+    "publication_types": [
+      "Journal Article"
+    ],
+    "electronic_dates": [
+      {
+        "DateType": "Electronic",
+        "Year": "2016",
+        "Month": "09",
+        "Day": "20"
+      }
+    ],
+    "journal_date": {
+      "Year": "2016",
+      "Month": "Sep",
+      "Day": "20"
+    }
+  },
+  {
+    "pmid": "38742535",
+    "title": "Bleeding Risk in Patients Receiving Omega-3 Polyunsaturated Fatty Acids: A Systematic Review and Meta-Analysis of Randomized Clinical Trials.",
+    "doi": "10.1161/JAHA.123.032390",
+    "publication_types": [
+      "Systematic Review",
+      "Journal Article",
+      "Meta-Analysis",
+      "Research Support, Non-U.S. Gov't"
+    ],
+    "electronic_dates": [
+      {
+        "DateType": "Electronic",
+        "Year": "2024",
+        "Month": "05",
+        "Day": "14"
+      }
+    ],
+    "journal_date": {
+      "Year": "2024",
+      "Month": "May",
+      "Day": "21"
+    }
+  },
+  {
+    "pmid": "35255801",
+    "title": "Proton Pump Inhibitors' Use and Risk of Iron Deficiency Anaemia: A Systematic Review and Meta-analysis.",
+    "doi": "10.2174/2772432817666220307121220",
+    "publication_types": [
+      "Systematic Review",
+      "Meta-Analysis",
+      "Journal Article"
+    ],
+    "electronic_dates": [],
+    "journal_date": {
+      "Year": "2023"
+    }
+  },
+  {
+    "pmid": "37756627",
+    "title": "Is use of a long-term proton pump inhibitor or histamine-2 receptor antagonist a risk factor for iron-deficiency anaemia in Taiwan? A neglected clinical drug-drug interaction.",
+    "doi": "10.1093/fampra/cmad090",
+    "publication_types": [
+      "Journal Article"
+    ],
+    "electronic_dates": [],
+    "journal_date": {
+      "Year": "2025",
+      "Month": "Feb",
+      "Day": "07"
+    }
+  }
+]

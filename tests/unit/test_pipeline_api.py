@@ -45,7 +45,7 @@ def test_debug_analyze_returns_full_debug_structure():
         intent=Intent.CLAIM_VERIFICATION, product_candidates=["虛構牌晶亮測試膠囊"],
         claims=[claim("可以治療某疾病", ClaimSemanticCategory.MEDICAL_EFFICACY, ClaimOrigin.ADVERTISEMENT_CLAIM)],
     )
-    resp = client_with(build(ex)).post("/api/debug/analyze", json={"type": "text", "content": "TEST_ONLY 問題"})
+    resp = client_with(build(ex)).post("/api/debug/analyze", json={"type": "text", "content": "TEST_ONLY 問題 虛構牌晶亮測試膠囊"})
     assert resp.status_code == 200
     body = resp.json()
     for key in ("request_id", "normalized_request", "tools_called", "product_verification",
@@ -98,7 +98,7 @@ def test_conversation_context_resolves_reference_in_next_turn():
         return extraction(refers_to_unspecified_product=True, context_resolved_names=names[:1],
                           claims=[claim("它可以治療某疾病", ClaimSemanticCategory.MEDICAL_EFFICACY, ClaimOrigin.USER_QUESTION)])
 
-    build(first, store=store).run(RawUserInput(input_type=InputType.TEXT, text="第一句"), conversation_id="conv-1")
+    build(first, store=store).run(RawUserInput(input_type=InputType.TEXT, text="第一句 虛構牌晶亮測試膠囊"), conversation_id="conv-1")
     result = build(second, store=store).run(RawUserInput(input_type=InputType.TEXT, text="那它呢"), conversation_id="conv-1")
     req = result.normalized_request
     assert req.product_reference_status == "RESOLVED_FROM_CONTEXT"

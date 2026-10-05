@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from app.normalization import extract_permit_code, name_match_score, normalize_name, search_terms
 from app.product_coverage import category_of
+from app.services.errors import ServiceError
 from app.schemas.enums import EntityType, EvidenceScope, EvidenceStatus, ProductStatus, SourceType
 from app.schemas.evidence import (
     CLAIM_KIND_UNCLASSIFIED,
@@ -413,6 +414,18 @@ def lookup_product_warnings(repo: OfficialDataRepository, product_ids: list[str]
         )
         for row in repo.get_warnings(product_ids)
     ]
+
+
+def identity_generic_terms(repo: Any) -> list[str]:
+    """Candidate Relevance Gate 用的一般成分用語（官方成分 / ingredient entity 名稱）。
+    取不到時回空清單：gate 仍有固定的一般用語規則，查詢不因此失敗。"""
+    getter = getattr(repo, "get_identity_generic_terms", None)
+    if getter is None:
+        return []
+    try:
+        return list(getter())
+    except ServiceError:
+        return []
 
 
 def lookup_product_ingredients(repo: OfficialDataRepository, product_ids: list[str]) -> list[IngredientRecord]:

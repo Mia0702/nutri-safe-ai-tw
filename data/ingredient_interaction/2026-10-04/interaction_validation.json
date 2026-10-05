@@ -1,0 +1,70 @@
+{
+  "corpus_version": "1.0",
+  "research_date": "2026-10-04",
+  "retrieved_at": "2026-10-04T04:19:55.052287+00:00",
+  "counts": {
+    "entities": 45,
+    "aliases": 86,
+    "drug_substances": 15,
+    "interactions": 42,
+    "clinical_interactions": 25,
+    "duplicate_intake_templates": 17,
+    "evidence_records": 60,
+    "sources": 39,
+    "official_source_interactions": 42,
+    "taiwan_official_source_interactions": 1,
+    "pubmed_supported_interactions": 8,
+    "unique_pmids": 12,
+    "evidence_use": {
+      "DECISION_ELIGIBLE": 29,
+      "SUPPORTING": 26,
+      "CONTEXT_ONLY": 5
+    },
+    "interaction_evidence_use": {
+      "DECISION_ELIGIBLE": 29,
+      "SUPPORTING": 9,
+      "CONTEXT_ONLY": 3,
+      "NEEDS_REVIEW": 1
+    },
+    "evidence_conflicts": 1,
+    "interaction_needs_review_including_conflicts": 10,
+    "drug_taiwan_code_mapping_needs_review": 15
+  },
+  "checks": {
+    "interaction_has_evidence": true,
+    "evidence_has_source": true,
+    "interaction_entities_exist": true,
+    "alias_entities_and_sources_exist": true,
+    "drug_entities_exist": true,
+    "aliases_not_conflicting": true,
+    "ids_unique": true,
+    "pmid_and_doi_verified_by_nlm_xml": true,
+    "no_commercial_core_sources": true,
+    "no_failed_source_used_for_evidence": true,
+    "no_low_quality_sole_decision_warning": true,
+    "no_conflict_deterministic_warning": true,
+    "duplicate_not_interacts_with": true,
+    "no_product_to_product_records": true,
+    "severity_certainty_strength_separate": true,
+    "unavailable_chemical_identifiers_null": true,
+    "all_csv_utf8_readable": true
+  },
+  "all_checks_passed": true,
+  "alias_conflicts": {},
+  "production_writes": false,
+  "github_modified": false,
+  "program_modified": false,
+  "no_drug_product_nodes": true,
+  "not_a_formal_grade_or_systematic_review": true,
+  "null_encoding": "Literal NULL in CSV, actual null in JSON",
+  "official_url_verification": "HTTP raw downloads / official web retrieval / NLM efetch verified; HPA blocked PDF is inventory only; raw FDA educational page timeout rescued with official web capture",
+  "known_gaps": [
+    "台灣DRIs原始附件未取得；數值UL只保留明確國別US/EU，無台灣自動超量結論",
+    "台灣個別藥品仿單／InfoId43成分代碼未全量或逐品核對",
+    "商品標示每日含量、元素量、服用份數缺失時不能判定真實cumulative intake",
+    "摘要級證據未全文RoB/GRADE，檢索為scoped curated v1而非完整systematic review",
+    "魚油-warfarin有衝突；FDA dolutegravir PD隨餐文字須按劑型確認",
+    "nutrient group／salt／vitamer／mixture是不同identity level；未知原料不能中文名合併"
+  ],
+  "ready_for_neo4j_importer_design": true
+}

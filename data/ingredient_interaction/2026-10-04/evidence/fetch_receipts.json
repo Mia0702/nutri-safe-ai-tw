@@ -1,0 +1,18 @@
+[
+  {
+    "source_id": "TFDA_ADDITIVES_61",
+    "source_url": "https://data.fda.gov.tw/data/opendata/export/61/json",
+    "retrieved_at": "2026-10-04T09:07:41.252190+00:00",
+    "status": 200,
+    "sha256": "bb1e098b10dd12b0965ee360d5c423452ec4226c2cad6cd592d826088d126f87",
+    "bytes": 976647
+  },
+  {
+    "source_id": "TFDA_HEALTH_19",
+    "source_url": "https://data.fda.gov.tw/data/opendata/export/19/json",
+    "retrieved_at": "2026-10-04T09:07:41.253335+00:00",
+    "status": 200,
+    "sha256": "ed37152b0c810bc23c095bb8e03ab78956be98700e94557cfc52f56f70f10402",
+    "bytes": 574649
+  }
+]

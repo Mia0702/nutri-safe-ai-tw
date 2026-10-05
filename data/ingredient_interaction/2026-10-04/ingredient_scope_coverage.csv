@@ -1,0 +1,18 @@
+﻿entity_id,scope_name,source_id,interaction_record_count,coverage_note,source_url
+N_CA,Calcium,ODS_CALCIUM,5,未找到本版可入庫臨床pair時只保留duplicate/reference context；不等於證明無interaction,https://ods.od.nih.gov/factsheets/Calcium-HealthProfessional/
+N_FE,Iron,ODS_IRON,8,未找到本版可入庫臨床pair時只保留duplicate/reference context；不等於證明無interaction,https://ods.od.nih.gov/factsheets/Iron-HealthProfessional/
+N_MG,Magnesium,ODS_MAGNESIUM,4,未找到本版可入庫臨床pair時只保留duplicate/reference context；不等於證明無interaction,https://ods.od.nih.gov/factsheets/Magnesium-HealthProfessional/
+N_ZN,Zinc,ODS_ZINC,5,未找到本版可入庫臨床pair時只保留duplicate/reference context；不等於證明無interaction,https://ods.od.nih.gov/factsheets/Zinc-HealthProfessional/
+N_CU,Copper,ODS_COPPER,2,未找到本版可入庫臨床pair時只保留duplicate/reference context；不等於證明無interaction,https://ods.od.nih.gov/factsheets/Copper-HealthProfessional/
+N_D,Vitamin D,ODS_VITAMIND,4,未找到本版可入庫臨床pair時只保留duplicate/reference context；不等於證明無interaction,https://ods.od.nih.gov/factsheets/VitaminD-HealthProfessional/
+N_K,Vitamin K,ODS_VITAMINK,2,未找到本版可入庫臨床pair時只保留duplicate/reference context；不等於證明無interaction,https://ods.od.nih.gov/factsheets/VitaminK-HealthProfessional/
+N_C,Vitamin C,ODS_VITAMINC,2,未找到本版可入庫臨床pair時只保留duplicate/reference context；不等於證明無interaction,https://ods.od.nih.gov/factsheets/VitaminC-HealthProfessional/
+N_B1,Thiamin,ODS_THIAMIN,1,未找到本版可入庫臨床pair時只保留duplicate/reference context；不等於證明無interaction,https://ods.od.nih.gov/factsheets/Thiamin-HealthProfessional/
+N_B2,Riboflavin,ODS_RIBOFLAVIN,1,未找到本版可入庫臨床pair時只保留duplicate/reference context；不等於證明無interaction,https://ods.od.nih.gov/factsheets/Riboflavin-HealthProfessional/
+N_B3,Niacin,ODS_NIACIN,1,未找到本版可入庫臨床pair時只保留duplicate/reference context；不等於證明無interaction,https://ods.od.nih.gov/factsheets/Niacin-HealthProfessional/
+N_B5,Pantothenic acid,ODS_PANTOTHENICACID,1,未找到本版可入庫臨床pair時只保留duplicate/reference context；不等於證明無interaction,https://ods.od.nih.gov/factsheets/PantothenicAcid-HealthProfessional/
+N_B6,Vitamin B6,ODS_VITAMINB6,1,未找到本版可入庫臨床pair時只保留duplicate/reference context；不等於證明無interaction,https://ods.od.nih.gov/factsheets/VitaminB6-HealthProfessional/
+N_B7,Biotin,ODS_BIOTIN,1,未找到本版可入庫臨床pair時只保留duplicate/reference context；不等於證明無interaction,https://ods.od.nih.gov/factsheets/Biotin-HealthProfessional/
+N_B9,Folate,ODS_FOLATE,1,未找到本版可入庫臨床pair時只保留duplicate/reference context；不等於證明無interaction,https://ods.od.nih.gov/factsheets/Folate-HealthProfessional/
+N_B12,Vitamin B12,ODS_VITAMINB12,3,未找到本版可入庫臨床pair時只保留duplicate/reference context；不等於證明無interaction,https://ods.od.nih.gov/factsheets/VitaminB12-HealthProfessional/
+N_OMEGA3,Omega-3 fatty acids,ODS_OMEGA3FATTYACIDS,1,未找到本版可入庫臨床pair時只保留duplicate/reference context；不等於證明無interaction,https://ods.od.nih.gov/factsheets/Omega3FattyAcids-HealthProfessional/

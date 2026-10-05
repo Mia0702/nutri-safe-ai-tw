@@ -101,3 +101,8 @@ RAG_CHUNKS = [
      "source_name": "TEST_ONLY 虛構主管機關", "document_type": "regulation", "is_official": True,
      "retrieved_at": "2026-01-01T00:00:00+00:00"},
 ]
+
+# Ingredient Bridge（TEST_ONLY）：預設沒有完成匯入的 bridge、沒有 mapping；個別測試以 monkeypatch 提供虛構資料
+INGREDIENT_BRIDGE: dict = {}
+INGREDIENT_ENTITY_MAPPINGS: list = []
+INGREDIENT_STAGING: dict = {}  # product_id → raw_data.ingredient_staging（登記類官方成分原文）

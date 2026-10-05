@@ -13,11 +13,11 @@
 ```mermaid
 flowchart TD
     IN[LINE Webhook / POST /api/debug/analyze<br/>RawUserInput：text ・ media ・ urls] --> A
-    subgraph AA[Agent A — Multimodal Intake / Understanding]
+    subgraph AA[Controller Agent — Multimodal Intake / Understanding]
         IT[Input Tools<br/>analyze_image ・ transcribe_audio ・ fetch_url_content] --> A[語意理解<br/>OpenAI Structured Output]
     end
     CTX[(Conversation context)] -.前文實體.-> A
-    A -->|NormalizedUserRequest| B[Agent B — Evidence / Verification<br/>LLM tool planning + deterministic guardrails]
+    A -->|NormalizedUserRequest| B[Researcher Agent — Evidence / Verification<br/>LLM tool planning + deterministic guardrails]
     B -->|呼叫| ET[Evidence Tools<br/>lookup_* ・ search_illegal_ad_cases ・ query_knowledge_graph<br/>search_rag ・ search_tw_official_web]
     ET --> D1[(Data Service：Supabase<br/>官方結構化資料 + entity_aliases)]
     ET --> D2[(Data Service：Neo4j<br/>知識關係)]
@@ -27,7 +27,7 @@ flowchart TD
     G -->|通過| B
     G -.不相關.-> REJ[rejected_evidence<br/>不可引用]
     B -->|EvidenceBundle| R[Risk Engine<br/>deterministic rules]
-    R -->|RiskAssessment| C[Agent C — Reporter]
+    R -->|RiskAssessment| C[Reporter Agent]
     A -.NormalizedUserRequest.-> C
     B -.EvidenceBundle.-> C
     C -->|ResponsePayload| RD[AdaptiveLineRenderer]
@@ -38,16 +38,24 @@ flowchart TD
 
 * **Agent** 決定現在該做什麼；**Tool** 是 Agent 實際呼叫的 function interface；
   **Data Service / Data Source**（Supabase、Neo4j、pgvector、官方網站）只存資料，不是 Agent。
-* Agent A 只能用 Input Tools，Agent B 只能用 Evidence Tools，兩組互不共用；
-  Agent C 與 Renderer 不呼叫任何 Tool（[tests/unit/test_tool_boundaries.py](tests/unit/test_tool_boundaries.py) 檢查）。
+* Controller Agent 只能用 Input Tools，Researcher Agent 只能用 Evidence Tools，兩組互不共用；
+  Reporter Agent 與 Renderer 不呼叫任何 Tool（[tests/unit/test_tool_boundaries.py](tests/unit/test_tool_boundaries.py) 檢查）。
 
 ### 三個 Agent 的責任
 
+> 命名：Controller Agent（原 Agent A）、Researcher Agent（原 Agent B）、Reporter Agent（原 Agent C）。
+> 目前只是文件用語；程式的 class、檔名、logger、enum 等識別字（`IntakeAgent`、`VerificationAgent`、`ReporterAgent`、`agent_a` 等）維持不變。
+> Controller Agent 負責理解並準備查證任務，不取代 deterministic 的流程編排、Risk Engine 與 guardrails。
+
+- **Controller Agent**：理解多模態輸入、意圖、產品 / 宣稱語意，並準備查證任務。
+- **Researcher Agent**：透過受控工具（Supabase、Neo4j、RAG、官方網站 fallback）取得並查證證據。
+- **Reporter Agent**：把已查證的結構化證據轉成給使用者的回覆，不產生新證據。
+
 | Agent | 做什麼 | 不做什麼 |
 |---|---|---|
-| A — Multimodal Intake（[app/agents/intake_agent.py](app/agents/intake_agent.py)） | 圖片 / 語音 / 網址先用 Input Tools 轉成文字（文字輸入不需要 Tool），再走**同一段**語意理解，輸出唯一的 `NormalizedUserRequest`：意圖、實體候選、命題語意分類與 **statement role**；用對話 context 解析「它 / 這個」 | 不回答問題、不查資料庫、不判斷風險；不為 image / audio / URL 各建一套 pipeline；前文解析只能選系統提供的實體 |
-| B — Evidence / Verification（[app/agents/verification_agent.py](app/agents/verification_agent.py)） | **Hybrid tool planning**：LLM 以 function calling 在 allowlist 內規劃工具（可多輪）；deterministic guardrails 補齊必要查證；證據經 Relevance Gate 篩選後組成 `EvidenceBundle` | 不能呼叫 allowlist 外的工具、不能編造 ID、不能自行決定查官方網站；證據由程式收集，LLM 只評估相關性與命題關係 |
-| C — Reporter（[app/agents/reporter_agent.py](app/agents/reporter_agent.py)） | 輸出結構化 `ResponsePayload`（依 intent 選 response_type）；按鈕觸發時依同一 request_id 的證據產生 `DetailPayload`（只有「查看完整分析」用 LLM 寫白話正文） | 不輸出 Flex JSON、不重新查資料、不新增證據裡沒有的官方結論、不改變風險等級 |
+| Controller Agent（原 Agent A）— Multimodal Intake（[app/agents/intake_agent.py](app/agents/intake_agent.py)） | 圖片 / 語音 / 網址先用 Input Tools 轉成文字（文字輸入不需要 Tool），再走**同一段**語意理解，輸出唯一的 `NormalizedUserRequest`：意圖、實體候選、命題語意分類與 **statement role**；用對話 context 解析「它 / 這個」 | 不回答問題、不查資料庫、不判斷風險；不為 image / audio / URL 各建一套 pipeline；前文解析只能選系統提供的實體 |
+| Researcher Agent（原 Agent B）— Evidence / Verification（[app/agents/verification_agent.py](app/agents/verification_agent.py)） | **Hybrid tool planning**：LLM 以 function calling 在 allowlist 內規劃工具（可多輪）；deterministic guardrails 補齊必要查證；證據經 Relevance Gate 篩選後組成 `EvidenceBundle` | 不能呼叫 allowlist 外的工具、不能編造 ID、不能自行決定查官方網站；證據由程式收集，LLM 只評估相關性與命題關係 |
+| Reporter Agent（原 Agent C）（[app/agents/reporter_agent.py](app/agents/reporter_agent.py)） | 輸出結構化 `ResponsePayload`（依 intent 選 response_type）；按鈕觸發時依同一 request_id 的證據產生 `DetailPayload`（只有「查看完整分析」用 LLM 寫白話正文） | 不輸出 Flex JSON、不重新查資料、不新增證據裡沒有的官方結論、不改變風險等級 |
 
 所有 LLM 指令集中在 [app/agents/prompts.py](app/agents/prompts.py)。
 
@@ -60,7 +68,7 @@ flowchart TD
 - 使用者斷言、轉傳說法最多是 MEDIUM。
 - 「它 / 這個」：先用對話 context 解析（`conversation_id`）。解析不到就標記 `MISSING_CONTEXT`，風險 MEDIUM、不下定論。
 
-### Agent B 的 guardrails（deterministic）
+### Researcher Agent 的 guardrails（deterministic）
 
 | Guardrail | 實作 |
 |---|---|
@@ -78,7 +86,7 @@ flowchart TD
 
 每個 Tool 輸入明確、輸出結構化，可單獨測試，不產生最終回答。
 
-**Agent A — Input Tools**（[input_tools.py](app/tools/input_tools.py)）
+**Controller Agent — Input Tools**（[input_tools.py](app/tools/input_tools.py)）
 
 | Tool | 做什麼 |
 |---|---|
@@ -86,7 +94,7 @@ flowchart TD
 | `transcribe_audio` | OpenAI 語音轉文字 |
 | `fetch_url_content` | 讀取使用者提供網址的正文；只允許 http(s) 與公開 IP（每次重新導向都重新檢查），非官方網頁標註「只代表對方宣稱」 |
 
-**Agent B — Evidence Tools**
+**Researcher Agent — Evidence Tools**
 
 | Tool | 檔案 | Data Service / Source |
 |---|---|---|
@@ -101,9 +109,9 @@ flowchart TD
 ## 回覆架構（Adaptive LINE Response）
 
 * **每個 request 只有一則 primary response**：一張簡潔的 Adaptive Flex Message。不自動補發長文、來源或第二則訊息。
-* **Agent C 與 Renderer 分離**：Agent C 輸出 [`ResponsePayload`](app/schemas/response.py)
+* **Reporter Agent 與 Renderer 分離**：Reporter Agent 輸出 [`ResponsePayload`](app/schemas/response.py)
   （`request_id`、`response_type`、`risk_level`、`title`、`summary`、`key_points`、`warnings`、`available_actions`、`source_count`、`sources`）；
-  [AdaptiveLineRenderer](app/response/line_renderer.py) 才轉成 Flex。payload 可以比卡片完整，UI 不限制 Agent C 的內容。
+  [AdaptiveLineRenderer](app/response/line_renderer.py) 才轉成 Flex。payload 可以比卡片完整，UI 不限制 Reporter Agent 的內容。
 * **Adaptive template**：`RISK`、`PRODUCT_INFO`、`INGREDIENT_LIST`、`CLAIM_RESULT`、`SOURCE_SUMMARY`、`MISSING_INFORMATION`、`OUT_OF_SCOPE`、`ERROR`。
   只有 `RISK` 顯示 🟢 LOW / 🟠 MEDIUM / 🔴 HIGH；高風險或包裝 / 廣告宣稱一律用 RISK，不會被其他 template 隱藏。
 * **卡片內容**：結果、一句結論、最多 3 個重點、必要警語、最多 3 個按鈕；白色 / 中性色，不使用大面積色塊。

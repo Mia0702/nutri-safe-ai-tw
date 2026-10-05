@@ -1,0 +1,46 @@
+﻿entity_id,entity_type,canonical_name_en,display_name_zh,identity_level,parent_nutrient_entity_id,source_id,source_url,cas,unii,inchikey,review_status,notes
+N_CA,INGREDIENT,Calcium,鈣,NUTRIENT_GROUP,NULL,ODS_CALCIUM,https://ods.od.nih.gov/factsheets/Calcium-HealthProfessional/,NULL,NULL,NULL,READY,營養素群不是單一化學substance；不可將所有鹽類／vitamers當SAME_AS。
+N_FE,INGREDIENT,Iron,鐵,NUTRIENT_GROUP,NULL,ODS_IRON,https://ods.od.nih.gov/factsheets/Iron-HealthProfessional/,NULL,NULL,NULL,READY,營養素群不是單一化學substance；不可將所有鹽類／vitamers當SAME_AS。
+N_MG,INGREDIENT,Magnesium,鎂,NUTRIENT_GROUP,NULL,ODS_MAGNESIUM,https://ods.od.nih.gov/factsheets/Magnesium-HealthProfessional/,NULL,NULL,NULL,READY,營養素群不是單一化學substance；不可將所有鹽類／vitamers當SAME_AS。
+N_ZN,INGREDIENT,Zinc,鋅,NUTRIENT_GROUP,NULL,ODS_ZINC,https://ods.od.nih.gov/factsheets/Zinc-HealthProfessional/,NULL,NULL,NULL,READY,營養素群不是單一化學substance；不可將所有鹽類／vitamers當SAME_AS。
+N_CU,INGREDIENT,Copper,銅,NUTRIENT_GROUP,NULL,ODS_COPPER,https://ods.od.nih.gov/factsheets/Copper-HealthProfessional/,NULL,NULL,NULL,READY,營養素群不是單一化學substance；不可將所有鹽類／vitamers當SAME_AS。
+N_D,INGREDIENT,Vitamin D,維生素D,NUTRIENT_GROUP,NULL,ODS_VITAMIND,https://ods.od.nih.gov/factsheets/VitaminD-HealthProfessional/,NULL,NULL,NULL,READY,營養素群不是單一化學substance；不可將所有鹽類／vitamers當SAME_AS。
+N_K,INGREDIENT,Vitamin K,維生素K,NUTRIENT_GROUP,NULL,ODS_VITAMINK,https://ods.od.nih.gov/factsheets/VitaminK-HealthProfessional/,NULL,NULL,NULL,READY,營養素群不是單一化學substance；不可將所有鹽類／vitamers當SAME_AS。
+N_C,INGREDIENT,Vitamin C,維生素C,NUTRIENT_GROUP,NULL,ODS_VITAMINC,https://ods.od.nih.gov/factsheets/VitaminC-HealthProfessional/,NULL,NULL,NULL,READY,營養素群不是單一化學substance；不可將所有鹽類／vitamers當SAME_AS。
+N_B1,INGREDIENT,Thiamin,維生素B1,NUTRIENT_GROUP,NULL,ODS_THIAMIN,https://ods.od.nih.gov/factsheets/Thiamin-HealthProfessional/,NULL,NULL,NULL,READY,營養素群不是單一化學substance；不可將所有鹽類／vitamers當SAME_AS。
+N_B2,INGREDIENT,Riboflavin,維生素B2,NUTRIENT_GROUP,NULL,ODS_RIBOFLAVIN,https://ods.od.nih.gov/factsheets/Riboflavin-HealthProfessional/,NULL,NULL,NULL,READY,營養素群不是單一化學substance；不可將所有鹽類／vitamers當SAME_AS。
+N_B3,INGREDIENT,Niacin,維生素B3,NUTRIENT_GROUP,NULL,ODS_NIACIN,https://ods.od.nih.gov/factsheets/Niacin-HealthProfessional/,NULL,NULL,NULL,READY,營養素群不是單一化學substance；不可將所有鹽類／vitamers當SAME_AS。
+N_B5,INGREDIENT,Pantothenic acid,維生素B5,NUTRIENT_GROUP,NULL,ODS_PANTOTHENICACID,https://ods.od.nih.gov/factsheets/PantothenicAcid-HealthProfessional/,NULL,NULL,NULL,READY,營養素群不是單一化學substance；不可將所有鹽類／vitamers當SAME_AS。
+N_B6,INGREDIENT,Vitamin B6,維生素B6,NUTRIENT_GROUP,NULL,ODS_VITAMINB6,https://ods.od.nih.gov/factsheets/VitaminB6-HealthProfessional/,NULL,NULL,NULL,READY,營養素群不是單一化學substance；不可將所有鹽類／vitamers當SAME_AS。
+N_B7,INGREDIENT,Biotin,生物素,NUTRIENT_GROUP,NULL,ODS_BIOTIN,https://ods.od.nih.gov/factsheets/Biotin-HealthProfessional/,NULL,NULL,NULL,READY,營養素群不是單一化學substance；不可將所有鹽類／vitamers當SAME_AS。
+N_B9,INGREDIENT,Folate,葉酸營養素群,NUTRIENT_GROUP,NULL,ODS_FOLATE,https://ods.od.nih.gov/factsheets/Folate-HealthProfessional/,NULL,NULL,NULL,READY,營養素群不是單一化學substance；不可將所有鹽類／vitamers當SAME_AS。
+N_B12,INGREDIENT,Vitamin B12,維生素B12,NUTRIENT_GROUP,NULL,ODS_VITAMINB12,https://ods.od.nih.gov/factsheets/VitaminB12-HealthProfessional/,NULL,NULL,NULL,READY,營養素群不是單一化學substance；不可將所有鹽類／vitamers當SAME_AS。
+N_OMEGA3,INGREDIENT,Omega-3 fatty acids,Omega-3脂肪酸群,NUTRIENT_GROUP,NULL,ODS_OMEGA3FATTYACIDS,https://ods.od.nih.gov/factsheets/Omega3FattyAcids-HealthProfessional/,NULL,NULL,NULL,READY,營養素群不是單一化學substance；不可將所有鹽類／vitamers當SAME_AS。
+F_FISH_OIL,INGREDIENT,Fish oil,魚油,MIXTURE,N_OMEGA3,ODS_OMEGA3FATTYACIDS,https://ods.od.nih.gov/factsheets/Omega3FattyAcids-HealthProfessional/,NULL,NULL,NULL,READY,parent僅標營養素歸屬，不是化學SAME_AS或等量轉換；魚油重量不等於EPA+DHA重量。
+F_EPA,INGREDIENT,Eicosapentaenoic acid,EPA,CHEMICAL_SUBSTANCE,N_OMEGA3,ODS_OMEGA3FATTYACIDS,https://ods.od.nih.gov/factsheets/Omega3FattyAcids-HealthProfessional/,NULL,NULL,NULL,READY,parent僅標營養素歸屬，不是化學SAME_AS或等量轉換；魚油重量不等於EPA+DHA重量。
+F_DHA,INGREDIENT,Docosahexaenoic acid,DHA,CHEMICAL_SUBSTANCE,N_OMEGA3,ODS_OMEGA3FATTYACIDS,https://ods.od.nih.gov/factsheets/Omega3FattyAcids-HealthProfessional/,NULL,NULL,NULL,READY,parent僅標營養素歸屬，不是化學SAME_AS或等量轉換；魚油重量不等於EPA+DHA重量。
+F_D2,INGREDIENT,Ergocalciferol,維生素D2,CHEMICAL_SUBSTANCE,N_D,ODS_VITAMIND,https://ods.od.nih.gov/factsheets/VitaminD-HealthProfessional/,NULL,NULL,NULL,READY,parent僅標營養素歸屬，不是化學SAME_AS或等量轉換；魚油重量不等於EPA+DHA重量。
+F_D3,INGREDIENT,Cholecalciferol,維生素D3,CHEMICAL_SUBSTANCE,N_D,ODS_VITAMIND,https://ods.od.nih.gov/factsheets/VitaminD-HealthProfessional/,NULL,NULL,NULL,READY,parent僅標營養素歸屬，不是化學SAME_AS或等量轉換；魚油重量不等於EPA+DHA重量。
+F_FOLIC_ACID,INGREDIENT,Folic acid,葉酸（folic acid）,CHEMICAL_SUBSTANCE,N_B9,ODS_FOLATE,https://ods.od.nih.gov/factsheets/Folate-HealthProfessional/,NULL,NULL,NULL,READY,parent僅標營養素歸屬，不是化學SAME_AS或等量轉換；魚油重量不等於EPA+DHA重量。
+F_PYRIDOXINE,INGREDIENT,Pyridoxine,吡哆醇,CHEMICAL_SUBSTANCE,N_B6,ODS_VITAMINB6,https://ods.od.nih.gov/factsheets/VitaminB6-HealthProfessional/,NULL,NULL,NULL,READY,parent僅標營養素歸屬，不是化學SAME_AS或等量轉換；魚油重量不等於EPA+DHA重量。
+F_NICOTINIC_ACID,INGREDIENT,Nicotinic acid,菸鹼酸,CHEMICAL_SUBSTANCE,N_B3,ODS_NIACIN,https://ods.od.nih.gov/factsheets/Niacin-HealthProfessional/,NULL,NULL,NULL,READY,parent僅標營養素歸屬，不是化學SAME_AS或等量轉換；魚油重量不等於EPA+DHA重量。
+F_CA_CARBONATE,INGREDIENT,Calcium carbonate,碳酸鈣,SALT,N_CA,ODS_CALCIUM,https://ods.od.nih.gov/factsheets/Calcium-HealthProfessional/,NULL,NULL,NULL,READY,parent僅標營養素歸屬，不是化學SAME_AS或等量轉換；魚油重量不等於EPA+DHA重量。
+F_CA_CITRATE,INGREDIENT,Calcium citrate,檸檬酸鈣,SALT,N_CA,ODS_CALCIUM,https://ods.od.nih.gov/factsheets/Calcium-HealthProfessional/,NULL,NULL,NULL,READY,parent僅標營養素歸屬，不是化學SAME_AS或等量轉換；魚油重量不等於EPA+DHA重量。
+F_CA_ACETATE,INGREDIENT,Calcium acetate,醋酸鈣,SALT,N_CA,PMID_21595516,https://pubmed.ncbi.nlm.nih.gov/21595516/,NULL,NULL,NULL,READY,parent僅標營養素歸屬，不是化學SAME_AS或等量轉換；魚油重量不等於EPA+DHA重量。
+F_FE_SULFATE,INGREDIENT,Ferrous sulfate,硫酸亞鐵,SALT,N_FE,ODS_IRON,https://ods.od.nih.gov/factsheets/Iron-HealthProfessional/,NULL,NULL,NULL,READY,parent僅標營養素歸屬，不是化學SAME_AS或等量轉換；魚油重量不等於EPA+DHA重量。
+F_FE_FUMARATE,INGREDIENT,Ferrous fumarate,富馬酸亞鐵,SALT,N_FE,PMID_25449994,https://pubmed.ncbi.nlm.nih.gov/25449994/,NULL,NULL,NULL,READY,parent僅標營養素歸屬，不是化學SAME_AS或等量轉換；魚油重量不等於EPA+DHA重量。
+D_LT4,DRUG_SUBSTANCE,Levothyroxine,NULL,ACTIVE_MOIETY,NULL,ODS_CALCIUM,https://ods.od.nih.gov/factsheets/Calcium-HealthProfessional/,NULL,NULL,NULL,READY,未建任何DrugProduct；台灣成分代碼/CAS/UNII未核對則NULL，不從商品名或鹽後綴自動合併。
+D_DTG,DRUG_SUBSTANCE,Dolutegravir,NULL,ACTIVE_MOIETY,NULL,FDA_TIVICAY_2026,https://www.accessdata.fda.gov/drugsatfda_docs/label/2026/204790s034lbl.pdf,NULL,NULL,NULL,READY,未建任何DrugProduct；台灣成分代碼/CAS/UNII未核對則NULL，不從商品名或鹽後綴自動合併。
+D_CIP,DRUG_SUBSTANCE,Ciprofloxacin,NULL,ACTIVE_MOIETY,NULL,ODS_MAGNESIUM,https://ods.od.nih.gov/factsheets/Magnesium-HealthProfessional/,NULL,NULL,NULL,READY,未建任何DrugProduct；台灣成分代碼/CAS/UNII未核對則NULL，不從商品名或鹽後綴自動合併。
+D_DOX,DRUG_SUBSTANCE,Doxycycline,NULL,ACTIVE_MOIETY,NULL,ODS_MAGNESIUM,https://ods.od.nih.gov/factsheets/Magnesium-HealthProfessional/,NULL,NULL,NULL,READY,未建任何DrugProduct；台灣成分代碼/CAS/UNII未核對則NULL，不從商品名或鹽後綴自動合併。
+D_ALN,DRUG_SUBSTANCE,Alendronate,NULL,ACTIVE_MOIETY,NULL,ODS_MAGNESIUM,https://ods.od.nih.gov/factsheets/Magnesium-HealthProfessional/,NULL,NULL,NULL,READY,未建任何DrugProduct；台灣成分代碼/CAS/UNII未核對則NULL，不從商品名或鹽後綴自動合併。
+D_PEN,DRUG_SUBSTANCE,Penicillamine,NULL,ACTIVE_MOIETY,NULL,ODS_ZINC,https://ods.od.nih.gov/factsheets/Zinc-HealthProfessional/,NULL,NULL,NULL,READY,未建任何DrugProduct；台灣成分代碼/CAS/UNII未核對則NULL，不從商品名或鹽後綴自動合併。
+D_WAR,DRUG_SUBSTANCE,Warfarin,NULL,ACTIVE_MOIETY,NULL,ODS_VITAMINK,https://ods.od.nih.gov/factsheets/VitaminK-HealthProfessional/,NULL,NULL,NULL,READY,未建任何DrugProduct；台灣成分代碼/CAS/UNII未核對則NULL，不從商品名或鹽後綴自動合併。
+D_HCTZ,DRUG_SUBSTANCE,Hydrochlorothiazide,NULL,ACTIVE_MOIETY,NULL,ODS_MAGNESIUM,https://ods.od.nih.gov/factsheets/Magnesium-HealthProfessional/,NULL,NULL,NULL,READY,未建任何DrugProduct；台灣成分代碼/CAS/UNII未核對則NULL，不從商品名或鹽後綴自動合併。
+D_ORL,DRUG_SUBSTANCE,Orlistat,NULL,ACTIVE_MOIETY,NULL,ODS_VITAMIND,https://ods.od.nih.gov/factsheets/VitaminD-HealthProfessional/,NULL,NULL,NULL,READY,未建任何DrugProduct；台灣成分代碼/CAS/UNII未核對則NULL，不從商品名或鹽後綴自動合併。
+D_MET,DRUG_SUBSTANCE,Metformin,NULL,ACTIVE_MOIETY,NULL,ODS_VITAMINB12,https://ods.od.nih.gov/factsheets/VitaminB12-HealthProfessional/,NULL,NULL,NULL,READY,未建任何DrugProduct；台灣成分代碼/CAS/UNII未核對則NULL，不從商品名或鹽後綴自動合併。
+D_OME,DRUG_SUBSTANCE,Omeprazole,NULL,ACTIVE_MOIETY,NULL,ODS_IRON,https://ods.od.nih.gov/factsheets/Iron-HealthProfessional/,NULL,NULL,NULL,READY,未建任何DrugProduct；台灣成分代碼/CAS/UNII未核對則NULL，不從商品名或鹽後綴自動合併。
+D_LDOPA,DRUG_SUBSTANCE,Levodopa,NULL,ACTIVE_MOIETY,NULL,ODS_IRON,https://ods.od.nih.gov/factsheets/Iron-HealthProfessional/,NULL,NULL,NULL,READY,未建任何DrugProduct；台灣成分代碼/CAS/UNII未核對則NULL，不從商品名或鹽後綴自動合併。
+D_MTX,DRUG_SUBSTANCE,Methotrexate,NULL,ACTIVE_MOIETY,NULL,ODS_FOLATE,https://ods.od.nih.gov/factsheets/Folate-HealthProfessional/,NULL,NULL,NULL,READY,未建任何DrugProduct；台灣成分代碼/CAS/UNII未核對則NULL，不從商品名或鹽後綴自動合併。
+D_PHT,DRUG_SUBSTANCE,Phenytoin,NULL,ACTIVE_MOIETY,NULL,ODS_VITAMINB6,https://ods.od.nih.gov/factsheets/VitaminB6-HealthProfessional/,NULL,NULL,NULL,READY,未建任何DrugProduct；台灣成分代碼/CAS/UNII未核對則NULL，不從商品名或鹽後綴自動合併。
+D_DTG_SODIUM,DRUG_SUBSTANCE,Dolutegravir sodium,NULL,SALT,NULL,FDA_TIVICAY_2026,https://www.accessdata.fda.gov/drugsatfda_docs/label/2026/204790s034lbl.pdf,NULL,NULL,NULL,READY,未建任何DrugProduct；台灣成分代碼/CAS/UNII未核對則NULL，不從商品名或鹽後綴自動合併。

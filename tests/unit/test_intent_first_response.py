@@ -29,7 +29,7 @@ from app.schemas.enums import (
     SemanticTone,
 )
 from app.schemas.user_request import IntakeExtraction, RawUserInput
-from tests.builders import claim, extraction
+from tests.builders import claim, extraction, user_text
 from tests.fakes import FakeLLM, InMemoryGraphRepo, InMemoryOfficialRepo, InMemoryRagStore
 from tests.fixtures import synthetic_data as data
 from tests.fixtures.synthetic_data import SOURCE
@@ -47,7 +47,7 @@ def run(ex: IntakeExtraction, repo=None):
         verifier=VerificationAgent(repo or InMemoryOfficialRepo(), InMemoryGraphRepo(), InMemoryRagStore(), llm),
         risk_engine=RiskEngine(), reporter=ReporterAgent(llm),
     )
-    return pipeline.run(RawUserInput(input_type=InputType.TEXT, text="TEST_ONLY 問題"))
+    return pipeline.run(RawUserInput(input_type=InputType.TEXT, text=user_text(ex, "TEST_ONLY 問題")))
 
 
 def card_json(payload) -> str:

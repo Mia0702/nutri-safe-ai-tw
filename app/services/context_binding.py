@@ -46,7 +46,7 @@ def explicit_product_identifiers(request: NormalizedUserRequest) -> tuple[list[s
 
 
 def bind_confirmed_product(request: NormalizedUserRequest, confirmed: ConfirmedProduct | None) -> NormalizedUserRequest:
-    if confirmed is None or request.intent in (Intent.OUT_OF_SCOPE, Intent.UNCLEAR):
+    if confirmed is None or request.intent in (Intent.OUT_OF_SCOPE, Intent.UNCLEAR) or request.identity_collision or request.standalone_entity:
         return request
     products, permits = explicit_product_identifiers(request)
     official_norm = normalize_name(confirmed.official_product_name)

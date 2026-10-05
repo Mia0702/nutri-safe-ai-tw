@@ -1,0 +1,19 @@
+entity_id,entity_type,canonical_name_en,display_name_zh,identity_level,parent_nutrient_entity_id,source_id,source_url,cas,unii,inchikey,review_status,notes
+N_CA,INGREDIENT,Calcium,鈣,NUTRIENT_GROUP,NULL,TEST_ONLY_SRC,https://example.invalid/test-only,NULL,NULL,NULL,READY,NULL
+N_ZN,INGREDIENT,Zinc,鋅,NUTRIENT_GROUP,NULL,TEST_ONLY_SRC,https://example.invalid/test-only,NULL,NULL,NULL,READY,NULL
+N_FE,INGREDIENT,Iron,鐵,NUTRIENT_GROUP,NULL,TEST_ONLY_SRC,https://example.invalid/test-only,NULL,NULL,NULL,READY,NULL
+N_CU,INGREDIENT,Copper,銅,NUTRIENT_GROUP,NULL,TEST_ONLY_SRC,https://example.invalid/test-only,NULL,NULL,NULL,READY,NULL
+N_K,INGREDIENT,Vitamin K,維生素K,NUTRIENT_GROUP,NULL,TEST_ONLY_SRC,https://example.invalid/test-only,NULL,NULL,NULL,READY,NULL
+N_D,INGREDIENT,Vitamin D,維生素D,NUTRIENT_GROUP,NULL,TEST_ONLY_SRC,https://example.invalid/test-only,NULL,NULL,NULL,READY,NULL
+N_B1,INGREDIENT,Thiamin,維生素B1,NUTRIENT_GROUP,NULL,TEST_ONLY_SRC,https://example.invalid/test-only,NULL,NULL,NULL,READY,NULL
+N_B12,INGREDIENT,Vitamin B12,維生素B12,NUTRIENT_GROUP,NULL,TEST_ONLY_SRC,https://example.invalid/test-only,NULL,NULL,NULL,READY,NULL
+N_B9,INGREDIENT,Folate,葉酸營養素群,NUTRIENT_GROUP,NULL,TEST_ONLY_SRC,https://example.invalid/test-only,NULL,NULL,NULL,READY,NULL
+N_OMEGA3,INGREDIENT,Omega-3 fatty acids,Omega-3脂肪酸群,NUTRIENT_GROUP,NULL,TEST_ONLY_SRC,https://example.invalid/test-only,NULL,NULL,NULL,READY,NULL
+F_FISH_OIL,INGREDIENT,Fish oil,魚油,MIXTURE,N_OMEGA3,TEST_ONLY_SRC,https://example.invalid/test-only,NULL,NULL,NULL,READY,NULL
+F_EPA,INGREDIENT,Eicosapentaenoic acid,EPA,CHEMICAL_SUBSTANCE,N_OMEGA3,TEST_ONLY_SRC,https://example.invalid/test-only,NULL,NULL,NULL,READY,NULL
+F_DHA,INGREDIENT,Docosahexaenoic acid,DHA,CHEMICAL_SUBSTANCE,N_OMEGA3,TEST_ONLY_SRC,https://example.invalid/test-only,NULL,NULL,NULL,READY,NULL
+F_FOLIC_ACID,INGREDIENT,Folic acid,葉酸（folic acid）,CHEMICAL_SUBSTANCE,N_B9,TEST_ONLY_SRC,https://example.invalid/test-only,NULL,NULL,NULL,READY,NULL
+F_D3,INGREDIENT,Cholecalciferol,維生素D3,CHEMICAL_SUBSTANCE,N_D,TEST_ONLY_SRC,https://example.invalid/test-only,NULL,NULL,NULL,READY,NULL
+F_CA_CARBONATE,INGREDIENT,Calcium carbonate,碳酸鈣,SALT,N_CA,TEST_ONLY_SRC,https://example.invalid/test-only,NULL,NULL,NULL,READY,NULL
+F_CA_CITRATE,INGREDIENT,Calcium citrate,檸檬酸鈣,SALT,N_CA,TEST_ONLY_SRC,https://example.invalid/test-only,NULL,NULL,NULL,READY,NULL
+D_TEST,DRUG_SUBSTANCE,Testdrugine,NULL,ACTIVE_MOIETY,NULL,TEST_ONLY_SRC,NULL,NULL,NULL,NULL,READY,NULL

@@ -26,7 +26,7 @@ from app.schemas.user_request import IntakeExtraction, RawUserInput
 from app.services.errors import ServiceError
 from app.tools import input_tools
 from app.tools.input_tools import fetch_url_content
-from tests.builders import claim, extraction
+from tests.builders import claim, extraction, user_text
 from tests.fakes import FakeLLM, InMemoryGraphRepo, InMemoryOfficialRepo, InMemoryRagStore
 from tests.unit.test_line_webhook import PRODUCT_1, USER, FakeLine, build, event, send
 
@@ -35,14 +35,14 @@ SLOW_PATH_TOOLS = {"plan_tool_calls", "search_rag", "assess_evidence", "search_t
 MED = ClaimSemanticCategory.MEDICAL_EFFICACY
 
 
-def run(ex: IntakeExtraction, text="TEST_ONLY 問題"):
+def run(ex: IntakeExtraction, text=None):
     llm = FakeLLM(structured={IntakeExtraction: ex})
     pipeline = AnalysisPipeline(
         intake=IntakeAgent(llm),
         verifier=VerificationAgent(InMemoryOfficialRepo(), InMemoryGraphRepo(), InMemoryRagStore(), llm),
         risk_engine=RiskEngine(), reporter=ReporterAgent(llm),
     )
-    return pipeline.run(RawUserInput(input_type=InputType.TEXT, text=text)), llm
+    return pipeline.run(RawUserInput(input_type=InputType.TEXT, text=text or user_text(ex))), llm
 
 
 def tool_path(result) -> set[str]:

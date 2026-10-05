@@ -14,11 +14,13 @@ Modality semantic parity：語音轉錄的內容就是使用者親口說的話�
 
 import json
 import logging
+import re
 import time
 
 from app.agents.prompts import INTAKE_INSTRUCTIONS
+from app.risk.candidate_relevance import FORM_TERMS
 from app.risk.claim_policy import is_asserted_disease_claim
-from app.normalization import extract_permit_code, normalize_name
+from app.normalization import extract_permit_code, locate_in_text, normalize_name
 from app.schemas.enums import (
     ClaimContentSource,
     ClaimOrigin,
@@ -28,6 +30,7 @@ from app.schemas.enums import (
     InputType,
     Intent,
     ProductMatchType,
+    ProductMentionProvenance,
     ProductReferenceStatus,
     ProductVerificationStatus,
     UrlSourceRole,
@@ -38,6 +41,7 @@ from app.schemas.user_request import (
     IntakeExtraction,
     NormalizedUserRequest,
     OfficialSourceStatement,
+    ProductMention,
     RawUserInput,
     UrlSource,
 )
@@ -253,6 +257,7 @@ class IntakeAgent:
         request = self._to_request(request_id, raw, text, extraction, known)
         apply_url_source_roles(request, url_sources, only_url_content=only_url_content)
         apply_image_routing(request, has_image=has_image, only_image=only_image)
+        apply_product_phrase_routing(request)
         request.input_tools_called = input_tool_records
         request.adapter_notes = request.adapter_notes + record_only_notes
         transcriptions = [r for r in input_tool_records if r.tool_name == "transcribe_audio"]
@@ -290,9 +295,11 @@ class IntakeAgent:
             ex.certification_marks + [o.text for o in mark_observations if o.text_readable and o.text])
         mark_norms = {normalize_name(m) for m in certification_marks} - {""}
         # 標章文字不是產品識別：不可當成品名 / 品牌（標章只能輔助，不能單獨確認產品）
-        products = [n for n in _clean_list(ex.product_candidates) if normalize_name(n) not in mark_norms]
+        extracted = [n for n in _clean_list(ex.product_candidates) if normalize_name(n) not in mark_norms]
+        # provenance：使用者原文 vs Agent A 改字。只有格式差異的寫法才是使用者自己的寫法（可走 exact）
+        products, agent_corrected, mentions = product_mentions(text, extracted)
         raw_norms = {normalize_name(n) for n in products}
-        corrected = [n for n in _clean_list(ex.corrected_product_candidates)
+        corrected = [n for n in _clean_list(ex.corrected_product_candidates + agent_corrected)
                      if products and normalize_name(n) and normalize_name(n) not in raw_norms]
         brands = [n for n in _clean_list(ex.brand_candidates) if normalize_name(n) not in mark_norms]
         companies = _clean_list(ex.company_candidates)
@@ -300,7 +307,7 @@ class IntakeAgent:
         permits = _clean_list(ex.permit_number_candidates)
         claims = [c for c in ex.claims if c.claim_text.strip() and not _is_open_efficacy_question(ex.intent, c)]
         claims, identity_text = separate_identity_text(
-            claims, identifiers=products + brands + companies + permits + certification_marks)
+            claims, identifiers=products + agent_corrected + brands + companies + permits + certification_marks)
         other_visible_text = _clean_list(ex.other_visible_text + identity_text)
 
         # 產品指稱解析：LLM 只能從系統提供的前文實體中挑選，清單外的名稱一律丟棄
@@ -337,6 +344,7 @@ class IntakeAgent:
             intent=ex.intent,
             product_candidates=products,
             corrected_product_candidates=corrected,
+            product_mentions=mentions,
             brand_candidates=brands,
             company_candidates=companies,
             ingredient_candidates=ingredients,
@@ -566,3 +574,81 @@ def _route_to_identification(request: NormalizedUserRequest) -> None:
     request.image_identification = True
     request.needs_official_web_search = False
     request.needs_claim_check = bool(request.claims)
+
+
+# 「成分＋劑型」片語（例如某營養素加上膠囊 / 錠）：中間最多夾幾個字（規格、口味等），不跨標點 / 空白
+_PHRASE_GAP = r"[^\s，,。？?！!、；;：:]{0,6}?"
+_FORM_ALTERNATION = "|".join(re.escape(t) for t in sorted(FORM_TERMS, key=len, reverse=True))
+# 問句 / 敘述線索：有這些字就不是「只有一個名稱」的訊息（一般性語言規則，不是產品詞表）
+_QUESTION_CUES = ("?", "？", "嗎", "呢", "吗", "什麼", "甚麼", "什么", "怎麼", "怎么", "如何", "哪", "可以", "能不能", "是否",
+                  "有沒有", "有没有", "請問", "请问", "幫我", "帮我", "為什麼", "為何", "是不是", "要不要")
+MAX_BARE_NAME_CHARS = 40
+PRODUCT_PHRASE_NOTE = "含劑型的成分片語視為產品名稱 / 產品類別，先做產品查詢"
+BARE_NAME_NOTE = "整則訊息只有一個名稱，先當成產品名稱查詢"
+
+
+def apply_product_phrase_routing(request: NormalizedUserRequest) -> None:
+    """產品 vs 成分的一般化路由（deterministic，Agent A 語意抽取之後）。
+
+    A. 「成分＋劑型」片語（膠囊 / 錠 / 粉 / 飲…）指的是產品或產品類別，不是單一成分：
+       移到 product_candidates，走產品查詢 / 候選確認；不自動變成成分查詢。
+    B. intent 不明、沒有任何實體 / 命題、整則訊息只是一個名稱（沒有問句線索）→ 當成產品名稱查詢。
+    只在沒有任何產品識別、沒有命題、不是圖片 / 網址 / 代名詞時套用；明確的成分問題（「X 是什麼？」）不受影響。
+    """
+    if (request.has_product_identifiers or request.claims or request.url_sources or request.image_identification
+            or request.refers_to_unspecified_product or request.context_entities_used
+            or request.input_type not in (InputType.TEXT, InputType.AUDIO)):
+        return
+    text = request.original_text or ""
+    for ingredient in list(request.ingredient_candidates):
+        m = re.search(re.escape(ingredient) + _PHRASE_GAP + f"(?:{_FORM_ALTERNATION})", text, re.IGNORECASE)
+        if m is None:
+            continue
+        request.product_candidates = [m.group(0).strip()]
+        request.ingredient_candidates = [i for i in request.ingredient_candidates if i != ingredient]
+        if request.intent in (Intent.UNCLEAR, Intent.GENERAL_QUESTION):
+            request.intent = Intent.PRODUCT_VERIFICATION
+        _mark_product_lookup(request, PRODUCT_PHRASE_NOTE)
+        return
+    bare = text.strip().strip("。.!！~～ ")
+    if (request.intent == Intent.UNCLEAR and not request.ingredient_candidates and bare
+            and len(normalize_name(bare)) >= 2 and len(bare) <= MAX_BARE_NAME_CHARS
+            and not any(cue in bare for cue in _QUESTION_CUES) and not re.search(r"[，,。；;\n]", bare)):
+        request.product_candidates = [bare]
+        request.intent = Intent.PRODUCT_VERIFICATION
+        _mark_product_lookup(request, BARE_NAME_NOTE)
+
+
+def _mark_product_lookup(request: NormalizedUserRequest, note: str) -> None:
+    request.needs_product_lookup = True
+    request.product_reference_status = ProductReferenceStatus.EXPLICIT
+    request.adapter_notes = request.adapter_notes + [note]
+
+
+def product_mentions(text: str, extracted: list[str]) -> tuple[list[str], list[str], list[ProductMention]]:
+    """Agent A 抽出的產品名稱 → (產品名稱＝使用者寫法, Agent A 修正寫法, provenance)。
+
+    * 在使用者輸入中逐字（只差大小寫 / 全半形 / 空白 / 標點）找得到 → USER_TEXT，保留原寫法。
+    * 只找得到改了字的對應片段（錯字修正、同音修正、增刪字）→ AGENT_CORRECTED：產品名稱改用使用者原文片段，
+      Agent A 的寫法移到修正寫法（只是查詢線索，不能直接確認產品）。
+    * 輸入中找不到 → NOT_IN_USER_TEXT：仍用來查詢，但 resolver 不把它當成使用者寫法。
+    不禁止 Agent A 改字；只把 provenance 分開。
+    """
+    products, corrected, mentions = [], [], []
+    for name in extracted:
+        raw, distance = locate_in_text(text, name)
+        if raw is not None and distance == 0:
+            mentions.append(ProductMention(extracted_text=name, raw_text=raw, normalized_mention=normalize_name(raw),
+                                           provenance=ProductMentionProvenance.USER_TEXT))
+            products.append(name)
+        elif raw is not None:
+            mentions.append(ProductMention(extracted_text=name, raw_text=raw, normalized_mention=normalize_name(raw),
+                                           corrected_name=name, correction_applied=True, edit_count=distance,
+                                           provenance=ProductMentionProvenance.AGENT_CORRECTED))
+            products.append(raw.strip())
+            corrected.append(name)
+        else:
+            mentions.append(ProductMention(extracted_text=name, corrected_name=name, correction_applied=True,
+                                           edit_count=distance, provenance=ProductMentionProvenance.NOT_IN_USER_TEXT))
+            products.append(name)
+    return list(dict.fromkeys(products)), list(dict.fromkeys(corrected)), mentions

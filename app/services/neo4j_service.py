@@ -21,6 +21,8 @@ ALLOWED_LABELS = {
     "AppSchemaMeta", "Product", "Ingredient", "Company", "Brand", "Permit", "Claim", "Warning", "Source",
     # 0002_claim_policy_constraints.cypher（TFDA Claim Policy Corpus）
     "ClaimPolicyRule", "HealthFunction",
+    # 0004_ingredient_entity_bridge.cypher（Product Ingredient Mapping Bridge；proposal，尚未寫入）
+    "NutrientGroup", "IngredientForm",
 }
 
 

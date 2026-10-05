@@ -46,7 +46,17 @@ from app.product_coverage import (
     has_health_claim_approval,
     is_officially_inactive,
 )
-from app.schemas.evidence import ApprovedClaimEvidence, ClaimAssessment, EvidenceBundle, SourceRef
+from app.schemas.enums import FunctionEvidenceStatus, IngredientIdentityStatus, IngredientPresence, IngredientQueryResolution, ProductNotFoundReason
+from app.schemas.evidence import (
+    ApprovedClaimEvidence,
+    ClaimAssessment,
+    ConfirmedIngredientEntry,
+    EvidenceBundle,
+    IngredientEntityRef,
+    IngredientQueryAnswer,
+    ProductIngredientEvidence,
+    SourceRef,
+)
 from app.schemas.response import CLAIM_RISK_LABEL, RISK_EMOJI, DetailPayload, ProductChoice, ResponsePayload
 from app.schemas.enums import SemanticTone
 from app.schemas.risk import RiskAssessment
@@ -145,7 +155,15 @@ def build_evidence_summary(
         "approved_claims": [{"functions": line.function_names, "text": line.claim_text}
                             for line in dedupe_approved_claims(bundle.approved_claims)],
         "official_warnings": [w.text for w in bundle.warnings[:MAX_WARNINGS_IN_SUMMARY]],
-        "ingredients": sorted({i.name_zh for i in bundle.ingredients}),
+        "ingredients": sorted({i.name_zh for i in bundle.ingredients}),  # 已確認產品的官方登記成分
+        "standalone_ingredient_names": _standalone_ingredient_names(request, bundle),  # 成分名稱查詢（不是產品成分）
+        # 獨立成分 / 營養素的 canonical identity 與功能證據狀態（不是產品核准保健功效；沒有證據不可編造生理功能）
+        "standalone_entities": [{"name": e.display_name_zh or e.canonical_name_en, "type": _entity_type_label(e.entity_type)}
+                                for e in bundle.standalone_entities],
+        "ingredient_identity_status": bundle.ingredient_identity_status.value if bundle.ingredient_identity_status else None,
+        "function_evidence_status": bundle.function_evidence_status.value if bundle.function_evidence_status else None,
+        # 成分三層（官方列有 / 已確認身分 / 尚未確認）與「有沒有某成分」的結構化答案
+        "product_ingredients": ingredient_evidence_summary(bundle.product_ingredients),
         "graph_relations": [
             f"{g.subject_name} -[{g.relation}]-> {g.object_name}"
             + (f"（{g.properties.get('product_count')} 項產品）" if g.properties.get("product_count") else "")
@@ -309,6 +327,9 @@ DETAIL_TITLES = {
     ResponseAction.POLICY_BASIS: "法規依據",
 }
 MAX_EFFICACY_SUMMARY_CHARS = 40
+MAX_RAW_INGREDIENT_CHARS = 900  # 明細段落上限 1000 字內
+MAX_INGREDIENT_DETAIL_ITEMS = 40
+INGREDIENT_DETAIL_LINES_PER_PARAGRAPH = 15
 MAX_POLICY_BASIS_RULES = 5
 MAX_POLICY_TEXT_CHARS = 80
 POLICY_USE_NOTE = {
@@ -351,6 +372,8 @@ def _flagged_inactive(product) -> bool:
     return is_officially_inactive(product.status)
 
 
+NO_FUNCTION_EVIDENCE_TEXT = "目前沒有足夠的官方證據可以說明它的生理功能，所以不下結論。"
+STANDALONE_ASK_FUNCTION = "想知道它的功能，可以直接問「{name}有什麼功能？」；想查含有它的產品，請提供產品全名。"
 ASK_MORE_INFO = "可以提供產品全名、包裝照片或許可證字號，我再幫你查。"
 REGISTRATION_NOT_SAFETY_NOTE = "官方紀錄代表產品有登記，不代表對每個人都安全；有疾病、懷孕或正在用藥，請先諮詢醫師或藥師。"
 ASK_IMAGE_MORE_INFO = "可以補充許可證字號，或拍清楚包裝正面的產品名稱，我再幫你查。"
@@ -358,6 +381,8 @@ NOT_FOUND_NOT_FAKE = NOT_FOUND_COVERAGE_TEXT  # 說明目前查詢涵蓋的官�
 ASK_WHICH_PRODUCT = "請回覆你要查的是哪一項（可直接傳完整品名或許可證字號）。"
 NOT_LISTED_NOTE = "如果都不是，可能目前資料中沒有這項產品的官方紀錄（查不到不代表是假貨）。"
 PICK_BELOW = "請直接點選下方你要查的品項。"
+COLLISION_SUMMARY = "你輸入的名稱同時是一種成分，也是官方登記的產品名稱，我不確定你想查哪一個。"
+COLLISION_ASK = "請告訴我你想查的是「產品」還是「成分」（例如在名稱後面加上「產品」或「成分」）。"
 MAX_CHOICE_LABEL_CHARS = 16
 _LABEL_TRIM = " ()（）[]【】-－_／/・"
 ERROR_SUMMARY = "系統暫時無法完成這次查詢，請稍後按「重新查詢」。"
@@ -487,7 +512,7 @@ def identity_unresolved(request: NormalizedUserRequest, bundle: EvidenceBundle) 
     指稱無法解析、多個 / 低信心候選、只找到名稱相似或只對應到公司、只傳圖片但沒有確認產品、
     問產品是否合法卻完全沒有產品資訊。這些情況回 MISSING_INFORMATION，不顯示風險燈號。"""
     match = bundle.product_match
-    if request.missing_product_context or match.is_ambiguous or match.needs_confirmation:
+    if request.identity_collision or request.missing_product_context or match.is_ambiguous or match.needs_confirmation:
         return True
     if request.image_identification:
         return match.status != ProductVerificationStatus.VERIFIED
@@ -515,7 +540,7 @@ def select_response_type(request: NormalizedUserRequest, bundle: EvidenceBundle,
         bundle.product_match.is_ambiguous or bundle.product_match.needs_confirmation
     ):
         return ResponseType.RISK
-    if request.missing_product_context:
+    if request.missing_product_context or request.identity_collision:
         return ResponseType.MISSING_INFORMATION
     if (bundle.product_match.is_ambiguous or bundle.product_match.needs_confirmation) and request.claims:
         # 產品有多個 / 低信心候選、宣稱沒有高風險：先請使用者確認產品，再逐條比對核准功效（不直接給風險燈）
@@ -526,6 +551,8 @@ def select_response_type(request: NormalizedUserRequest, bundle: EvidenceBundle,
     if not request.claims and product_not_found(request, bundle):
         # 查無目前涵蓋的官方紀錄（或查詢失敗）：產品身份未確認，不是風險判定 → 不顯示風險燈號，請使用者補充
         return ResponseType.MISSING_INFORMATION
+    if bundle.ingredient_identity_status is not None and not request.has_product_identifiers and not request.claims:
+        return ResponseType.INGREDIENT_LIST  # 獨立成分 / 營養素：entity identity 已確認（不是產品卡，也不是 NOT_FOUND）
     if request.image_identification and not request.claims:
         # 只傳圖片且產品已確認：無風險 → 產品資訊；有風險（例如許可證失效）→ 風險卡
         return ResponseType.PRODUCT_INFO if risk.risk_level == RiskLevel.LOW else ResponseType.RISK
@@ -545,7 +572,7 @@ def select_response_type(request: NormalizedUserRequest, bundle: EvidenceBundle,
         return ResponseType.PRODUCT_INFO
     if request.has_product_identifiers:  # 有指定產品但無法確認：請使用者補充，不給風險燈號
         return ResponseType.MISSING_INFORMATION
-    if request.ingredient_candidates and bundle.ingredients:
+    if request.ingredient_candidates and _standalone_ingredient_names(request, bundle):
         return ResponseType.INGREDIENT_LIST
     if bundle.rag_evidence or bundle.official_web_evidence:
         return ResponseType.SOURCE_SUMMARY
@@ -562,7 +589,223 @@ def _dedupe(items: list[str]) -> list[str]:
 
 
 def _product_ingredients(bundle: EvidenceBundle) -> list[str]:
+    """已確認產品的官方登記成分（不含不針對產品的成分名稱查詢結果）。"""
     return _dedupe([f"{i.name_zh}（{i.name_en}）" if i.name_en else i.name_zh for i in bundle.ingredients])
+
+
+def _ingredient_key(text: str | None) -> str:
+    return normalize_name((text or "").replace("維他命", "維生素"))
+
+
+def _entity_type_label(graph_label: str) -> str:
+    return {"NutrientGroup": "營養素", "IngredientForm": "成分（型態）"}.get(graph_label, "成分")
+
+
+def _standalone_entity_names(bundle: EvidenceBundle) -> list[str]:
+    return _dedupe([f"{e.display_name_zh}（{e.canonical_name_en}）" if e.display_name_zh else e.canonical_name_en
+                    for e in bundle.standalone_entities])
+
+
+def _standalone_entity_overview(bundle: EvidenceBundle) -> tuple[str, list[str]]:
+    """獨立成分 / 營養素的精簡概覽（只依結構化 identity 與功能證據狀態；不是產品卡）。
+    生理功能只在有官方證據時才說；不稱為產品核准保健功效。"""
+    names = _standalone_entity_names(bundle)
+    kinds = _dedupe([_entity_type_label(e.entity_type) for e in bundle.standalone_entities])
+    summary = f"「{'、'.join(names)}」是目前證據庫中已確認的{'、'.join(kinds)}（這不是指任何一項產品）。"
+    status = bundle.function_evidence_status
+    if status == FunctionEvidenceStatus.SUPPORTED:
+        count = len(bundle.rag_evidence) + len(bundle.official_web_evidence)
+        points = [f"找到 {count} 份相關的官方資料，可以按「查看完整分析」了解。"]
+    elif status == FunctionEvidenceStatus.NO_FUNCTION_EVIDENCE:
+        points = [NO_FUNCTION_EVIDENCE_TEXT]
+    else:
+        points = [STANDALONE_ASK_FUNCTION.format(name=bundle.standalone_entities[0].query_text)]
+    return summary, points
+
+
+def _identity_not_in_corpus_overview(request: NormalizedUserRequest, bundle: EvidenceBundle) -> tuple[str, list[str]]:
+    """結構化 identity 資料沒有收錄這個名稱：不說「不存在 / 找不到成分」，只說識別資料尚未收錄；功能證據另外交代。"""
+    name = "、".join(request.ingredient_candidates)
+    summary = f"目前的成分識別資料還沒有收錄「{name}」，這不代表它不存在或有問題。"
+    if bundle.function_evidence_status == FunctionEvidenceStatus.SUPPORTED:
+        count = len(bundle.rag_evidence) + len(bundle.official_web_evidence)
+        return summary, [f"不過找到 {count} 份相關的官方資料，可以按「查看完整分析」了解。"]
+    return summary, [NO_FUNCTION_EVIDENCE_TEXT]
+
+
+def _standalone_ingredient_names(request: NormalizedUserRequest, bundle: EvidenceBundle) -> list[str]:
+    """不針對產品的成分查詢：只列官方成分名稱與使用者所問「完全相同」者（相似但不同的成分不列，例如問 A 不列 E）。"""
+    asked = {_ingredient_key(t) for t in request.ingredient_candidates} - {""}
+    return _dedupe([f"{i.name_zh}（{i.name_en}）" if i.name_en else i.name_zh for i in bundle.standalone_ingredients
+                    if asked & {_ingredient_key(i.name_zh), _ingredient_key(i.name_en)}])
+
+
+# ---------------------------------------------------------------------------
+# 成分回答：只由 ProductIngredientEvidence 的結構化事實組成（官方列有 / 已確認 identity / 尚未確認分開）。
+# 依使用者問的是「有哪些」或「有沒有某成分」選擇要說的事實；不顯示內部 entity ID，不新增成分、不做翻譯合併。
+# ---------------------------------------------------------------------------
+
+
+def _ingredient_evidence(bundle: EvidenceBundle) -> ProductIngredientEvidence | None:
+    evidence = bundle.product_ingredients
+    return evidence if evidence is not None and evidence.official_ingredients else None
+
+
+def _entity_name(entity: IngredientEntityRef | None) -> str:
+    return "" if entity is None else (entity.display_name_zh or entity.canonical_name_en)
+
+
+def _ingredient_scope(evidence: ProductIngredientEvidence) -> str:
+    """官方成分欄位的範圍：健康食品登記的是「保健功效相關成分」，查驗登記／核備類別是官方成分欄位。"""
+    return "保健功效相關成分" if has_health_claim_approval(evidence.product_category) else "成分"
+
+
+def _confirmed_note(entry: ConfirmedIngredientEntry, raw: str) -> str:
+    """已確認成分的補充說明：成分形式 → 所屬營養素（CONTRIBUTES_TO_NUTRIENT，不是同一種成分）。"""
+    name = _entity_name(entry.entity)
+    if entry.parent_nutrient is not None:
+        return f"{_entity_name(entry.parent_nutrient)}的來源形式"
+    return "" if normalize_name(name) == normalize_name(raw) else name
+
+
+def _direct_confirmed_by_raw(evidence: ProductIngredientEvidence) -> dict[str, ConfirmedIngredientEntry]:
+    return {raw: c for c in evidence.confirmed_ingredients if c.is_direct for raw in c.raw_texts}
+
+
+def _ingredient_display_lines(evidence: ProductIngredientEvidence) -> list[str]:
+    """成分清單：已確認身分的放前面（附所屬營養素），其餘依官方順序；只用官方原文與 entity 顯示名稱。"""
+    confirmed = _direct_confirmed_by_raw(evidence)
+    first, rest = [], []
+    for o in evidence.official_ingredients:
+        entry = confirmed.get(o.raw_text)
+        if entry is None:
+            rest.append(o.display_text)
+            continue
+        note = _confirmed_note(entry, o.display_text)
+        first.append(f"{o.display_text}（{note}）" if note else o.display_text)
+    return _dedupe(first + rest)
+
+
+def _answer_sentence(answer: IngredientQueryAnswer, product_name: str, scope: str) -> tuple[str, list[str]]:
+    """一個「有沒有」問題的直接回答＋必要補充；只依 presence 與其附帶的官方原文 / entity 名稱。"""
+    asked = answer.query_text
+    extra: list[str] = []
+    if answer.presence == IngredientPresence.CONFIRMED:
+        direct = next((m for m in answer.matched if m.is_direct), None)
+        if direct is not None:
+            raw = "、".join(direct.raw_texts)
+            note = _confirmed_note(direct, raw)
+            return f"有。「{product_name}」官方成分中列有「{raw}」" + (f"（{note}）" if note else "") + "。", extra
+        via = answer.matched[0]
+        raw = "、".join(via.raw_texts)
+        form = _entity_name(via.via_entity)
+        same_name = normalize_name(form) == normalize_name(raw)
+        return (f"有。「{product_name}」官方成分中的「{raw}」" + ("" if same_name else f"（{form}）")
+                + f"是{_entity_name(answer.query_entity) or asked}的來源形式，不是單獨列出{asked}。"), extra
+    if answer.presence == IngredientPresence.LISTED_IN_OFFICIAL_TEXT:
+        listed = "、".join(answer.listed_raw_texts)
+        summary = f"「{product_name}」官方登記的{scope}中列有「{listed}」。"
+        if answer.query_entity is not None:
+            extra.append("這項成分的身分目前尚未完成確認，只能確定官方資料列有這個名稱。")
+        return summary, extra
+    if answer.presence == IngredientPresence.CANDIDATE_ONLY:
+        candidates = "、".join(answer.candidate_raw_texts[:3])
+        extra.append(f"官方成分中的「{candidates}」可能與{asked}有關，但尚未完成確認，不能視為含有{asked}。")
+        return f"目前無法確認「{product_name}」含有{asked}。", extra
+    for related in answer.related_confirmed[:2]:
+        raw = "、".join(related.raw_texts)
+        note = _confirmed_note(related, raw)
+        extra.append(f"已確認的相關成分是「{raw}」" + (f"（{note}）" if note else "") + f"，和{asked}不是同一種成分。")
+    if answer.resolution == IngredientQueryResolution.AMBIGUOUS:
+        extra.append(f"「{asked}」可能指不同的成分，可以說得更具體一點（例如完整成分名稱）。")
+    if answer.unresolved_remaining:
+        extra.append(f"另有 {answer.unresolved_remaining} 項官方成分尚未完成識別，因此不能完全排除。")
+    return f"「{product_name}」目前已確認的{scope}中，沒有找到{asked}。", extra
+
+
+def _ingredient_answer(evidence: ProductIngredientEvidence, product) -> tuple[str, list[str]]:
+    """成分詢問的第一層：有問特定成分 → 先回答有沒有；問全部成分 → 官方列有的成分（已確認的先列）。"""
+    scope = _ingredient_scope(evidence)
+    if evidence.query_answers:
+        summary, points = _answer_sentence(evidence.query_answers[0], product.product_name_zh, scope)
+        for answer in evidence.query_answers[1:]:
+            line, extra = _answer_sentence(answer, product.product_name_zh, scope)
+            points = [line] + points + extra
+        return summary, _dedupe(points)
+    cov = evidence.coverage
+    summary = f"「{product.product_name_zh}」官方登記的{scope}共 {cov.official_count} 項"
+    if cov.confirmed_count and cov.unresolved_count:
+        summary += f"，其中 {cov.confirmed_count} 項已確認成分身分，其餘 {cov.unresolved_count} 項尚未完成識別"
+    return summary + "。", _ingredient_display_lines(evidence)
+
+
+def _ingredient_status(evidence: ProductIngredientEvidence) -> tuple[str, SemanticTone]:
+    if not evidence.query_answers:
+        return "官方登記成分", SemanticTone.GREEN
+    presence = evidence.query_answers[0].presence
+    if presence == IngredientPresence.CONFIRMED:
+        return "已確認含有", SemanticTone.GREEN
+    if presence == IngredientPresence.LISTED_IN_OFFICIAL_TEXT:
+        return "官方成分列有", SemanticTone.GREEN
+    return "目前未能確認", SemanticTone.ORANGE
+
+
+def ingredient_detail_lines(evidence: ProductIngredientEvidence) -> list[str]:
+    """「查看完整成分」：官方列有的成分；有已確認身分時逐項標示（已確認 / 尚未完成識別）。
+
+    每段多行（renderer 一段一個區塊）：成分很多時分成幾段，不會被明細段落上限截掉；
+    超過 MAX_INGREDIENT_DETAIL_ITEMS 時提示其餘項目，並保留官方成分欄位原文。"""
+    confirmed = _direct_confirmed_by_raw(evidence)
+    annotate = bool(evidence.confirmed_ingredients)  # 沒有任何已確認身分時只列官方成分，不逐項標示
+    items = []
+    for o in evidence.official_ingredients:
+        entry = confirmed.get(o.raw_text)
+        if not annotate:
+            items.append(f"・{o.display_text}")
+        elif entry is not None:
+            note = _confirmed_note(entry, o.display_text)
+            items.append(f"・{o.display_text}：已確認成分身分" + (f"（{note}）" if note else ""))
+        else:
+            items.append(f"・{o.display_text}：尚未完成成分識別")
+    shown = items[:MAX_INGREDIENT_DETAIL_ITEMS]
+    header = f"官方登記的{_ingredient_scope(evidence)}（{evidence.coverage.official_count} 項）："
+    chunks = [shown[i:i + INGREDIENT_DETAIL_LINES_PER_PARAGRAPH]
+              for i in range(0, len(shown), INGREDIENT_DETAIL_LINES_PER_PARAGRAPH)] or [[]]
+    paragraphs = ["\n".join(([header] if i == 0 else []) + chunk) for i, chunk in enumerate(chunks)]
+    if len(items) > len(shown):
+        paragraphs.append(f"另有 {len(items) - len(shown)} 項，可參考下方官方成分欄位原文。")
+    raw = evidence.official_ingredients_raw
+    if raw and ([o.raw_text for o in evidence.official_ingredients] != [raw] or len(items) > len(shown)):
+        paragraphs.append(f"官方成分欄位原文：{_clip_text(raw, MAX_RAW_INGREDIENT_CHARS)}")
+    if annotate and evidence.coverage.unresolved_count:
+        paragraphs.append("「尚未完成成分識別」只代表系統還沒有確認它是哪一種成分，不代表成分有問題。")
+    return paragraphs
+
+
+def ingredient_evidence_summary(evidence: ProductIngredientEvidence | None) -> dict | None:
+    """完整分析（LLM）的成分輸入：只有官方原文、entity 顯示名稱與狀態，不含內部 ID。"""
+    if evidence is None:
+        return None
+    confirmed = [{
+        "official_text": "、".join(c.raw_texts), "ingredient": _entity_name(c.entity),
+        "nutrient_of_this_form": _entity_name(c.parent_nutrient) or None,
+        "derived_from_form": _entity_name(c.via_entity) or None,
+    } for c in evidence.confirmed_ingredients]
+    return {
+        "ingredient_scope": _ingredient_scope(evidence),
+        "official_ingredients": [o.display_text for o in evidence.official_ingredients],
+        "confirmed_ingredients": confirmed,
+        "unresolved_ingredients": [u.display_text for u in evidence.unresolved_ingredients],
+        "coverage": evidence.coverage.model_dump(),
+        "ingredient_answers": [{
+            "asked": a.query_text, "presence": a.presence.value,
+            "asked_ingredient": _entity_name(a.query_entity) or None,
+            "matched_official_text": [t for m in a.matched for t in m.raw_texts],
+            "related_confirmed_not_same": ["、".join(r.raw_texts) for r in a.related_confirmed],
+            "unconfirmed_candidates": a.candidate_raw_texts, "listed_official_text": a.listed_raw_texts,
+            "unresolved_remaining": a.unresolved_remaining,
+        } for a in evidence.query_answers],
+    }
 
 
 class ApprovedClaimLine(BaseModel):
@@ -665,6 +908,18 @@ NO_EFFICACY_REGISTRATION_TEMPLATE = ("「{name}」查有官方查驗登記／核
                                      "因此不能由這筆資料認定有核准保健功效。")
 
 
+def _identity_support_note(bundle: EvidenceBundle) -> str:
+    """NOT_FOUND 的結構化原因 NO_PRODUCT_IDENTITY_SUPPORT：說明為什麼沒有列出名稱相似的產品。"""
+    match = bundle.product_match
+    if match.not_found_reason != ProductNotFoundReason.NO_PRODUCT_IDENTITY_SUPPORT:
+        return ""
+    terms = "、".join(f"「{t}」" for t in match.unsupported_identity_terms[:2])
+    if not terms:
+        return "名稱相近的官方紀錄都對不上你寫的產品名稱，因此不列為候選。"
+    return (f"名稱相近的官方紀錄中，沒有任何一項對得上你寫的{terms}；只是品牌相同或成分、劑型字樣相同的產品"
+            "不會列為候選。")
+
+
 def _efficacy_answer(bundle: EvidenceBundle, product) -> tuple[str, list[str]]:
     """功效詢問（Intent-first）：第一層只回答功效；申請商 / 字號 / 日期放下一層按鈕。"""
     if not has_health_claim_approval(product.product_category):
@@ -704,6 +959,9 @@ def status_for(rtype: ResponseType, request: NormalizedUserRequest, bundle: Evid
             return "查有健康食品許可（許可證有效）", SemanticTone.GREEN
         return "查有健康食品紀錄，許可狀態需確認", SemanticTone.ORANGE
     if rtype == ResponseType.INGREDIENT_LIST:
+        evidence = _ingredient_evidence(bundle)
+        if evidence is not None and evidence.product_id == product.product_id:
+            return _ingredient_status(evidence)
         if _product_ingredients(bundle):
             return "官方登記成分", SemanticTone.GREEN
         return "未有已整理的成分資料", SemanticTone.ORANGE
@@ -766,15 +1024,23 @@ def _summary_and_points(
         return f"官方紀錄中有「{product.product_name_zh}」，許可證字號 {product.permit_number or '無'}。", _dedupe(points)
     if rtype == ResponseType.INGREDIENT_LIST:
         names = _product_ingredients(bundle)
+        evidence = _ingredient_evidence(bundle)
+        if product is not None and evidence is not None and evidence.product_id == product.product_id:
+            return _ingredient_answer(evidence, product)
         if product is not None and names:
             return f"「{product.product_name_zh}」官方登記的保健功效相關成分如下。", names
         if product is not None:
             return (f"官方資料中目前沒有「{product.product_name_zh}」已整理的成分資料。",
                     ["可以按「" + ("查看產品資訊" if has_health_claim_approval(product.product_category)
                                  else "查看產品登記資料") + "」查看這筆官方紀錄。"])
-        if names:
-            return "官方資料中找到以下成分。", names
-        return "官方資料中目前查不到這個成分。", [ASK_MORE_INFO]
+        if bundle.standalone_entities and not request.has_product_identifiers:
+            return _standalone_entity_overview(bundle)
+        standalone = _standalone_ingredient_names(request, bundle)  # 沒有確認產品：不是任何產品的成分
+        if standalone:
+            return "官方成分資料中有這個成分名稱（這不是指任何一項產品的成分）。", standalone
+        if bundle.ingredient_identity_status == IngredientIdentityStatus.IDENTITY_NOT_IN_CORPUS:
+            return _identity_not_in_corpus_overview(request, bundle)
+        return "官方成分資料中沒有找到名稱完全相同的成分。", [ASK_MORE_INFO]
     if rtype == ResponseType.CLAIM_RESULT:
         summary = claim_verdict_summary(bundle, product)
         names = _approved_function_names(bundle, product) if product is not None else []
@@ -794,6 +1060,8 @@ def _summary_and_points(
         return f"找到 {len(_dedupe(titles))} 份相關的官方資料。", _dedupe(titles)
     if rtype == ResponseType.OUT_OF_SCOPE:
         return OUT_OF_SCOPE_TEXT, ["如果你有想查證的保健食品或廣告說法，可以直接傳給我。"]
+    if request.identity_collision:
+        return COLLISION_SUMMARY, [COLLISION_ASK]
     if bundle.product_match.is_ambiguous or bundle.product_match.needs_confirmation:
         options = _dedupe([_candidate_option(c.product) for c in bundle.product_match.candidates])
         claims_note = [CLAIMS_NEED_PRODUCT] if any(c.is_asserted for c in request.claims) else []
@@ -811,7 +1079,7 @@ def _summary_and_points(
     if product_not_found(request, bundle):
         if not bundle.product_match.lookup_completed:
             return "產品資料暫時查不到，無法確認是否有官方紀錄。", [LOOKUP_FAILED_RETRY]
-        return NOT_FOUND_SUMMARY, [COVERAGE_LIST_TEXT, NOT_FOUND_NOT_FAKE_TEXT, NOT_FOUND_ASK]
+        return NOT_FOUND_SUMMARY + _identity_support_note(bundle), [COVERAGE_LIST_TEXT, NOT_FOUND_NOT_FAKE_TEXT, NOT_FOUND_ASK]
     if request.product_candidates and bundle.product_match.status == ProductVerificationStatus.PARTIAL_MATCH:
         return f"目前無法確認「{request.product_candidates[0]}」是哪一項官方登記的產品。", [ASK_MORE_INFO]
     return "目前資訊不夠，還沒辦法開始查證。", [ASK_MORE_INFO]
@@ -836,6 +1104,14 @@ def _clip_text(text: str, limit: int) -> str:
     return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
+def _standalone_has_analysis(bundle: EvidenceBundle) -> bool:
+    """獨立成分詢問是否有可分析的證據：已確認的 identity（canonical / 官方成分名稱）或通過 Gate 的功能證據。"""
+    if bundle.ingredient_identity_status is None:
+        return False
+    return bool(bundle.standalone_entities or bundle.function_evidence_status == FunctionEvidenceStatus.SUPPORTED
+                or bundle.ingredient_identity_status == IngredientIdentityStatus.LEGACY_OFFICIAL_NAME)
+
+
 def _available_actions(rtype: ResponseType, bundle: EvidenceBundle, risk: RiskAssessment, source_count: int,
                        request: NormalizedUserRequest | None = None) -> list[ResponseAction]:
     product = _verified_product(bundle)
@@ -847,11 +1123,14 @@ def _available_actions(rtype: ResponseType, bundle: EvidenceBundle, risk: RiskAs
         ResponseAction.REGISTRATION_INFO: registration_only,
         ResponseAction.CHECK_PACKAGE_CLAIMS: bool(request is not None and request.observed_package_claims
                                                   and _verified_product(bundle) is not None),
-        ResponseAction.DETAIL: True,
+        # 獨立成分 / 營養素：有可用證據（已確認 identity 或通過 Gate 的功能證據）才有完整分析；產品類回覆維持原樣
+        ResponseAction.DETAIL: ((product is None and _standalone_has_analysis(bundle))
+                                if rtype == ResponseType.INGREDIENT_LIST else True),
         ResponseAction.WHY: bool(risk.triggered_rules or bundle.claim_assessment),
         ResponseAction.OFFICIAL_INFO: product is not None and not registration_only,
         # 功效詢問卡固定為 完整功效 / 產品資訊（登記資料）/ 資料來源，不讓成分按鈕擠掉資料來源
-        ResponseAction.INGREDIENTS: bool(bundle.ingredients) and not (efficacy and rtype == ResponseType.PRODUCT_INFO),
+        ResponseAction.INGREDIENTS: bool((bundle.ingredients and product is not None) or _ingredient_evidence(bundle))
+        and not (efficacy and rtype == ResponseType.PRODUCT_INFO),
         ResponseAction.SOURCES: source_count > 0,
     }
     if rtype == ResponseType.MISSING_INFORMATION:
@@ -866,7 +1145,7 @@ def _available_actions(rtype: ResponseType, bundle: EvidenceBundle, risk: RiskAs
         ResponseType.PRODUCT_INFO: [ResponseAction.CHECK_PACKAGE_CLAIMS, ResponseAction.FULL_EFFICACY,
                                     ResponseAction.OFFICIAL_INFO, ResponseAction.REGISTRATION_INFO,
                                     ResponseAction.INGREDIENTS, ResponseAction.SOURCES],
-        ResponseType.INGREDIENT_LIST: [ResponseAction.INGREDIENTS, ResponseAction.OFFICIAL_INFO,
+        ResponseType.INGREDIENT_LIST: [ResponseAction.DETAIL, ResponseAction.INGREDIENTS, ResponseAction.OFFICIAL_INFO,
                                        ResponseAction.REGISTRATION_INFO, ResponseAction.SOURCES],
         ResponseType.SOURCE_SUMMARY: [ResponseAction.DETAIL, ResponseAction.SOURCES],
     }.get(rtype, [])
@@ -1002,7 +1281,15 @@ def detail_payload(
         body = [s.source_name + (f"\n{s.source_url}" if s.source_url else "") for s in bundle.all_sources() if s.is_official]
         body = body or ["這次沒有可列出的官方資料來源。"]
     elif action == ResponseAction.INGREDIENTS:
-        body = _product_ingredients(bundle) or ["官方資料中沒有登記成分。"]
+        evidence = _ingredient_evidence(bundle)
+        if evidence is not None:
+            # 完整成分（官方列有 / 已確認 / 尚未識別）→ 下一層：資料來源（provenance）
+            return DetailPayload(request_id=request.request_id, action=action, title=DETAIL_TITLES[action],
+                                 query_text=request.normalized_text, body=ingredient_detail_lines(evidence),
+                                 available_actions=[ResponseAction.SOURCES] if bundle.all_sources() else [])
+        body = ((_product_ingredients(bundle) if product is not None
+                 else _standalone_ingredient_names(request, bundle) or _standalone_entity_names(bundle))
+                or ["官方資料中沒有登記成分。"])
     elif action in (ResponseAction.OFFICIAL_INFO, ResponseAction.REGISTRATION_INFO):
         if product is None:
             body = ["這次沒有確認到官方產品紀錄。"]

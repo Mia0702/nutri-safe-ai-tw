@@ -542,6 +542,64 @@
     （USER_QUESTION、MEDICAL_TREATMENT_CLAIM、claim_risk HIGH、產品風險非 HIGH、不需 planner / RAG / web、最終回答不寫成「產品宣稱」；
     結構化政策使用虛構 corpus `FakeClaimPolicyRepo`）後重跑 `tests/integration/test_openai_live.py`：8 passed（157s）。
     skipped 1 為 `test_line_demo_live.py` 第一題沒有官方來源時的條件式 skip（unit test 已覆蓋）。
+- **Product mention provenance 安全修正（2026-10-05；DATA / schema 表 / Risk Engine 規則 / claim policy 未動）**：
+  - Agent A 抽出的產品名稱與使用者原文分開保存：`NormalizedUserRequest.product_mentions`（`ProductMention`：`raw_text` / `corrected_name` /
+    `provenance` = USER_TEXT / AGENT_CORRECTED / NOT_IN_USER_TEXT）。`product_candidates` 只放使用者寫法（改字者換回原文片段），
+    Agent A 的修正寫法只進 `corrected_product_candidates`（`app/agents/intake_agent.py:product_mentions`、`app/normalization.py:locate_in_text`）。
+  - Resolver：exact / 基本品名只比對使用者寫法，改字後的名稱不可能成為 CANONICAL_EXACT；NOT_IN_USER_TEXT 名稱不當使用者寫法、名稱相似度不計分。
+    3b（修正寫法佐證）改為單一候選請使用者確認（`CORRECTED_NAME_CORROBORATED` + LOW_MATCH_CONFIDENCE），不再自動 VERIFIED。
+    字號 / 官方別名 / 逐字 exact 行為不變。
+  - tests：新增 `tests/unit/test_product_mention_provenance.py`；`test_p1_fastpath_dedup.py` 的 corroborated 測試改為「需使用者確認」，
+    兩個 fixture（planner 重查）改為把品名放進使用者輸入。
+- **Bare nutrient routing / Clarification before research / Taiwan imported scope（2026-10-05；resolver 門檻 / provenance / Candidate Relevance Gate /
+  Claim Policy / Risk Engine 規則未動）**：
+  - Issue 1：整則訊息只有成分名稱（唯一 canonical entity、無品牌 / 公司 / 字號 / 劑型 / 產品字樣 / 代名詞）→ `app/services/bare_name_routing.py`
+    在 context 綁定前改為獨立成分詢問，不沿用前一題的已確認產品（原因：基本品名「包含於」已確認產品官方品名的例外把它綁回去）。
+    名稱同時是 canonical entity 且完全等於官方產品名稱 → `identity_collision`，回 MISSING_INFORMATION 請使用者選「產品 / 成分」，不替使用者決定。
+    代名詞 follow-up 仍沿用前一題產品。未實作：「那 X 呢？」這類語意模糊的省略式 follow-up 的澄清（目前交由 Controller 判斷）。
+  - 獨立成分的「生理功能」證據尚未建立：目前只回官方成分名稱（INGREDIENT_LIST）；Interaction corpus 不當成一般功能的證據。
+  - Issue 2：`VerificationAgent._try_identity_clarification_stop`——產品只有候選（PARTIAL / 修正寫法待確認 / 多候選）或 collision 時，
+    在 fast path 之前停止：不跑 planner / RAG / web / assess / graph / 違規廣告查詢；有宣稱者仍走既有 claims-pending 路徑。
+    選定候選後由 `request_for_selected_product` + `resume_with_request` 以原題續跑，不重跑 Controller Agent。
+  - Issue 3：`scope_foreign_signal`（assessment_rules）——resolver 已 VERIFIED 到本資料庫（台灣 TFDA 登記，含 imported_tablet_capsule）的產品，
+    不因 Controller 抽到國別而被當成外國產品（不看名稱字樣）；沒有台灣紀錄者維持 `foreign_product` 行為。
+  - tests：新增 `tests/unit/test_bare_name_routing.py`（16）；既有測試依 provenance 契約把產品名稱放進使用者輸入（fixture），
+    `test_p1_fastpath_dedup` 的 planner 重查測試改為「身份未確認不進 planner」；README 加入 Controller / Researcher / Reporter 用語（識別字不變）。
+- **Standalone entity 修正（2026-10-05；exact Product / typo / provenance / relevance gate / Taiwan imported / Claim Policy / Risk Engine 未動）**：
+  - live bug 根因：Controller 看到前文實體後，把裸成分名稱當成代名詞解析成前一題產品（`context_resolved_names`），
+    產品欄位 / intent 都指向前一題產品，上一版 routing 只看 Controller 的 product_candidates 所以沒攔到。
+  - `route_bare_name` 現在先看「這一句原文」：整句（去頭尾標點）是唯一 canonical entity、沒有劑型 / 產品字樣 → `standalone_entity`，
+    清掉 Controller 的產品 / 品牌 / 前文解析，這一題不綁定前一題產品（不改 context）；代名詞句（「它有含 X 嗎？」）原文不是裸名稱，照舊綁定。
+    問句形式（「X 有什麼功能？」）則看 Controller 的 product_candidates 是否全是 canonical entity 且無產品訊號。
+  - collision 只算「完全等於官方產品名稱 / 官方別名」；基本品名（括號規格）相同不覆蓋 canonical entity exact。
+  - Canonical identity：`EvidenceBundle.standalone_entities`（Ingredient Bridge entity：名稱、類型、來源）＋ `function_evidence_status`
+    （NOT_ASSESSED / SUPPORTED / INSUFFICIENT）。identity、legacy ingredients 表、產品成分、功能證據是四件不同的事；
+    有 entity 就不會說「找不到成分」。回覆是精簡成分 / 營養素概覽，不是產品卡，也不稱生理功能為「核准保健功效」。
+  - 獨立成分路徑 `_try_standalone_entity_path`（`standalone_entity` 模式）：entity 已確認時 lookup_ingredient / RAG / assess_evidence 各一次，
+    內部證據不足才官方網站一次；不跑 planner 多輪（live：功能問題 30–40s → 約 13s）。概覽不查功能證據。
+    沒有通過 Relevance Gate 的證據 → INSUFFICIENT，回「沒有足夠的官方證據」。graph（ingredient_approved_functions 是產品核准功效關係）在此路徑不查。
+  - tests：`tests/unit/test_bare_name_routing.py`（25）。
+- **Standalone ingredient identity 統一（2026-10-05；語意路由 / resolver / provenance / Product 行為未動）**：
+  - audit：production Ingredient Bridge 只有 78 個 entity（17 NutrientGroup / 61 IngredientForm）、321 個 alias；「鋅 / Zinc / 維生素 C / K / 葉酸 / 魚油」
+    等 exact / 已接受 alias 都解析成功；「維生素 A」不在 corpus（entity 與 alias 皆無）。上一版只有「已有 entity」才走獨立成分路徑，
+    entity 不存在時掉進 planner 多輪＋RAG，並顯示「沒有找到名稱完全相同的成分」（誤導）。
+  - 現在獨立成分詢問（INGREDIENT / EFFICACY / SAFETY intent、無產品識別、無命題）一律走 `standalone_entity` 路徑，identity 與功能證據分開記錄：
+    `ingredient_identity_status` = CANONICAL_ENTITY（Bridge entity / 已接受 alias，exact）/ LEGACY_OFFICIAL_NAME（官方成分表 exact）/
+    IDENTITY_NOT_IN_CORPUS；`function_evidence_status` = NOT_ASSESSED / SUPPORTED / NO_FUNCTION_EVIDENCE。不用相似度 / embedding 建立 identity；
+    候選型 alias（AMBIGUOUS / NEEDS_REVIEW）不算 identity。
+  - IDENTITY_NOT_IN_CORPUS：回「識別資料還沒有收錄，不代表不存在」，並依一般規則 RAG 一次＋Gate（問功能時才補官方網站一次）；
+    有通過 Gate 的證據 → SUPPORTED，否則 NO_FUNCTION_EVIDENCE。不為了 Q&A 擴充 interaction mapping。
+  - 已知：未收錄的裸名稱若被 Controller 判成 product_verification（LLM 偶發），仍會走產品查詢（本次不改語意路由）。
+  - tests：`tests/unit/test_standalone_identity.py`（9）。
+- **裸一般成分用語路由＋獨立成分「查看完整分析」（2026-10-05；resolver / Product Coverage / Bridge / Claim Policy / Risk Engine / relevance gate / typo 未動）**：
+  - 根因：裸名稱只有「在 Bridge corpus 內」才會被攔下；不在 corpus 的一般成分用語（例如維生素＋字母）若被 Controller 判成產品，
+    會因為產品名稱含有相同字樣而出現產品候選。
+  - `route_bare_name`：整句全是一般成分 / 營養素用語（Candidate Relevance Gate 同一套字元分類：沒有任何有辨識力的字樣、沒有劑型 / 產品字樣）
+    且不是完整的官方產品名稱 → 獨立成分詢問（IDENTITY_NOT_IN_CORPUS，證據照一般規則）；完全等於官方產品名稱 → 既有 collision 詢問；
+    有辨識力字樣的產品名稱錯字仍走產品候選確認。
+  - 「查看完整分析」：獨立成分回覆在有可用證據（已確認 identity、官方成分名稱、或通過 Gate 的功能證據）時才提供；沒有證據不提供。
+    沿用既有 request-scoped DETAIL 機制（同一份證據、不重跑 Controller、不新增證據）；產品成分卡按鈕不變。
+  - tests：`tests/unit/test_standalone_identity.py`（17）。
 - **Taiwan Product Coverage Importer Design + Dry Run（2026-10-04；未寫 production、未套 migration；
   claim-policy / risk / LINE / resolver frozen runtime 未動）**：
   - 研究 snapshot：`data/tfda_product_coverage/2026-10-04/`（原本誤放在 `data/tfda_claim_policy/2026-10-04/`，已搬移；
@@ -680,12 +738,258 @@
     第一題（虛構品名查無 → MISSING_INFORMATION）沒有官方來源時的既有條件式 skip（unit test 已覆蓋）。
   - **Taiwan Product Coverage = FROZEN**（health_food 565 / domestic_vitamin_tablet_capsule 1705 / imported_tablet_capsule 7407 / total 9677）；
     **Claim Policy Runtime = FROZEN**、**Product Coverage Runtime = FROZEN**、Resolver identity safety contract（FC-B1/B2/B3）= FROZEN。
+- **Product Ingredient Mapping Bridge（2026-10-04；schema audit＋mapping service＋read-only dry-run＋targeted tests；
+  未寫 Supabase / Neo4j、未套 migration；Claim Policy / Product Coverage / Resolver frozen 行為未動）**：
+  - Corpus：`data/ingredient_interaction/2026-10-04/`（corpus_version 1.0；載入時驗 SHA256SUMS）。只映射 INGREDIENT entity
+    （N_* NUTRIENT_GROUP 17、F_* form 13）；D_* drug substance 不在本輪。保留 identity level：魚油 ≠ Omega-3 ≠ EPA ≠ DHA、
+    Folate ≠ Folic acid、Calcium ≠ Calcium carbonate；form → group 只用 corpus parent（CONTRIBUTES_TO_NUTRIENT，不是 SAME_AS）。
+  - Mapping（`app/ingestion/ingredient_entity_mapping.py`，deterministic、無 embedding / LLM）：
+    VERIFIED_EXACT（corpus 英文正式名稱整段相同）/ SUPPORTED_ALIAS（corpus 有來源的同義詞 / 縮寫、人工審核 alias、
+    官方原文「X (Y)」一側 exact 且另一側無其他 lineage 線索 → 取較具體者）/ FORM_TO_GROUP（正式 form 推導營養素群）
+    才是正式 bridge；AMBIGUOUS（指向互不相關 entity）/ NEEDS_REVIEW（中文譯名完全相同、未 READY alias、alias 部分包含）
+    只存候選、不建 CONTAINS。**corpus 中文 alias 全部是 `DISPLAY_ONLY_NOT_AUTOMERGE`** → 中文完全相同也只是候選；
+    只有 `ReviewedAlias`（人工審核 overlay，目前 0 筆）能讓中文成為正式 mapping。單一中文字（鈣 / 鋅…）只在名稱主體最後
+    才列候選（避免「膽鈣化醇」→ 鈣）；英數邊界不切斷（B1 ≠ B12）。不去鹽名、不去字尾、不做語意合併。
+  - 成分來源：health_food = 既有 canonical Ingredient（中文名 / 官方英文名 / OFFICIAL_RECORD 別名；INFERRED 不用）；
+    國產 / 輸入 = `raw_data.ingredient_staging.parser_draft.tokens`（token 原樣、nested 內容不拆）。staging READY / NEEDS_REVIEW
+    只記為 `source_parse_status`，不影響 mapping。amount：保留 amount_raw；unit 只在「單一數值＋單位」時取；
+    amount_normalized 一律 None、amount_basis = UNKNOWN。
+  - Runtime payload（`app/services/ingredient_bridge.py`，pydantic、無句子）：`ProductIngredientPayload`（matched_ingredients＋
+    contributes_to、candidate_ingredients、bridge_status、evidence_status、missing_information、corpus_version）；
+    `DuplicateIntakePayload`（同營養素群 → `DUPLICATE_INGREDIENT_DETECTED`、DUP_* 模板 ID、`intake_amount_assessment =
+    NOT_EVALUATED`、缺 AMOUNT_PER_SERVING / SERVING_SIZE / DAILY_SERVINGS / AMOUNT_BASIS；只有候選的產品不參與）。
+    尚未接到 Agent B / Agent C / renderer。
+  - Schema audit：`ingredients`（uuid5(name_normalized)，TFDA 官方名稱 canonical）與 `product_ingredients`（PK product+ingredient、
+    raw_text / amount_text）無法保存 corpus entity、mapping_status / confidence / review_status / 候選 / amount basis /
+    corpus_version，放進 ingredients 會讓不同 identity level 碰撞 name_normalized → **需要 additive migration**：
+    `migrations/0005_product_ingredient_entity_mapping.sql`（**PROPOSAL，未套用**）：`interaction_corpus_entities`、
+    `interaction_corpus_entity_aliases`、`product_ingredient_entity_mappings`（is_formal generated；CHECK：正式 ⇔ 有 entity、
+    候選必須 PENDING_REVIEW＋有候選、正式不可待審、FORM_TO_GROUP 必有 via form、normalized 含量需 unit＋basis）。
+    Neo4j proposal `migrations/neo4j/0004_ingredient_entity_bridge.cypher`（NutrientGroup / IngredientForm unique）；
+    `ALLOWED_LABELS` 已加這兩個 label（尚未寫入）。
+  - Dry-run（`python -m scripts.dry_run_ingredient_entity_mapping`，正式 Supabase 唯讀；與唯讀快照結果完全相同；寫入 0）：
+    products 9677、至少一個正式 mapping 3650（health_food 47 / 國產 0 / 輸入 3603）、只有候選 3704、無成分 10。
+    mapping 單位：VERIFIED_EXACT 4950 / SUPPORTED_ALIAS 5503（其中官方括號 5347）/ FORM_TO_GROUP 4419 / AMBIGUOUS 102 /
+    NEEDS_REVIEW 20892 / NO_MATCH 125481。國產 0 正式：成分全中文、corpus 中文只供顯示（911 產品若中文 alias 審核後可能轉正）。
+    Neo4j plan：NutrientGroup 17 / IngredientForm 13、CONTAINS 9921、CONTRIBUTES_TO_NUTRIENT 13、SAME_AS 0、INTERACTS_WITH 0。
+  - Demo scope（正式 mapping 產品數）：Calcium 951（HF 21 / 輸入 930）、Iron 255（輸入）、Omega-3 523（HF 26 / 輸入 497）、
+    Vitamin K 10（輸入）、**Zinc 0、Copper 0**（corpus 沒有鋅 / 銅鹽 form；原料多寫 ZINC OXIDE / 葡萄糖酸鋅 → 候選 1898 / 780）。
+    health_food 的「Omega-3 acids」、魚油（中文）、鐵（亞鐵 / 甘胺酸亞鐵）只有候選。
+  - tests：`tests/unit/test_ingredient_entity_mapping.py`（26，合成 corpus＋虛構產品；另 1 項讀正式 corpus）、
+    `tests/db/test_ingredient_entity_mapping_migration.py`（8，本機 PostgreSQL 0001→0005 重跑、CHECK）；
+    targeted 11 檔 297 passed（未跑 full pytest）。
+- **Product Ingredient Bridge Replay＋Import Gate（2026-10-04；reviewed overlay v1.0；read-only replay；
+  未寫 Supabase / Neo4j、未套 0005；Claim Policy / Product Coverage / Resolver frozen 行為未動）**：
+  - Overlay：`data/ingredient_interaction/2026-10-04/overlay/`（由 `REVIEWED_INGREDIENT_ALIAS_FORM_MAPPING_OVERLAY.zip` 的
+    `overlay/` 解出；evidence/ 原始頁未放進 repo）。SHA256SUMS 9 檔全部相符；aliases 250 = VERIFIED_OFFICIAL 167 /
+    SUPPORTED_AUTHORITATIVE 24（正式可用 191）/ AMBIGUOUS 14 / NEEDS_REVIEW 45；forms 61（沿用 13、新增 48）；
+    CONTRIBUTES_TO_NUTRIENT 61、SAME_AS 0。`load_reviewed_overlay` fail closed（缺 SHA256SUMS / 不符、候選有 entity、
+    正式無 entity、同字指向兩個 entity、非 CONTRIBUTES_TO_NUTRIENT、允許含量換算、parent 與 corpus 不一致）。
+  - 優先序（`classify_surface`）：整段 token 有 overlay alias → 只用 overlay 判定（正式 → SUPPORTED_ALIAS /
+    `REVIEWED_OVERLAY_ALIAS_EXACT` / review_status `SOURCE_REVIEWED`；候選 → AMBIGUOUS / NEEDS_REVIEW，即使 corpus 有 exact）；
+    overlay 與 corpus 英文正式名稱同 entity → 保留 VERIFIED_EXACT 並記 overlay alias；沒有 overlay alias → 原 corpus 規則不變。
+    overlay 只做整段 exact（NFKC / casefold / 空白），不參與括號拆解、部分包含、去鹽名、翻譯合併。
+    PRODUCT_FORM_CONTEXT_OVER_BASE_NUTRIENT_ALIAS（Riboflavin / Biotin / 生物素）→ F_*，F_* 只 CONTRIBUTES_TO_NUTRIENT。
+  - Replay（`python -m scripts.dry_run_ingredient_entity_mapping --input-json <快照>`；現有 bridge parser；production 唯讀快照
+    9677 products / 272 ingredients / 770 product_ingredients，sha256 `e6c60b14…`；同快照另跑 base-only baseline）：
+    正式 mapping 產品 3650 → **5968**（health_food 47 → 56 / 國產 0 → 1588 / 輸入 3603 → 4324）；**降級 0**（沒有產品失去
+    正式 mapping、沒有正式 → 候選）；輸入 4419 個單位由營養素群細化為同 lineage 的 form（N_B12→F_CYANOCOBALAMIN 等，營養素群不變）。
+    mapping 單位：VERIFIED_EXACT 3708（其中 overlay 佐證 3441）/ overlay reviewed alias 23201 / base 同義詞＋官方括號 1424 /
+    FORM_TO_GROUP 25999 / AMBIGUOUS 1876 / NEEDS_REVIEW 7436 / NO_MATCH 119283。
+    Work 報告的數字是替代 matcher 的基準；本次以現有 parser 為準（國產 1588 相同；輸入 4324 ≠ Work 4206；health_food 56 ≠ 6）。
+  - 營養素（正式產品數 / 只有候選；全部類別）：Calcium 1911 / 988、Iron 687 / 456、Magnesium 1001 / 3565（候選主要是
+    硬脂酸鎂等賦形劑，overlay 審核為 AMBIGUOUS）、**Zinc 1542 / 353、Copper 652 / 128**、Vitamin D 1486 / 128、Vitamin K 260 / 15、
+    Vitamin C 2362 / 124、Omega-3 群 544 / 232（其中 Fish oil F_* 本身 515）。
+  - Health-food 保護：565 product IDs 不變（sha256 `c06aee5a…`）、既有 770 ProductIngredient（560 產品）每筆恰好帶入一次、
+    raw_text 不變、輸入快照前後相同、寫入 0；overlay 只新增 entity mapping（另一張表），不重建 / 覆蓋 / 刪除既有 Ingredient。
+  - 0005 proposal rev 2（未套用）：新增 `interaction_corpus_sources`、`interaction_form_nutrient_links`（只允許
+    CONTRIBUTES_TO_NUTRIENT、禁止含量換算 / interaction 繼承、trigger 驗 parent 一致）、view `product_ingredient_entity_contains`
+    （importer 只從這裡同步 CONTAINS）；entities 加 graph_label / entity_origin / overlay identity level；aliases 允許 overlay 候選
+    （entity_id NULL＋candidate_entity_id）、記 alias_status / source_url / locator / retrieved_at / precedence；mappings 加
+    entity_type / relationship_id / alias_evidence_status / overlay_version、`SOURCE_REVIEWED`，CHECK：overlay 候選 alias 不得是正式、
+    候選需有候選 entity 或審核 alias。
+  - Neo4j preview：NutrientGroup 17 / IngredientForm 61（overlay 新增 48）、CONTAINS 26877（Form 24583 / Group 2294）、
+    CONTRIBUTES_TO_NUTRIENT 61（overlay 48 / corpus 13，帶 source / locator）、SAME_AS 0、INTERACTS_WITH 0、Product→Interaction 0、
+    Interaction node 0。`migrations/neo4j/0004_ingredient_entity_bridge.cypher` 仍為 proposal。
+  - Runtime payload：`MatchedIngredient` / `CandidateIngredient` 加 alias_ids、alias_evidence_status、relationship_ids、
+    entity origin、overlay_version；仍只有 enum / ID / 官方原文，沒有最終句子。
+  - tests：`tests/unit/test_ingredient_overlay_bridge.py`（32，合成 overlay＋虛構產品；另 1 項讀正式 overlay）、
+    `tests/db/test_ingredient_entity_mapping_migration.py`（19，本機 PostgreSQL 0001→0005 重跑＋正式 corpus / overlay 寫入＋CHECK）；
+    targeted unit 11 檔 319 passed、`tests/db` 46 passed（未跑 full pytest）。
+- **Ingredient Bridge importer＋production read-only compare（2026-10-04；未套 0005、未寫 production；
+  Claim Policy / Product Coverage / Resolver frozen 行為未動；未接 Agent B / C；沒有 Interaction runtime）**：
+  - Importer：`app/ingestion/ingredient_bridge_import.py`＋`python -m scripts.import_ingredient_bridge`
+    （`--dry-run` 預設 / `--compare-supabase` 唯讀 / `--apply --confirm-project nutri_safe_ai`，apply 需 0005 marker、不接受 `--input-json`）。
+    順序 A entity → B source＋alias → C form→nutrient → D 正式 mapping → E 候選 mapping → 完成標記
+    `ingredient_bridge_import:<corpus>:<overlay>`；Neo4j 只在標記存在後同步（MERGE / SET only）。只寫 0005 五張表＋標記
+    （products / ingredients / product_ingredients 寫入會被擋）；不刪除：stale 列或其他版本 mapping → 計畫錯誤、拒絕寫入。
+    寫入前 gate（與 DB CHECK 同義）：候選 alias 進正式、正式待審、正式帶候選、未知 entity、FORM_TO_GROUP 無
+    CONTRIBUTES_TO_NUTRIENT 關係、候選帶正式 entity…；NO_MATCH 不存。
+  - 0005 rev 3（未套用）：加自然鍵 unique index（mapping）、overlay 正式 alias（文字＋版本）unique、正式 / 候選 match_method CHECK、
+    trigger `check_entity_mapping_row`（候選不得就地 UPDATE 轉正；正式列不得引用 overlay 候選 alias 或指向其他 entity 的 alias）。
+    本輪本機測試發現 rev 2 允許「UPDATE 候選列 → 正式」，rev 3 已擋。
+  - Production read-only compare（`--dry-run --compare-supabase`；0005 表不存在 → 視為空表）：would insert entities 78
+    （NutrientGroup 17 / IngredientForm 61）、sources 65、aliases 321（base 71＋overlay 250）、form→nutrient 61、
+    正式 mapping 54332（VERIFIED_EXACT 3708 / SUPPORTED_ALIAS 24625 / FORM_TO_GROUP 25999）、候選 9312（AMBIGUOUS 1876 /
+    NEEDS_REVIEW 7436）；would update 0、would delete 0、collisions 0、invalid formal 0、invalid candidate 0。
+    正式產品：health_food 56 / 565、國產 1588 / 1705、輸入 4324 / 7407（共 5968）。
+  - Neo4j preview：NutrientGroup 17、IngredientForm 61、CONTAINS 26877（Form 24583 / Group 2294）、CONTRIBUTES_TO_NUTRIENT 61、
+    SAME_AS / INTERACTS_WITH / Product→Interaction / Interaction node 0；CONTAINS 帶 mapping_status / raw_text / review_status /
+    alias_ids / corpus_version / overlay_version。
+  - 本機完整 apply（scratch：pgserver 0001→0005＋production 唯讀快照 9677 / 272 / 770）：第一次寫入 63644 mapping（45.8s），
+    第二次全部 unchanged、寫入 0；重複正式 mapping / alias / relationship 0；候選成為正式 0；stearate → N_MG 正式 0；
+    products / ingredients / product_ingredients 前後逐列相同；正式產品 HF 56 / 國產 1588 / 輸入 4324。
+  - 觀察（未改 matcher）：`VITAMIN C (L-ASCORBYL STEARATE)` 3 個單位經 base 官方括號規則為 N_C 正式（既有規則行為）；
+    MAGNESIUM STEARATE / 硬脂酸鎂 / CALCIUM STEARATE 4825 個單位只有候選。
+  - tests：`tests/unit/test_ingredient_bridge_import.py`（15，in-memory store）、`tests/db/test_ingredient_bridge_import_db.py`
+    （11：idempotent rerun、health_food 不變、候選不轉正（DB 層）、precedence＋CONTRIBUTES_TO_NUTRIENT、版本切換拒絕、
+    中途失敗無標記且可補齊、transaction rollback 0 列、Neo4j fake 只在標記後 MERGE）；targeted unit 12 檔 334 passed、
+    `tests/db` 57 passed（未跑 full pytest）。
+- **Ingredient Bridge Production Import（2026-10-04；0005 rev 3 由使用者於 SQL Editor 套用；Claim Policy / Product Coverage /
+  Resolver / Risk Engine / Interaction semantics 未動；沒有 Interaction node / runtime；未接 Agent B / C）**：
+  - Preflight（唯讀）：project marker nutri_safe_ai、`migration_0005_product_ingredient_entity_mapping = applied`、products 9677
+    （health_food 565 / 國產 1705 / 輸入 7407）；health_food ID / 770 ProductIngredient / 272 Ingredient 與 replay 快照逐列相同；
+    bridge 表 0 列；Neo4j 無 bridge label。`--dry-run --compare-supabase`：正式產品 5968（56 / 1588 / 4324）、Zinc 1542、Copper 652、
+    delete 0 / update 0 / collision 0 / invalid 0。
+  - Importer CLI 改用主鍵排序分頁（`ordered_store`；原 SupabaseCorpusStore range 分頁無 order，大表可能漏列 / 重複）。
+  - `--apply --confirm-project nutri_safe_ai`（91s、exit 0）：entities 78、sources 65、aliases 321、form→nutrient 61、
+    正式 mapping 54332、候選 9312、完成標記 `ingredient_bridge_import:1.0:1.0 = complete:8fec3ad25a6aeebc`；
+    Neo4j：NutrientGroup 17、IngredientForm 61、CONTRIBUTES_TO_NUTRIENT 61、CONTAINS 26877（Group 2294 / Form 24583）。
+  - 套用後（唯讀）：重跑 compare 全部 unchanged（insert / update / delete 0）；health_food ID / ProductIngredient / Ingredient digest
+    與套用前相同；Neo4j Product 9677、Ingredient 272、既有 CONTAINS→Ingredient 770 不變；SAME_AS / INTERACTS_WITH /
+    Interaction node / Product↔Product 0。Supabase：重複自然鍵 0、候選成為正式 0、候選帶 entity 0、未知 entity / alias 0、
+    FORM_TO_GROUP 缺關係 0、form 無關係 0、overlay alias provenance 缺漏 0、amount_normalized 0、版本全為 1.0/1.0。
+    Neo4j ↔ Supabase：entity ID 集合相同、CONTAINS 配對 = 正式直接 mapping、CONTRIBUTES 配對 = links、CONTAINS 缺 provenance 0、
+    候選配對進圖 0。
+  - Provenance 抽查（Product → raw → alias（source）→ form → CONTRIBUTES_TO_NUTRIENT（source）→ group）：碳酸鈣 → F_CA_CARBONATE → N_CA
+    （988 產品）、ZINC OXIDE → F_ZN_OXIDE → N_ZN（516）、葡萄糖酸鋅 → F_ZN_GLUCONATE → N_ZN（653）、葡萄糖酸銅 → F_CU_GLUCONATE → N_CU（307）、
+    氰鈷胺明(維生素B12) → F_CYANOCOBALAMIN → N_B12（1960）；alias 來源 TFDA_ADDITIVES_61（B12 關係來源 ODS_VitaminB12）。
+    魚油只到 F_FISH_OIL（EPA / DHA 是各自的健康食品 Ingredient）；F_FOLIC_ACID 1747 vs N_B9 3 分開；stearate → N_MG / N_CA 正式 0
+    （NEEDS_REVIEW 2954＋AMBIGUOUS 1384 → N_MG 候選、493 → N_CA 候選）。
+  - Runtime retrieval（`app/services/ingredient_bridge.result_from_stored_rows`：已存列 → 既有 payload，不重新比對、版本不符拒絕；
+    payload 新增 `official_raw_ingredients` / `unresolved_raw_texts`）。Production 唯讀 smoke 6 例（health_food 既有成分、國產、輸入、
+    鋅 form、銅 form、未解析＋已確認）：已存列重建 = 即時重算、payload 無句子、未解析 / 候選不阻擋正式成分（皆 INGREDIENTS_MAPPED）。
+  - tests：targeted unit 12 檔 336 passed、`tests/db` 57 passed、live 唯讀 `test_data_stores_live`＋`test_supabase_connectivity` 7 passed
+    （未跑 full pytest）。
+- **Ingredient Retrieval Runtime Integration（2026-10-04；Ingredient Bridge production data / Claim Policy / Product Coverage /
+  Resolver / Risk Engine 規則 / Interaction 未動；只讀 Supabase）**：
+  - Tool：沿用 `lookup_product_ingredients`（`app/tools/ingredient_tools.py`＋`evidence_tools.h_product_ingredients`，參數新增
+    `ingredient_queries`）。輸出 `ProductIngredientEvidence`（`EvidenceBundle.product_ingredients`，新選填欄位）：
+    official_ingredients（A 官方原文）/ confirmed_ingredients（B：只有 VERIFIED_EXACT / SUPPORTED_ALIAS / FORM_TO_GROUP，
+    form 附 parent_nutrient、FORM_TO_GROUP 附 via form）/ unresolved_ingredients（C：AMBIGUOUS / NEEDS_REVIEW / NO_MATCH）/
+    coverage / query_answers / source；沒有任何句子。原有 `bundle.ingredients`（health_food IngredientRecord）不變。
+  - 資料：health_food = 既有 product_ingredients；國產 / 輸入 = raw_import_records.raw_data.ingredient_staging token（另存官方成分欄位原文）；
+    mapping = product_ingredient_entity_mappings（只用 `ingredient_bridge_import:<corpus>:<overlay>` 完成標記的版本；多個完成版本 → 不猜、
+    視為 bridge 不可用）；entity / alias 小表 process 內快取 600 秒。Supabase repo 新增 3 個唯讀方法。
+  - 成分是非題（Agent A 的 ingredient_candidates）：使用者寫法以 NFKC / 大小寫 / 空白標點＋「維他命→維生素」正規化後，
+    與 entity 正式名稱 / 正式 alias 完全相同（找不到才用顯示譯名）→ 唯一 entity；多個 → AMBIGUOUS 不猜。
+    `IngredientPresence`：CONFIRMED（entity 有正式 mapping；營養素群可經 FORM_TO_GROUP）/ LISTED_IN_OFFICIAL_TEXT（官方原文完全相同，
+    不是 identity）/ CANDIDATE_ONLY（只有候選指向它，例如硬脂酸鎂 → 鎂）/ NOT_CONFIRMED（附 related_confirmed：同營養素的其他形式；
+    unresolved_remaining > 0 時不可說確定沒有）。只出現在品名中的成分字樣不當是非題（品名以外又問到則照常回答）。
+  - Agent B：fast path `_details_sufficient`（INGREDIENT_INQUIRY）改為「有既有成分或有官方原始成分」即足夠——部分成分未識別不算缺資料；
+    官方完全沒有成分資料才照原規則走完整流程。`_guardrail_product_details` 帶入是非題寫法並把證據放進 bundle。
+  - Agent C（primary 仍 deterministic，FC-A3）：依問題語意由結構化事實組句——「有哪些」：官方列有 N 項（有部分已確認時才說明幾項已確認 /
+    尚未識別），已確認的先列並附「X 的來源形式」；「有沒有」：CONFIRMED「有。…」、CANDIDATE_ONLY「目前無法確認…不能視為含有」、
+    NOT_CONFIRMED＋相關成分「…不是同一種成分」＋「另有 N 項尚未完成識別，不能完全排除」。status：官方登記成分 / 已確認含有 /
+    官方成分列有（GREEN）、目前未能確認（ORANGE）。不顯示內部 entity ID。完整分析（LLM）輸入新增 `product_ingredients`（無 ID）＋規則 14。
+  - Flex：primary 仍最多 3 點（FC-E8）；「查看完整成分」= 官方成分逐項標示（有已確認時）＋官方成分欄位原文，多行分段、最多 40 項；
+    下一層「查看資料來源」（`DETAIL_FOLLOW_UPS[INGREDIENTS]`）。`EvidenceBundle.all_sources()` 加入成分來源。Renderer 未改。
+  - Prompt：Agent A「有沒有 / 含不含某成分」= ingredient_inquiry＋ingredient_candidates、不是 claims（live：4 種問法皆正確、「可以降血糖嗎」仍為命題）。
+  - Frozen 檔案變更（本輪需求直接要求的 fast path routing 與成分卡內容，既有 extension point 無法達成）：`verification_agent`
+    `_details_sufficient` / `_guardrail_product_details`、`reporter_agent` INGREDIENT_LIST 的摘要 / status / 成分明細（select_response_type 未改）、
+    `actions.DETAIL_FOLLOW_UPS`（safe extension point）。FROZEN_CONTRACTS 未改。
+  - tests：`tests/unit/test_ingredient_retrieval_runtime.py`（21，虛構 entity / 產品）；`test_image_context_sources` 的無效網址測試
+    列舉補上新的成分證據來源（行為不變）。targeted 28 檔 612 passed；live 唯讀 `test_data_stores_live`＋`test_supabase_connectivity` 7 passed；prompt 變更後 `test_openai_live`＋`test_line_demo_live`
+    13 passed / 1 skipped（既有條件式 skip：虛構品名查無 → 無官方來源）。未跑 full pytest。
+  - Production READ-ONLY smoke（產品由 DB 隨機挑選，固定 intake、不呼叫 OpenAI、不寫 log）：health_food 無 mapping（列既有成分）/
+    health_food 魚油（EPA / DHA 各自為 Omega-3 來源）/ 登記類「有鋅嗎」CONFIRMED（ZINC GLUCONATE）/ 67 項成分「有銅嗎」CONFIRMED /
+    硬脂酸鎂「有鎂嗎」CANDIDATE_ONLY / 魚油「有 EPA 嗎」NOT_CONFIRMED＋相關成分 / 「有葉酸嗎」CONFIRMED；全部 VERIFIED＋structured_fast_path、
+    1.6–2.8 秒、無 planner / RAG / web、卡片與明細無內部 ID。
+  - LINE validate API（只驗證不送出）：成分清單 / 有 / 候選 / 未確認 / health_food 清單 / 完整成分 / 61 項長明細 共 7 張 PASS。
+- **Candidate Relevance Gate（2026-10-04；手機 smoke 發現：未知辨識名稱＋常見營養素 → NAME_SIMILARITY 列出不相關候選；
+  exact / alias / 字號 / 基本品名 / 修正寫法 / 自動確認 0.9 與 margin / postback / Ingredient Bridge / Agent A 未動）**：
+  - Root cause：resolver 只防 unsafe auto-confirm；候選產生 / 顯示只看名稱相似分數，一般字樣（維生素A、魚油…）重疊就 >= 0.5。
+  - `app/risk/candidate_relevance.py`＋`assessment_rules.apply_candidate_relevance_gate`（resolver 結果的後置過濾，只處理
+    PARTIAL_MATCH＋NAME_SIMILARITY；只移除候選、不確認任何產品；多候選只剩一項 → 單一候選確認）。一般用語 = 固定劑型 / 類別 / 規格寫法、
+    維生素寫法、單字礦物質、「牌」＋DB 官方成分名稱與 Ingredient Bridge entity / alias 名稱（`get_identity_generic_terms`，快取）＋
+    候選本身中「不同申請商、不同品名」共用的字樣。逐字對齊（LCS）只數 distinctive 字：對上 >= 沒對上且 >= 2 字、或只差 1 字（錯字）、
+    或使用者寫法是官方品名省略字、或候選含使用者明確給的品牌 / 公司 → 保留。distinctive < 2 字（一般查詢）→ 不擋。
+  - 全部移除 → 有公司 / 推測品牌時同既有 COMPANY_ONLY，否則 NOT_FOUND＋`ProductMatch.not_found_reason = NO_PRODUCT_IDENTITY_SUPPORT`
+    （`unsupported_identity_terms`、`filtered_candidate_count`，log 只記代碼與數量）。Agent B 新 `structured_identity_not_found`：
+    沒有命題 / 網址時直接停止（違規廣告照查），不跑 planner / RAG / web。Agent C 在既有查無卡摘要說明哪段名稱沒有官方支持。
+  - FROZEN_CONTRACTS 新增 FC-B7（additive）；其他 contract 未改。Frozen 檔案變更：`assessment_rules`（後置 gate）、`verification_agent`
+    （新 stop、resolver 傳入一般用語）、`reporter_agent`（查無摘要句）。
+  - Production READ-ONLY audit（lookup_product＋resolver，前後對照）：一般營養素查詢 5 例不變；未知前綴＋營養素 25 例：原本 24 例有候選 → 1 例
+    （官方品名恰為該營養素名稱、對齊平手 → 仍是候選確認，不自動確認）；品牌前綴＋近似品名：原本含同前綴產品 11 例 → 11 例保留、自動確認 0；
+    一字錯字 60 例：正確產品仍在候選 60/60、自動確認 0、其中 25 例移除不相關對手；同名多筆不變。過程中修正兩個一般化問題
+    （跨申請商共用字樣規則吃掉錯字的正確產品 9/60 → 改為逐字對齊＋1 字容忍；同名不同申請商寫法被誤當共用字樣 → 要求不同品名）。
+    端到端（真實 Agent B，固定 intake）：未知前綴＋維生素A / 魚油 → structured_identity_not_found、0 候選、無 planner / RAG / web、1.5s / 0.4s；
+    「維生素A」→ 3 候選確認卡；3 張 Flex 通過 LINE validate API。
+  - tests：`tests/unit/test_candidate_relevance_gate.py`（13，虛構）；targeted 34 檔 758 passed；live 唯讀 data stores 7 passed；`test_line_demo_live` 5 passed / 1 skipped（既有條件式 skip）。未跑 full pytest。
+- **Product-Core Relevance Gate（2026-10-04，取代上一節 gate 的支持判斷；resolver 門檻 / exact / alias / 字號 / 自動確認 / postback /
+  Ingredient Bridge / Agent A 未動）**：
+  - Root cause：上一版 gate 讓品牌 / 公司 anchor 單獨足以保留候選（明確品牌包含即通過；或品牌字數抵過缺少的核心字），
+    且「名稱＋品牌佐證」的單一候選（NAME_COMPANY_CORROBORATED）未經 gate → 同品牌、不同產品核心的產品成為唯一候選。
+  - 規則（`app/risk/candidate_relevance.py`）：使用者寫法逐字分 FORM（劑型 / 規格 / 數量 / 牌 / 食品，忽略）、NUTRIENT（維生素寫法、
+    單字礦物質、類別用語、DB 官方成分與 ingredient entity 名稱；必須完整對上，維生素 A ≠ C）、DISTINCTIVE（品牌與產品核心描述）。
+    逐字對齊候選「官方品名｜申請商」：NUTRIENT 缺字、DISTINCTIVE 連續缺 >= 2 字、或缺字超過核心 20%（至少容忍 1 字）→ 不符；
+    使用者寫法是官方品名省略字 → 符合。品牌＋品名分開時以「品牌＋品名」組合檢查。移除品牌 anchor 捷徑與「跨申請商共用字樣」規則。
+  - Gate 範圍擴大到未確認的 NAME_COMPANY_CORROBORATED；VERIFIED 不經過。全部移除 → NOT_FOUND（NO_PRODUCT_IDENTITY_SUPPORT），
+    `unsupported_identity_terms` = 最接近候選缺少的片段；Agent C 摘要改為「名稱相近的官方紀錄都對不上你寫的「…」；只是品牌相同或成分、劑型字樣相同的產品不會列為候選」。
+  - 行為變更：已知品牌＋該品牌沒有的核心描述（上一節的「品牌＋近似品名」）現在不列同品牌其他產品（依本輪規格）；品牌＋省略字 / 同核心仍可列。
+  - Production READ-ONLY audit：由資料找品牌前綴（同申請商兩個品名的共同開頭）60 組——同品牌＋他廠核心：原本 25 組顯示同品牌其他產品 → 0；
+    同品牌＋同核心：目標保留 58/58（同 gate 前）；未知前綴＋營養素 25 → 0 候選（上一版平手案例也解決）；一字錯字 60/60 保留、自動確認 0；
+    一般營養素查詢 / 同名多筆不變。
+  - tests：`tests/unit/test_candidate_relevance_gate.py` 改寫（17，虛構品牌 NUTRIX / ZENITH）；targeted 34 檔 762 passed；live data stores 7 passed、
+    `test_line_demo_live` 5 passed / 1 skipped（既有條件式 skip）；端到端未知前綴 → structured_identity_not_found、3 張 Flex 通過 LINE validate。未跑 full pytest。
+- **Phone smoke 回歸修正：exact / 產品 vs 成分路由 / 短品名錯字（2026-10-04；resolver 門檻 / 自動確認 / postback / Ingredient Bridge /
+  Product-Core gate 判斷未放寬；Ingredient Runtime 尚未 freeze）**：
+  - 診斷（唯讀 analysis_requests / evidence_logs，當日 40 筆 LINE 紀錄）：
+    1. Case 1 該筆（品牌＋螯合鋅錠＋有鋅嗎）：Agent A 完整保留品名；但 Supabase products / raw 欄位 / alias 都沒有這個品名，該品牌唯一產品是
+       另一核心（B群＋植物萃取）→ exact / alias / base 沒命中、相似度唯一候選即同品牌不同核心 → gate 移除 → NOT_FOUND，符合 Product-Core 規格。
+       exact 不經 gate 的契約本來就成立（gate 只處理未確認的 NAME_SIMILARITY / NAME_COMPANY_CORROBORATED），已加 spy 測試鎖定。
+       另修正缺少片段的顯示（對齊巧合造成「br」半個詞 → 顯示整段；營養素整段顯示）。
+    2. Case 2（營養素＋膠囊）：Agent A 只抽出成分、intent=unclear、沒有產品 → planner 跑 lookup_ingredient（模糊比對回傳其他維生素）→
+       reporter 以「官方資料中找到以下成分」列出不相關成分。
+    3. Case 3（3 字短品名一字錯字）：Agent A 沒抽出任何實體（intent=unclear）→ resolver 根本沒有執行；直接送 resolver＋gate 會保留正確候選
+       （production 422 個短品名替換測試 0 遺失）。根因是路由，不是 gate。
+  - 修正（一般化）：
+    * Agent A prompt：只有一個名稱的訊息、「成分＋劑型」片語 → product_candidates / product_verification。deterministic 保險
+      `apply_product_phrase_routing`（文字 / 語音、無任何產品識別 / 命題 / 網址 / 代名詞時）：成分＋（≤6 字）＋劑型 → 產品候選；
+      intent unclear＋沒有實體＋沒有問句線索的單一名稱 → 產品查詢。明確成分問題（X 是什麼、X 的功效）不受影響。
+    * `EvidenceBundle.standalone_ingredients`（新）：lookup_ingredient 結果與「已確認產品的成分」（bundle.ingredients）分開；reporter
+      不針對產品時只列與所問名稱完全相同的官方成分（「這不是指任何一項產品的成分」），沒有就說找不到完全相同名稱；成分名稱查詢結果
+      永遠不會出現在產品成分卡 / 完整成分。
+    * Gate：明確的單字編輯（替換 / 多一字 / 少一字）規則——只差一字 → 保留為候選（仍只請使用者確認）；改動的字若是營養素字樣仍是衝突。
+  - Production READ-ONLY 決策路徑（真實 Agent A＋B＋C，不寫 log）：exact 官方品名＋成分問題 → CANONICAL_EXACT / fast path / 成分卡；
+    官方別名 → N/A（production PRODUCT 官方別名 0 筆，synthetic 覆蓋）；字號 → PERMIT_NUMBER；「營養素＋膠囊」→ 產品（DB 有同名產品 → exact）；
+    「營養素是什麼」→ 成分查詢、無完全相同官方成分 → 不列其他成分；短品名一字錯字 → 2 候選確認（含正確產品）；長品名一字錯字 → Agent A
+    在 product_candidates 直接寫成修正後官方品名 → CANONICAL_EXACT（既有 Agent A 行為，未改）；未知品牌＋營養素 → identity_not_found；
+    同品牌不同核心 → identity_not_found；同品牌同核心 → exact。手機原句重播：短品名錯字 → 1 候選確認；營養素＋膠囊 → 產品；其餘同上。
+  - tests：`tests/unit/test_product_routing_and_typos.py`（16，虛構）；targeted 37 檔 800 passed；live（openai＋line demo＋data stores＋
+    connectivity）20 passed / 1 skipped（既有條件式 skip）。未跑 full pytest。
 - 最新完整 pytest（2026-10-03，LINE 整合後）：466 passed / 7 skipped / 0 failed（當時 DB 尚未 seed）。
 - 2026-10-03 seed 後（未改 production code，未重跑完整 suite）：`test_data_stores_live.py` 6 passed（原本 skip）、
   `test_line_demo_live.py` 6 passed。
 - 產品選擇後（未跑完整 suite）：selection / postback / context / renderer / resolver 相關 unit 150 passed（6 個檔案）。
 - P1 後（未跑完整 suite）：resolver / fast path / dedup / semantic / parity / LINE / agents / tools / risk 相關 unit 276 passed（12 個檔案）；
   `test_line_demo_live.py` 6 passed（446s）。
+
+## Ingredient Runtime Freeze（2026-10-05）
+
+**Final freeze gate PASSED**：
+- 先前 88 個 error 為 Windows pytest 暫存目錄 PermissionError（非 production regression）；重跑該批 131 passed。
+- Full pytest（fresh basetemp）：**1202 passed / 1 skipped / 0 failed / 0 errors**（6 個 Supabase deprecation warnings，本次不處理）。
+
+目前 FROZEN：
+- **Product Identity Safety = FROZEN**（product mention provenance、corrected name 只能候選確認、Clarification before research、台灣登記進口產品不算外國產品；FC-B8 / B9 / B10）
+- **Candidate Relevance = FROZEN**（FC-B7）
+- **Ingredient Bridge Data Layer = FROZEN**（0005 migration / importer / 1.0 corpus＋overlay；production 已匯入）
+- **Ingredient Retrieval Runtime = FROZEN**（產品成分三層、「有沒有某成分」答案、standalone identity / function evidence 分離；FC-H1 / H2 / H3）
+- **Standalone Ingredient/Nutrient Routing = FROZEN**（原文優先於前文產品、代名詞仍綁定、collision 詢問、獨立成分「查看完整分析」；FC-F4 / FC-E9）
+- 維持：Claim Policy Runtime、Product Coverage Runtime、Resolver identity safety（FC-B1/B2/B3）= FROZEN。
+- 已知（不影響 freeze）：Controller 對未收錄裸名稱偶發判成產品時，已由原文優先規則攔下（一般成分用語）；Supabase deprecation warnings 待後續處理。
+- 文件用語：Controller Agent / Researcher Agent / Reporter Agent（Agent A/B/C 為內部識別字，程式未改名）。
 
 ## 注意事項
 
@@ -720,6 +1024,13 @@
   structured_clarification 候選（標類別＋字號名稱），不合併。全部無 planner / RAG / assess / web。
 - tests：targeted 12 檔 245 passed（未跑 full pytest、未跑 live integration）。
 - 下一步：手機 smoke（10 碼字號、新類別品名、跨類別同名選擇、查無產品文字）；新類別成分問題目前仍走完整流程（尚無結構化成分）。
+
+**Product Ingredient Mapping Bridge（2026-10-04 production import 完成，marker `ingredient_bridge_import:1.0:1.0`）**：下一步——
+(a) 手機成分 smoke（Agent B / C 已接 bridge，見 Ingredient Retrieval Runtime Integration）：「XX 有哪些成分」→「它有鋅嗎」、
+    硬脂酸鎂產品問鎂、魚油產品問 EPA、長成分清單的「查看完整成分」；
+(b) 版本更新（overlay / corpus 新版）需另寫版本切換流程（importer 目前對其他版本 / stale 列 fail closed）；
+(c) overlay 剩下的 AMBIGUOUS / NEEDS_REVIEW（硬脂酸鎂、MAGNESIUM STEARATE、氧化鐵色素、複方…）需新的審核來源，不可自行補；
+(d) 之後才接 Interaction / DrugSubstance / Evidence 與 Agent B evidence tool。
 
 0. 手機重測 image identity：有字號但品名 / 標章小字易誤讀的包裝、字號被擋住只看到品名、同名多公司包裝（含公司名）
 0a. 手機重測 pending clarification：只傳相似包裝圖 → 回「是」/「不是」/ 改傳其他品名；字號＋不同品名 → 回「是同一個」

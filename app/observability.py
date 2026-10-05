@@ -33,6 +33,8 @@ LOG_FIELDS = (
     "match_type",
     "match_confidence",
     "ambiguity_reason",
+    "not_found_reason",
+    "filtered_candidate_count",
     "fast_path_eligible",
     "fast_path_reason",
     "planner_mode",

@@ -152,7 +152,7 @@ def test_primary_card_lists_the_approved_function_once():
 
 
 def test_treatment_question_fast_path_not_regressed():
-    result, _ = ask("TEST_ONLY 可以治療虛構病嗎？", medical=MedicalAssertionType.TREATS_OR_CURES_DISEASE)
+    result, _ = ask(f"{PRODUCT}可以治療虛構病嗎？", medical=MedicalAssertionType.TREATS_OR_CURES_DISEASE)
     ca = result.evidence.claim_assessment[0]
     assert ca.status == ClaimAssessmentStatus.MEDICAL_TREATMENT_CLAIM and ca.claim_risk == RiskLevel.HIGH
     assert not (set(tools(result)) & SLOW)

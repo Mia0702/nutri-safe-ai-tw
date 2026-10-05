@@ -20,6 +20,7 @@ from app.schemas.enums import (
     MedicalAssertionType,
     PendingClarificationType,
     ProductConfirmationSource,
+    ProductMentionProvenance,
     ProductReferenceStatus,
     UrlSourceRole,
 )
@@ -267,6 +268,18 @@ class DetectedProduct(BaseModel):
     certification_marks: list[str] = Field(default_factory=list)
 
 
+class ProductMention(BaseModel):
+    """一個產品名稱的 provenance：使用者原文 vs Agent A 的修正（只給 resolver 使用，不顯示給使用者）。"""
+
+    extracted_text: str  # Agent A 抽出的寫法
+    raw_text: str | None = None  # 使用者輸入中對應的原文片段（找不到時為 None）
+    normalized_mention: str = ""  # raw_text 的純格式正規化
+    corrected_name: str | None = None  # Agent A 改字後的寫法（只是查詢線索）
+    correction_applied: bool = False
+    provenance: ProductMentionProvenance
+    edit_count: int = 0  # 修正寫法與原文片段的編輯距離（純格式差異為 0）
+
+
 class NormalizedUserRequest(BaseModel):
     """Agent A 的正式輸出。後續 Agent 只讀這份結果，不再重新解析原始輸入。"""
 
@@ -280,6 +293,12 @@ class NormalizedUserRequest(BaseModel):
     product_candidates: list[str] = Field(default_factory=list)
     # Agent A 的錯字 / 同音修正：只是查詢線索，必須由使用者原始寫法佐證才能確認產品（見 resolve_product_match）
     corrected_product_candidates: list[str] = Field(default_factory=list)
+    # product_candidates 中每個名稱與使用者原文的關係（只有 USER_TEXT 能走 exact；修正寫法只是線索）
+    product_mentions: list[ProductMention] = Field(default_factory=list)
+    # 整則訊息的名稱同時是 canonical 成分與官方產品名稱：不替使用者決定，請使用者選擇（見 bare_name_routing）
+    identity_collision: bool = False
+    # 目前這句是獨立的成分 / 營養素詢問（bare-name routing）：不綁定前一題的已確認產品（不改動 context，只是這一題不用）
+    standalone_entity: bool = False
     brand_candidates: list[str] = Field(default_factory=list)
     company_candidates: list[str] = Field(default_factory=list)
     ingredient_candidates: list[str] = Field(default_factory=list)

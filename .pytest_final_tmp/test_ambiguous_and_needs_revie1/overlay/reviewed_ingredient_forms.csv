@@ -1,0 +1,4 @@
+form_entity_id,canonical_name_en,official_name_zh,parent_nutrient_entity_id,relationship_type,source_id,source_url,source_locator,identity_level,review_status,existing_corpus_entity,overlay_version
+F_ZN_TEST_OXIDE,Zinc test oxide,TEST_ONLY氧化鋅,N_ZN,CONTRIBUTES_TO_NUTRIENT,TEST_ONLY_SRC,NULL,NULL,SALT_FAMILY_UNSPECIFIED_HYDRATION,VERIFIED_OFFICIAL,False,NULL
+F_TEST_THIAMIN,Thiamin test form,TEST_ONLY硫胺,N_B1,CONTRIBUTES_TO_NUTRIENT,TEST_ONLY_SRC,NULL,NULL,CHEMICAL_FORM,VERIFIED_OFFICIAL,False,NULL
+F_CA_CARBONATE,Calcium carbonate,碳酸鈣,N_CA,CONTRIBUTES_TO_NUTRIENT,TEST_ONLY_SRC,NULL,NULL,SALT_FAMILY_UNSPECIFIED_HYDRATION,VERIFIED_OFFICIAL,True,NULL

@@ -41,6 +41,8 @@ DETAIL_FOLLOW_UPS: dict[ResponseAction, tuple[ResponseAction, ...]] = {
     # 為什麼 → 法規依據（結構化 claim policy 的條次 / 摘要）→ 官方來源（既有可點擊來源卡）
     ResponseAction.WHY: (ResponseAction.POLICY_BASIS, ResponseAction.SOURCES),
     ResponseAction.REGISTRATION_INFO: (ResponseAction.SOURCES,),
+    # 完整成分 → 成分資料的官方來源
+    ResponseAction.INGREDIENTS: (ResponseAction.SOURCES,),
 }
 
 

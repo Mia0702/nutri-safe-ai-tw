@@ -49,3 +49,9 @@ def extraction(**overrides) -> IntakeExtraction:
     )
     base.update(overrides)
     return IntakeExtraction(**base)
+
+
+def user_text(ex: IntakeExtraction, base: str = "TEST_ONLY 問題") -> str:
+    """Fake Agent A 抽出的產品名稱必須真的出現在使用者輸入中（與真實 Agent A 相同）：把名稱放進測試輸入文字。"""
+    names = [n for n in ex.product_candidates + ex.permit_number_candidates if n]
+    return f"{base} {' '.join(names)}".strip() if names else base

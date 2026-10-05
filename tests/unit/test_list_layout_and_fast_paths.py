@@ -24,7 +24,7 @@ from app.schemas.enums import (
 )
 from app.schemas.response import DetailPayload, ResponsePayload
 from app.schemas.user_request import IntakeExtraction, RawUserInput
-from tests.builders import claim, extraction
+from tests.builders import claim, extraction, user_text
 from tests.fakes import FakeLLM, InMemoryGraphRepo, InMemoryOfficialRepo, InMemoryRagStore
 from tests.fixtures import synthetic_data as data
 
@@ -52,7 +52,7 @@ def run(raw_text="TEST_ONLY", *claims, intent=Intent.CLAIM_VERIFICATION, candida
         verifier=VerificationAgent(InMemoryOfficialRepo(), InMemoryGraphRepo(), InMemoryRagStore(), llm),
         risk_engine=RiskEngine(), reporter=ReporterAgent(llm),
     )
-    return pipe.run(RawUserInput(input_type=InputType.TEXT, text=raw_text)), llm
+    return pipe.run(RawUserInput(input_type=InputType.TEXT, text=raw_text if any(c in raw_text for c in candidates) else user_text(ex, raw_text))), llm
 
 
 def tools(result):

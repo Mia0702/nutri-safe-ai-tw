@@ -372,3 +372,52 @@ class ResponseAction(StrEnum):
     CHECK_PACKAGE_CLAIMS = "check_claims"  # 查驗圖片中觀察到的包裝宣稱（使用原 request 保存的內容）
     POLICY_BASIS = "policy_basis"  # 為什麼 → 法規依據（結構化 claim-policy 規則 / 例示 / 保健功效定義）
     REGISTRATION_INFO = "registration_info"  # 查驗登記／核備類別的產品登記資料（與官方資訊同內容，用語不同）
+
+
+class IngredientPresence(StrEnum):
+    """「這個產品有沒有某成分」的結構化答案（Agent B deterministic 判定；Agent C 只依此表達，不自行推論）。"""
+
+    CONFIRMED = "CONFIRMED"  # 正式 identity mapping（VERIFIED_EXACT / SUPPORTED_ALIAS / FORM_TO_GROUP）
+    LISTED_IN_OFFICIAL_TEXT = "LISTED_IN_OFFICIAL_TEXT"  # 官方成分原文中有完全相同的文字（只代表官方列有，不是 identity）
+    CANDIDATE_ONLY = "CANDIDATE_ONLY"  # 只有待審候選（AMBIGUOUS / NEEDS_REVIEW）指向它：尚未確認，不可說有
+    NOT_CONFIRMED = "NOT_CONFIRMED"  # 已確認的成分中沒有它（不等於「確定沒有」：可能在尚未識別的成分中）
+
+
+class IngredientQueryResolution(StrEnum):
+    """使用者所問的成分詞能否對應到唯一的 canonical ingredient entity。"""
+
+    RESOLVED = "RESOLVED"
+    AMBIGUOUS = "AMBIGUOUS"  # 同一個詞對應到多個 entity：不猜
+    NOT_IN_CORPUS = "NOT_IN_CORPUS"  # 不在目前 ingredient identity 範圍（仍可比對官方成分原文）
+
+
+class ProductNotFoundReason(StrEnum):
+    """NOT_FOUND 的結構化原因（Agent C / renderer 依此表達，不自行推論）。"""
+
+    # 有名稱相似的官方紀錄，但都無法支持使用者寫法中有辨識力的部分（品牌 / 公司 / 品名特有字樣），
+    # 只有一般成分 / 營養素 / 劑型字樣重疊 → 不列為候選
+    NO_PRODUCT_IDENTITY_SUPPORT = "NO_PRODUCT_IDENTITY_SUPPORT"
+
+
+class IngredientIdentityStatus(StrEnum):
+    """獨立成分 / 營養素名稱的 identity 來源（與功能證據是兩件事）。只用 exact 比對，不用相似度 / embedding。"""
+
+    CANONICAL_ENTITY = "CANONICAL_ENTITY"  # Ingredient Bridge canonical entity / 已接受的 alias
+    LEGACY_OFFICIAL_NAME = "LEGACY_OFFICIAL_NAME"  # 只有官方成分表（ingredients）中有完全相同的名稱
+    IDENTITY_NOT_IN_CORPUS = "IDENTITY_NOT_IN_CORPUS"  # 結構化 identity 資料尚未收錄（不代表這個成分不存在）
+
+
+class FunctionEvidenceStatus(StrEnum):
+    """獨立成分 / 營養素的「生理功能」證據狀態（與產品核准保健功效不同；Interaction corpus 不算一般功能證據）。"""
+
+    NOT_ASSESSED = "NOT_ASSESSED"  # 使用者只問名稱 / 概覽：沒有查功能證據
+    SUPPORTED = "SUPPORTED"  # 通過 Relevance Gate 的官方文件 / 官方網頁證據
+    NO_FUNCTION_EVIDENCE = "NO_FUNCTION_EVIDENCE"  # 查過但沒有通過 Relevance Gate 的官方證據（不等於「這個成分不存在」）
+
+
+class ProductMentionProvenance(StrEnum):
+    """Agent A 抽出的產品名稱與「使用者實際輸入文字」的關係（內部 provenance，不顯示給使用者）。"""
+
+    USER_TEXT = "USER_TEXT"  # 只差格式（大小寫 / 全半形 / 空白 / 標點），就是使用者自己的寫法 → 可走 exact
+    AGENT_CORRECTED = "AGENT_CORRECTED"  # Agent A 改了字（錯字 / 同音 / 增刪字）→ 原文另存；修正名稱只是線索
+    NOT_IN_USER_TEXT = "NOT_IN_USER_TEXT"  # 本次輸入中找不到對應文字 → 只是線索，不能當使用者寫法

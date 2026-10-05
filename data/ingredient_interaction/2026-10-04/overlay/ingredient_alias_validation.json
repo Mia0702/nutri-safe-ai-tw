@@ -1,0 +1,204 @@
+{
+  "overlay_version": "1.0",
+  "retrieved_at": "2026-10-04T09:29:41.890163+00:00",
+  "counts": {
+    "reviewed_aliases": 250,
+    "alias_statuses": {
+      "VERIFIED_OFFICIAL": 167,
+      "SUPPORTED_AUTHORITATIVE": 24,
+      "AMBIGUOUS": 14,
+      "NEEDS_REVIEW": 45
+    },
+    "reviewed_forms": 61,
+    "existing_forms_reviewed": 13,
+    "new_forms_proposed": 48,
+    "zinc_forms": 7,
+    "copper_forms": 4,
+    "sources": 26,
+    "domestic_unique_tokens": 3068,
+    "domestic_scope_tokens": 590,
+    "simulation_mapping_rows": 26931
+  },
+  "checks": {
+    "verified_alias_has_source": true,
+    "accepted_alias_has_identity_source": true,
+    "form_to_nutrient_has_evidence": true,
+    "relationship_only_contributes": true,
+    "no_form_same_as_nutrient": true,
+    "fish_omega_epa_dha_distinct": true,
+    "folate_folic_acid_distinct": true,
+    "accepted_overlay_alias_keys_unique": true,
+    "all_form_entities_exist_or_declared_in_overlay": true,
+    "all_parent_entities_exist": true,
+    "canonical_form_names_nonempty": true,
+    "no_drug_alias_added": true,
+    "bare_english_nutrient_not_redirected_to_compound": true,
+    "raw_product_ingredients_unmodified": true,
+    "official_authoritative_identity_hosts": true,
+    "no_amount_conversion_or_interaction_inheritance": true,
+    "ambiguous_needs_review_not_used": true,
+    "product_counts_match_requested": true,
+    "no_application_or_production_mutation": true,
+    "all_csv_utf8": true,
+    "independent_export_fk_and_coverage_reconciliation": true,
+    "no_bare_nutrient_canonical_form": true
+  },
+  "all_quality_gates_passed": true,
+  "coverage": {
+    "DOMESTIC": {
+      "denominator": 1705,
+      "before": {
+        "products_with_formal_mapping": 0,
+        "nutrient_product_counts": {
+          "N_CA": 0,
+          "N_FE": 0,
+          "N_MG": 0,
+          "N_ZN": 0,
+          "N_CU": 0,
+          "N_D": 0,
+          "N_K": 0,
+          "N_C": 0,
+          "N_B1": 0,
+          "N_B2": 0,
+          "N_B3": 0,
+          "N_B5": 0,
+          "N_B6": 0,
+          "N_B7": 0,
+          "N_B9": 0,
+          "N_B12": 0,
+          "N_OMEGA3": 0
+        }
+      },
+      "after": {
+        "products_with_formal_mapping": 1588,
+        "nutrient_product_counts": {
+          "N_CA": 489,
+          "N_FE": 300,
+          "N_MG": 265,
+          "N_ZN": 508,
+          "N_CU": 230,
+          "N_D": 317,
+          "N_K": 111,
+          "N_C": 922,
+          "N_B1": 752,
+          "N_B2": 895,
+          "N_B3": 759,
+          "N_B5": 669,
+          "N_B6": 923,
+          "N_B7": 560,
+          "N_B9": 736,
+          "N_B12": 865,
+          "N_OMEGA3": 17
+        }
+      }
+    },
+    "IMPORTED": {
+      "denominator": 7407,
+      "before": {
+        "products_with_formal_mapping": 2609,
+        "nutrient_product_counts": {
+          "N_CA": 920,
+          "N_FE": 253,
+          "N_MG": 0,
+          "N_ZN": 0,
+          "N_CU": 0,
+          "N_D": 312,
+          "N_K": 7,
+          "N_C": 57,
+          "N_B1": 60,
+          "N_B2": 563,
+          "N_B3": 139,
+          "N_B5": 0,
+          "N_B6": 64,
+          "N_B7": 656,
+          "N_B9": 979,
+          "N_B12": 101,
+          "N_OMEGA3": 497
+        }
+      },
+      "after": {
+        "products_with_formal_mapping": 4206,
+        "nutrient_product_counts": {
+          "N_CA": 1391,
+          "N_FE": 384,
+          "N_MG": 732,
+          "N_ZN": 1033,
+          "N_CU": 422,
+          "N_D": 1109,
+          "N_K": 146,
+          "N_C": 1234,
+          "N_B1": 986,
+          "N_B2": 1228,
+          "N_B3": 999,
+          "N_B5": 739,
+          "N_B6": 946,
+          "N_B7": 656,
+          "N_B9": 979,
+          "N_B12": 1393,
+          "N_OMEGA3": 497
+        }
+      }
+    },
+    "HEALTH_FOOD": {
+      "denominator": 565,
+      "before": {
+        "products_with_formal_mapping": 0,
+        "nutrient_product_counts": {
+          "N_CA": 0,
+          "N_FE": 0,
+          "N_MG": 0,
+          "N_ZN": 0,
+          "N_CU": 0,
+          "N_D": 0,
+          "N_K": 0,
+          "N_C": 0,
+          "N_B1": 0,
+          "N_B2": 0,
+          "N_B3": 0,
+          "N_B5": 0,
+          "N_B6": 0,
+          "N_B7": 0,
+          "N_B9": 0,
+          "N_B12": 0,
+          "N_OMEGA3": 0
+        }
+      },
+      "after": {
+        "products_with_formal_mapping": 6,
+        "nutrient_product_counts": {
+          "N_CA": 3,
+          "N_FE": 1,
+          "N_MG": 1,
+          "N_ZN": 0,
+          "N_CU": 0,
+          "N_D": 0,
+          "N_K": 0,
+          "N_C": 0,
+          "N_B1": 0,
+          "N_B2": 0,
+          "N_B3": 0,
+          "N_B5": 0,
+          "N_B6": 0,
+          "N_B7": 0,
+          "N_B9": 0,
+          "N_B12": 0,
+          "N_OMEGA3": 1
+        }
+      }
+    }
+  },
+  "coverage_method": "exact literal ;; token; NFKC, casefold, collapse whitespace only; overlay prioritizes form over baseline nutrient-name alias only in product ingredient context",
+  "baseline_alignment": "RECOMPUTED_WITH_USER_APPROVAL; original Bridge dry-run details unavailable",
+  "health_food_coverage_limit": "Only exact whole 保健功效相關成分 field, not full formulation; public dataset contains marker ingredients and quantitative multi-line text; conservative lower bound, no production Ingredient table read",
+  "production_writes": false,
+  "base_corpus_modified": false,
+  "ready_for_ingredient_bridge_importer_design": true,
+  "known_gaps": [
+    "No original Bridge per-row dry-run; coverage is reproducible replacement baseline, not verified production counts",
+    "Health-food full product ingredients unavailable in public InfoId19; count is lower bound",
+    "Compound carriers, strength, unspecified hydrate / K2 homolog variants left review-only; no generic suffix removal",
+    "Nutrient contribution proves affiliation only, not clinical warning eligibility or dose equivalence",
+    "Identifier verification limited to CuO; generic salts no guessed CAS/UNII",
+    "Official ingredient names may specify administrative form families, not fully stereochemical purity"
+  ]
+}

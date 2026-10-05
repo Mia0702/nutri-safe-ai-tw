@@ -9,6 +9,7 @@ from typing import Any, Callable
 
 from pydantic import BaseModel
 
+from app.schemas.user_request import IntakeExtraction
 from app.schemas.enums import ErrorCode
 from app.services.errors import ServiceError
 from app.services.openai_service import PlannedCall, PlanStepResult, WebSearchResult, WebSearchSource
@@ -79,6 +80,29 @@ class InMemoryOfficialRepo:
     def get_products_by_company_ids(self, company_ids, limit):
         self._check("get_products_by_company_ids")
         return [dict(p) for p in data.PRODUCTS if p["company_id"] in company_ids][:limit]
+
+    def get_product_ingredient_sources(self, product_ids):
+        self._check("get_product_ingredient_sources")
+        return [{"product_id": p["product_id"], "product_category": p.get("product_category") or "health_food",
+                 "source_name": p["source_name"], "source_url": p.get("source_url"), "is_official": p["is_official"],
+                 "source_record_key": p.get("source_record_key"), "retrieved_at": p.get("retrieved_at"),
+                 "ingredient_staging": data.INGREDIENT_STAGING.get(p["product_id"])}
+                for p in data.PRODUCTS if p["product_id"] in product_ids]
+
+    def get_ingredient_bridge_reference(self):
+        self._check("get_ingredient_bridge_reference")
+        return dict(data.INGREDIENT_BRIDGE)
+
+    def get_identity_generic_terms(self):
+        self._check("get_identity_generic_terms")
+        bridge = data.INGREDIENT_BRIDGE
+        return ([i["name_zh"] for i in data.INGREDIENTS] + [i["name_en"] for i in data.INGREDIENTS if i.get("name_en")]
+                + [e["display_name_zh"] for e in bridge.get("entities", []) if e.get("display_name_zh")]
+                + [a["alias_text"] for a in bridge.get("aliases", []) if a.get("entity_id")])
+
+    def get_ingredient_entity_mappings(self, product_ids):
+        self._check("get_ingredient_entity_mappings")
+        return [dict(m) for m in data.INGREDIENT_ENTITY_MAPPINGS if m["product_id"] in product_ids]
 
 
 class InMemoryGraphRepo:
@@ -169,6 +193,8 @@ class FakeLLM:
         fail: set[str] | None = None,
         plans: list[PlanStepResult] | None = None,
         web_plans: list[PlanStepResult] | None = None,
+        transcript: str | None = None,
+        image_text: str | None = None,
     ):
         self.structured = structured or {}
         self.text = text
@@ -179,6 +205,8 @@ class FakeLLM:
         self.calls: list[tuple[str, Any]] = []
         self.plan_inputs: list[Any] = []
         self.structured_inputs: list[tuple[str, str]] = []
+        self.transcript = transcript
+        self.image_text = image_text
 
     def _maybe_fail(self, name):
         if name in self.fail:
@@ -213,12 +241,17 @@ class FakeLLM:
     def describe_image(self, *, instructions, image, mime_type):
         self.calls.append(("describe_image", mime_type))
         self._maybe_fail("describe_image")
-        return "TEST_ONLY 圖片文字：虛構牌晶亮測試膠囊"
+        if self.image_text:
+            return self.image_text
+        # 圖片中讀到的文字要包含 Fake Agent A 抽出的產品名稱（與真實 Agent A 相同：名稱必須在輸入文字中，provenance）
+        fixed = self.structured.get(IntakeExtraction)
+        names = " ".join(fixed.product_candidates) if isinstance(fixed, IntakeExtraction) else ""
+        return f"TEST_ONLY 圖片文字：{names or '虛構牌晶亮測試膠囊'}"
 
     def transcribe_audio(self, *, audio, filename):
         self.calls.append(("transcribe_audio", filename))
         self._maybe_fail("transcribe_audio")
-        return "TEST_ONLY 語音：這個可以降血糖嗎"
+        return self.transcript or "TEST_ONLY 語音：這個可以降血糖嗎"
 
     def embed(self, texts):
         self.calls.append(("embed", texts))

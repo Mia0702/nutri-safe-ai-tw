@@ -28,14 +28,14 @@ ASSOC = r"\(Company\)-\[:ASSOCIATED_WITH_BRAND[^\]]*\]->\(Brand\)"
 HAS = r"\(Product\)-\[:HAS_BRAND[^\]]*\]->\(Brand\)"
 
 
-@pytest.mark.parametrize("name,text", [("cypher", CYPHER), ("readme", README)])
+@pytest.mark.parametrize("name,text", [("cypher", CYPHER), ("readme", README)], ids=["cypher", "readme"])
 def test_documented_brand_relation_direction(name, text):
     assert re.search(OWNS, text), f"{name} 缺少 (Company)-[:OWNS_BRAND]->(Brand)"
     assert re.search(ASSOC, text), f"{name} 缺少 (Company)-[:ASSOCIATED_WITH_BRAND]->(Brand)"
     assert re.search(HAS, text), f"{name} 缺少 (Product)-[:HAS_BRAND]->(Brand)"
 
 
-@pytest.mark.parametrize("text", [CYPHER, README, GRAPH_SYNC])
+@pytest.mark.parametrize("text", [CYPHER, README, GRAPH_SYNC], ids=["cypher", "readme", "graph_sync"])
 def test_no_reversed_brand_relations(text):
     rels = "OWNS_BRAND|ASSOCIATED_WITH_BRAND|HAS_BRAND"
     assert not re.search(rf"<-\[[^\]]*:({rels})", text)

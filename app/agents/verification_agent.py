@@ -65,12 +65,15 @@ from app.agents.evidence_tools import (
     NamesArgs,
     PlannerState,
     ProductIdsArgs,
+    ProductIngredientsArgs,
     QueryArgs,
     ToolSpec,
 )
 from app.normalization import extract_permit_code, normalize_name
 from app.product_coverage import has_health_claim_approval
+from app.services.bare_name_routing import route_bare_name
 from app.risk.assessment_rules import (
+    scope_foreign_signal,
     assess_claim,
     compute_evidence_strength,
     relevance_gate,
@@ -93,12 +96,17 @@ from app.schemas.enums import (
     ErrorCode,
     EvidenceScope,
     Intent,
+    IngredientQueryResolution,
+    IngredientIdentityStatus,
+    FunctionEvidenceStatus,
     ProductMatchType,
+    ProductNotFoundReason,
     ProductVerificationStatus,
     SourceType,
     UrlSourceRole,
 )
 from app.schemas.evidence import (
+    StandaloneEntityIdentity,
     ClaimEvidenceLink,
     EvidenceBundle,
     EvidenceRelevance,
@@ -115,6 +123,8 @@ from app.services.errors import ServiceError
 from app.services.openai_service import LLMClient
 from app.tools.base import ToolCallRecorder
 from app.tools.graph_tools import GraphQueryType, GraphRepository
+from app.tools.ingredient_tools import IngredientReference, ingredient_query_terms
+from app.tools.product_tools import identity_generic_terms
 from app.tools.product_tools import OfficialDataRepository
 from app.tools.claim_policy_tools import ClaimPolicyRepository
 from app.tools.rag_tools import RagStore
@@ -133,8 +143,11 @@ EVIDENCE_TEXT_CHARS = 700
 FAST_PATH_INTENTS = frozenset({Intent.PRODUCT_VERIFICATION, Intent.INGREDIENT_INQUIRY, Intent.EFFICACY_INQUIRY})
 FAST_PATH_MODE = "structured_fast_path"
 CLARIFICATION_MODE = "structured_clarification"
+STANDALONE_INTENTS = frozenset({Intent.INGREDIENT_INQUIRY, Intent.EFFICACY_INQUIRY, Intent.SAFETY_INQUIRY})
+STANDALONE_ENTITY_MODE = "standalone_entity"  # 獨立成分 / 營養素：identity 已確認，證據各查一次
 URL_EVIDENCE_MODE = "url_evidence_early_stop"
 IMAGE_IDENTIFICATION_MODE = "image_identification_stop"
+IDENTITY_NOT_FOUND_MODE = "structured_identity_not_found"  # 候選都只有一般用語重疊：查無產品身分，不規劃
 PACKAGE_CLAIM_MODE = "package_claim_early_stop"
 CLAIM_COMPARISON_MODE = "approved_claim_comparison"  # 已確認產品 + 官方核准功效：宣稱直接與結構化證據比對
 CLAIMS_PENDING_PRODUCT_MODE = "claims_pending_product_choice"  # 產品待使用者確認：宣稱先不比對核准功效
@@ -213,10 +226,19 @@ class VerificationAgent:
 
         # 0. 先以 deterministic resolver 確定產品，再決定是否需要 LLM planning
         self._deterministic_product_resolution(state, rec)
+        request = state.request = scope_foreign_signal(request, bundle.product_match)
         self._attach_official_url_evidence(state)
-        # 0b. Structured evidence fast path：簡單的產品 / 成分 / 核准功效問題，結構化官方資料已足夠就停止
-        if self._try_structured_fast_path(state, rec):
+        self._resolve_standalone_entities(state)
+        # 0a. 身份未確定前不研究：名稱 collision、或產品只有候選（待使用者確認）→ 直接請使用者確認，不跑 planner / RAG / web / assess
+        if self._try_identity_clarification_stop(state):
             links: list[_ClaimLink] = []
+        # 0b. Structured evidence fast path：簡單的產品 / 成分 / 核准功效問題，結構化官方資料已足夠就停止
+        elif (entity_links := self._try_standalone_entity_path(state, rec)) is not None:
+            links = entity_links
+        elif self._try_structured_fast_path(state, rec):
+            links = []
+        elif self._try_identity_not_found_stop(state, rec):
+            links = []
         elif self._try_image_identification_stop(state, rec):
             links = []
         elif (url_links := self._try_url_evidence_path(state, rec)) is not None:
@@ -293,6 +315,24 @@ class VerificationAgent:
     # ================================================================== URL evidence early-stop
 
     # ================================================================== 圖片：product-first
+
+    def _try_identity_not_found_stop(self, state: PlannerState, rec: ToolCallRecorder) -> bool:
+        """名稱相似的官方紀錄只有一般用語重疊（Candidate Relevance Gate 全部移除）、且沒有待查證命題 / 網址：
+        結論就是查無這個產品身分，不讓 planner / RAG / 官方網站去猜一個產品（違規廣告紀錄照查）。"""
+        req, bundle = state.request, state.bundle
+        match = bundle.product_match
+        if (match.status != ProductVerificationStatus.NOT_FOUND
+                or match.not_found_reason != ProductNotFoundReason.NO_PRODUCT_IDENTITY_SUPPORT
+                or not match.lookup_completed or state.failed or req.claims or req.url_sources):
+            return False
+        self._guardrail_ads_and_graph(state, rec)
+        if state.failed:
+            return False
+        bundle.planner_mode = IDENTITY_NOT_FOUND_MODE
+        bundle.fast_path_reason = "no_product_identity_support"
+        bundle.planner_trace.append(PlannerStep(
+            round=0, note=f"名稱相似的官方紀錄都無法支持產品識別（過濾 {match.filtered_candidate_count} 項），停止規劃"))
+        return True
 
     def _try_image_identification_stop(self, state: PlannerState, rec: ToolCallRecorder) -> bool:
         """只傳圖片、沒有待查證宣稱：辨識產品就是目標。fast path / 確認卡沒處理到的情況
@@ -537,7 +577,7 @@ class VerificationAgent:
             return False, "no_product_identifier"
         if request.missing_product_context:
             return False, "missing_product_context"
-        if request.foreign_country_codes:
+        if request.foreign_country_codes:  # 已在 verify() 依 resolver 結果處理：台灣官方紀錄已確認者不再算外國產品
             return False, "foreign_product"
         return True, None
 
@@ -555,6 +595,104 @@ class VerificationAgent:
         state.bundle.product_match = match
         if match.lookup_completed and (match.status == ProductVerificationStatus.VERIFIED or match.is_ambiguous):
             state.locked_product_match = match
+
+    def _resolve_standalone_entities(self, state: PlannerState) -> None:
+        """獨立成分詢問：名稱 → canonical entity（Ingredient Bridge）。identity 與 legacy ingredients 表 / 產品成分 / 功能證據分開。"""
+        req = state.request
+        if req.has_product_identifiers or not req.ingredient_candidates or self._repo is None:
+            return
+        try:
+            ref = IngredientReference(self._repo.get_ingredient_bridge_reference())
+            if not ref.available:
+                return
+            found = []
+            for text in req.ingredient_candidates:
+                resolution, eid = ref.resolve_query(text)
+                e = ref.entities.get(eid or "")
+                if resolution == IngredientQueryResolution.RESOLVED and e is not None:
+                    found.append(StandaloneEntityIdentity(
+                        query_text=text, entity_id=e["entity_id"], entity_type=e["graph_label"],
+                        identity_level=e["identity_level"], canonical_name_en=e["canonical_name_en"],
+                        display_name_zh=e.get("display_name_zh"), source_id=e.get("source_id"),
+                        source_url=e.get("source_url"), corpus_version=ref.corpus_version))
+            state.bundle.standalone_entities = found
+        except Exception as exc:  # noqa: BLE001 - identity 查詢失敗不阻斷其他證據；只是沒有 entity identity
+            logger.warning("standalone_entity_resolution_failed", extra={
+                "request_id": req.request_id, "error_code": getattr(exc, "code", type(exc).__name__)})
+
+    def _try_standalone_entity_path(self, state: PlannerState, rec: ToolCallRecorder) -> list | None:
+        """canonical entity 已確認的獨立成分詢問：每種證據只查一次，不跑 planner 多輪重複搜尋。
+
+        * 一律：legacy 官方成分名稱（lookup_ingredient）一次。
+        * 問功能 / 安全性：RAG 一次 → assess_evidence 一次（Relevance Gate）→ 內部證據不足時官方網站一次。
+          沒有通過 Gate 的證據 → function_evidence_status = INSUFFICIENT（不編造功能）。
+        * 只問名稱 / 概覽：不查功能證據（NOT_ASSESSED）。
+        證據安全規則不變（同一組工具、同一個 Gate）；Interaction corpus 不當一般功能證據。
+        """
+        req, bundle = state.request, state.bundle
+        if (not req.ingredient_candidates or req.has_product_identifiers or req.claims or req.url_sources
+                or req.image_identification or req.identity_collision or state.failed
+                or req.intent not in STANDALONE_INTENTS):
+            return None
+        self._guardrail_call(state, rec, "lookup_ingredient", NamesArgs(names=list(req.ingredient_candidates)))
+        if state.failed:
+            return None  # 查詢失敗不是「沒有成分」：回到既有完整流程
+        legacy_exact = self._legacy_exact_names(req, bundle)
+        bundle.ingredient_identity_status = (
+            IngredientIdentityStatus.CANONICAL_ENTITY if bundle.standalone_entities
+            else IngredientIdentityStatus.LEGACY_OFFICIAL_NAME if legacy_exact
+            else IngredientIdentityStatus.IDENTITY_NOT_IN_CORPUS)
+        function_requested = req.intent in (Intent.EFFICACY_INQUIRY, Intent.SAFETY_INQUIRY)
+        # identity 沒有收錄時不能只回空卡：仍依一般證據規則查一次官方文件（功能證據與 identity 是兩件事）
+        identity_missing = bundle.ingredient_identity_status == IngredientIdentityStatus.IDENTITY_NOT_IN_CORPUS
+        links: list = []
+        if function_requested or identity_missing:
+            self._guardrail_call(state, rec, "search_rag", QueryArgs(query=req.question or req.normalized_text))
+            links = self._assess_and_gate(state, rec)
+            if function_requested and self._enable_official_web and not bundle.rag_evidence and not state.failed:
+                links = self._official_web_then_reassess(state, rec, links)
+            bundle.function_evidence_status = (
+                FunctionEvidenceStatus.SUPPORTED if (bundle.rag_evidence or bundle.official_web_evidence)
+                else FunctionEvidenceStatus.NO_FUNCTION_EVIDENCE)
+        else:
+            bundle.function_evidence_status = FunctionEvidenceStatus.NOT_ASSESSED
+        bundle.planner_mode = STANDALONE_ENTITY_MODE
+        bundle.fast_path_reason = f"standalone_ingredient:{bundle.ingredient_identity_status.value}"
+        bundle.planner_trace.append(PlannerStep(
+            round=0, note=f"獨立成分詢問（identity={bundle.ingredient_identity_status.value}），證據各查一次，不進行 planner 多輪搜尋"))
+        return links
+
+    @staticmethod
+    def _legacy_exact_names(req: NormalizedUserRequest, bundle: EvidenceBundle) -> list[str]:
+        """官方成分表（legacy ingredients）中與使用者所問「完全相同」的名稱（exact，不看相似度）。"""
+        def key(text: str | None) -> str:
+            return normalize_name((text or "").replace("維他命", "維生素"))
+        asked = {key(t) for t in req.ingredient_candidates} - {""}
+        return [i.name_zh for i in bundle.standalone_ingredients if asked & {key(i.name_zh), key(i.name_en)}]
+
+    def route_bare_name(self, request: NormalizedUserRequest) -> NormalizedUserRequest:
+        """pipeline 在 context 綁定前呼叫（見 app.services.bare_name_routing）。"""
+        return route_bare_name(request, self._repo)
+
+    @staticmethod
+    def _try_identity_clarification_stop(state: PlannerState) -> bool:
+        """Clarification before research：產品身份還沒確定（collision / 多候選 / 低信心 / 修正寫法待確認）就不查證據。
+
+        有宣稱的請求仍走既有的 claims-pending 路徑（只對宣稱本身查法規；選定產品後以原題重跑）。
+        使用者選定候選後由 pipeline 以所選產品（字號）原題重跑，才會進入證據查證。
+        """
+        request, bundle = state.request, state.bundle
+        match = bundle.product_match
+        if request.identity_collision:
+            reason = "identity_collision"
+        elif (match.is_ambiguous or match.needs_confirmation) and match.lookup_completed and not state.failed                 and not request.claims and not request.image_identification:
+            reason = f"product_needs_user_choice:{match.ambiguity_reason.value if match.ambiguity_reason else 'candidate'}"
+        else:
+            return False
+        bundle.planner_mode = CLARIFICATION_MODE
+        bundle.fast_path_reason = reason
+        bundle.planner_trace.append(PlannerStep(round=0, note=f"身份尚未確定（{reason}），請使用者確認，不進行證據查證"))
+        return True
 
     def _try_structured_fast_path(self, state: PlannerState, rec: ToolCallRecorder) -> bool:
         """deterministic 查結構化官方資料；證據充分才停止，否則回到完整流程（已查過的工具不會重複呼叫）。"""
@@ -639,7 +777,10 @@ class VerificationAgent:
                 return True
             return bool(bundle.approved_claims)
         if intent == Intent.INGREDIENT_INQUIRY:
-            return bool(bundle.ingredients)
+            # 官方原始成分（health_food 既有 ProductIngredient 或登記類成分原文）就是結構化答案；
+            # 部分成分尚未完成 identity 識別不算缺資料（不因此啟動 planner / RAG / web）
+            evidence = bundle.product_ingredients
+            return bool(bundle.ingredients) or bool(evidence and evidence.official_ingredients)
         return True
 
     # ================================================================== planner
@@ -797,9 +938,11 @@ class VerificationAgent:
         completed = not (product_tools & state.failed)
         queried = req.permit_number_candidates + req.product_candidates + req.company_candidates + req.brand_candidates
         state.bundle.inferred_links = list(state.inferred_links)
+        if state.generic_identity_terms is None:
+            state.generic_identity_terms = identity_generic_terms(state.repo)
         return resolve_product_match(
             req, list(state.name_matches.values()), state.permit_matches, state.company_names_found, queried, completed,
-            inferred_links=state.inferred_links,
+            inferred_links=state.inferred_links, generic_terms=state.generic_identity_terms,
         )
 
     def _resolved_product_id(self, bundle: EvidenceBundle) -> str | None:
@@ -818,8 +961,12 @@ class VerificationAgent:
             self._guardrail_call(state, rec, "lookup_approved_claim", args)
         if pid not in state.warnings_by_product:
             self._guardrail_call(state, rec, "lookup_product_warnings", args)
-        if pid not in state.ingredients_by_product:
-            self._guardrail_call(state, rec, "lookup_product_ingredients", args)
+        queries = self._ingredient_queries(state.request, bundle)
+        evidence = state.ingredient_evidence_by_product.get(pid)
+        if pid not in state.ingredients_by_product or evidence is None or (
+                [a.query_text for a in evidence.query_answers] != queries):
+            self._guardrail_call(state, rec, "lookup_product_ingredients",
+                                 ProductIngredientsArgs(product_ids=[pid], ingredient_queries=queries))
         if state.request.needs_graph_lookup and not any(
             e.subject_id == pid and e.relation == "CONTAINS" for e in state.graph_evidence.values()
         ):
@@ -828,9 +975,19 @@ class VerificationAgent:
         # 只有確認的產品資料才進入 EvidenceBundle
         bundle.approved_claims = state.approved_by_product.get(pid, [])
         bundle.warnings = state.warnings_by_product.get(pid, [])
+        bundle.product_ingredients = state.ingredient_evidence_by_product.get(pid)
         for item in state.ingredients_by_product.get(pid, []):
             if all(i.ingredient_id != item.ingredient_id for i in bundle.ingredients):
                 bundle.ingredients.append(item)
+
+    @staticmethod
+    def _ingredient_queries(request: NormalizedUserRequest, bundle: EvidenceBundle) -> list[str]:
+        """成分是非題要回答的成分寫法（Agent A 抽出的 ingredient_candidates）；只是品名一部分的詞不算。"""
+        if request.intent != Intent.INGREDIENT_INQUIRY:
+            return []
+        best = bundle.product_match.best_match
+        names = request.product_candidates + ([best.product.product_name_zh] if best else [])
+        return ingredient_query_terms(request.ingredient_candidates, names, request.original_text)
 
     def _guardrail_rag(self, state: PlannerState, rec: ToolCallRecorder) -> None:
         req = state.request

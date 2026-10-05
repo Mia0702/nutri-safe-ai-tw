@@ -33,12 +33,13 @@ from app.schemas.evidence import (
     IngredientRecord,
     OfficialWebEvidence,
     ProductCandidateMatch,
+    ProductIngredientEvidence,
     RagEvidence,
     WarningEvidence,
 )
 from app.schemas.user_request import NormalizedUserRequest
 from app.services.errors import ServiceError
-from app.tools import claim_policy_tools, graph_tools, official_web_tools, product_tools, rag_tools
+from app.tools import claim_policy_tools, graph_tools, ingredient_tools, official_web_tools, product_tools, rag_tools
 from app.tools.graph_tools import GraphQueryType
 
 MAX_LIST_ITEMS = 8
@@ -67,6 +68,7 @@ class PlannerState:
     approved_by_product: dict[str, list[ApprovedClaimEvidence]] = field(default_factory=dict)
     warnings_by_product: dict[str, list[WarningEvidence]] = field(default_factory=dict)
     ingredients_by_product: dict[str, list[IngredientRecord]] = field(default_factory=dict)
+    ingredient_evidence_by_product: dict[str, ProductIngredientEvidence] = field(default_factory=dict)
     graph_evidence: dict[str, GraphEvidence] = field(default_factory=dict)
     candidate_rag: dict[str, RagEvidence] = field(default_factory=dict)
     candidate_web: dict[str, OfficialWebEvidence] = field(default_factory=dict)
@@ -76,6 +78,7 @@ class PlannerState:
     web_rejected_urls: list[str] = field(default_factory=list)
     # deterministic resolver 在 LLM planning 前已確定的結果（VERIFIED 或真正 ambiguous），planner 不可改寫
     locked_product_match: ProductMatch | None = None
+    generic_identity_terms: list[str] | None = None  # Candidate Relevance Gate 的一般成分用語（每次查證載入一次）
     # assess_evidence 去重：已評估過的證據 id、上一次評估時的已確認參考資料與結果
     assessed_evidence_ids: set[str] = field(default_factory=set)
     last_assessment_refs: frozenset[str] | None = None
@@ -133,6 +136,11 @@ class ProductIdsArgs(BaseModel):
     product_ids: list[str] = Field(description="先前工具結果中出現過的 product_id")
 
 
+class ProductIngredientsArgs(BaseModel):
+    product_ids: list[str] = Field(description="先前工具結果中出現過的 product_id")
+    ingredient_queries: list[str] = Field(description="使用者問「有沒有」的成分寫法（原文），沒有就給空陣列")
+
+
 class IllegalAdArgs(BaseModel):
     product_names: list[str]
     company_names: list[str]
@@ -167,7 +175,7 @@ class HealthFunctionArgs(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-def _guard_product_ids(state: PlannerState, args: ProductIdsArgs) -> str | None:
+def _guard_product_ids(state: PlannerState, args: ProductIdsArgs | ProductIngredientsArgs) -> str | None:
     unknown = [pid for pid in args.product_ids if pid not in state.known_product_ids]
     if unknown or not args.product_ids:
         return f"product_id 必須來自先前工具結果，未知 ID：{unknown[:3]}"
@@ -268,8 +276,9 @@ def h_lookup_ingredient(state: PlannerState, args: NamesArgs):
     out = product_tools.lookup_ingredient(_require(state.repo, "supabase"), _trim_list(args.names))
     for m in out[:5]:
         state.known_ingredient_ids.add(m.ingredient.ingredient_id)
-        if all(i.ingredient_id != m.ingredient.ingredient_id for i in state.bundle.ingredients):
-            state.bundle.ingredients.append(m.ingredient)
+        # 成分名稱查詢結果與「已確認產品的成分」分開保存（不是任何產品的成分）
+        if all(i.ingredient_id != m.ingredient.ingredient_id for i in state.bundle.standalone_ingredients):
+            state.bundle.standalone_ingredients.append(m.ingredient)
     return out, {"ingredients": [
         {"ingredient_id": m.ingredient.ingredient_id, "name": m.ingredient.name_zh, "match_score": m.match_score}
         for m in out[:5]
@@ -292,16 +301,27 @@ def h_warnings(state: PlannerState, args: ProductIdsArgs):
     return out, {"warning_count": len(out), "warnings": [w.text[:80] for w in out[:5]]}
 
 
-def h_product_ingredients(state: PlannerState, args: ProductIdsArgs):
+def h_product_ingredients(state: PlannerState, args: ProductIngredientsArgs):
     repo = _require(state.repo, "supabase")
-    out = []
+    out, summaries = [], []
+    queries = _trim_list(args.ingredient_queries)
     for pid in args.product_ids:
         items = product_tools.lookup_product_ingredients(repo, [pid])
         state.ingredients_by_product[pid] = items
         for i in items:
             state.known_ingredient_ids.add(i.ingredient_id)
         out.extend(items)
-    return out, {"ingredients": [{"ingredient_id": i.ingredient_id, "name": i.name_zh} for i in out[:10]]}
+        evidence = ingredient_tools.lookup_product_ingredient_evidence(repo, pid, queries)
+        if evidence is not None:
+            state.ingredient_evidence_by_product[pid] = evidence
+            summaries.append({
+                "product_id": pid, **evidence.coverage.model_dump(),
+                "official": [o.display_text for o in evidence.official_ingredients[:MAX_LIST_ITEMS]],
+                "confirmed": [c.entity.canonical_name_en for c in evidence.confirmed_ingredients if c.is_direct][:MAX_LIST_ITEMS],
+                "query_answers": [{"query": a.query_text, "presence": a.presence.value} for a in evidence.query_answers],
+            })
+    return out, {"ingredients": [{"ingredient_id": i.ingredient_id, "name": i.name_zh} for i in out[:10]],
+                 "product_ingredient_evidence": summaries}
 
 
 def h_illegal_ads(state: PlannerState, args: IllegalAdArgs):
@@ -428,7 +448,9 @@ EVIDENCE_TOOLS: dict[str, ToolSpec] = {
         ToolSpec("lookup_ingredient", "以名稱查官方資料中的成分，回傳 ingredient_id。", NamesArgs, h_lookup_ingredient),
         ToolSpec("lookup_approved_claim", "查產品官方核准的保健功效與核准敘述。", ProductIdsArgs, h_approved_claims, _guard_product_ids),
         ToolSpec("lookup_product_warnings", "查產品官方登記的警語與注意事項。", ProductIdsArgs, h_warnings, _guard_product_ids),
-        ToolSpec("lookup_product_ingredients", "查產品官方登記的保健功效相關成分。", ProductIdsArgs, h_product_ingredients, _guard_product_ids),
+        ToolSpec("lookup_product_ingredients",
+                 "查產品官方登記的成分：官方原始成分、已確認的成分識別（含成分形式→營養素）、尚未確認的成分；"
+                 "可同時回答「有沒有某成分」。", ProductIngredientsArgs, h_product_ingredients, _guard_product_ids),
         ToolSpec("search_illegal_ad_cases", "查官方公布的違規廣告紀錄（依產品 / 公司名稱）。", IllegalAdArgs, h_illegal_ads),
         ToolSpec("query_knowledge_graph", "查知識圖譜：產品→成分、產品→核准功效、成分→含此成分產品的核准功效。", GraphArgs, h_graph, _guard_graph),
         ToolSpec("search_claim_policy_rules", "查 TFDA 宣稱法規的結構化規則（依 rule_id，或規則類別＋效果）。",

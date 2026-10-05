@@ -37,7 +37,7 @@ from app.schemas.enums import (
 from app.schemas.evidence import ProductCandidateMatch, ProductRecord, SourceRef
 from app.schemas.user_request import IntakeExtraction, MediaInput, RawUserInput
 from app.tools.product_tools import lookup_product
-from tests.builders import claim, extraction, request
+from tests.builders import claim, extraction, request, user_text
 from tests.fakes import FakeLLM, InMemoryGraphRepo, InMemoryOfficialRepo, InMemoryRagStore, plan
 from tests.fixtures import synthetic_data as data
 from tests.fixtures.synthetic_data import SOURCE, _product
@@ -79,9 +79,9 @@ def _pipeline(llm, repo=None):
     )
 
 
-def run(ex: IntakeExtraction, text="TEST_ONLY 問題", repo=None):
+def run(ex: IntakeExtraction, text=None, repo=None):
     llm = FakeLLM(structured={IntakeExtraction: ex})
-    return _pipeline(llm, repo).run(RawUserInput(input_type=InputType.TEXT, text=text)), llm
+    return _pipeline(llm, repo).run(RawUserInput(input_type=InputType.TEXT, text=text or user_text(ex))), llm
 
 
 def tool_path(result) -> set[str]:
@@ -207,7 +207,7 @@ def test_planner_cannot_downgrade_or_switch_deterministically_verified_product()
     llm = FakeLLM(structured={IntakeExtraction: extraction(intent=Intent.EFFICACY_INQUIRY, product_candidates=[PRODUCT_1], claims=[q])},
                   plans=[plan(("lookup_product", {"product_names": ["虛構牌"], "brand_names": []})),
                          plan(("lookup_permit", {"permit_text": "測試健食字第Z00002號"})), plan()])
-    result = _pipeline(llm).run(RawUserInput(input_type=InputType.TEXT, text="TEST_ONLY"))
+    result = _pipeline(llm).run(RawUserInput(input_type=InputType.TEXT, text=f"TEST_ONLY {PRODUCT_1}"))
     m = result.evidence.product_match
     assert llm.called("plan_step")  # 有命題：仍走完整流程
     assert m.status == ProductVerificationStatus.VERIFIED and m.best_match.product.product_id == "p-1"
