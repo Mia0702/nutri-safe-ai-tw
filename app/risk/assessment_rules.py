@@ -131,7 +131,7 @@ def user_product_queries(request: NormalizedUserRequest) -> list[str]:
 def names_from_image(request: NormalizedUserRequest) -> bool:
     """產品名稱來自圖片讀取（Vision 文字有辨識誤差，是比許可證字號弱的證據）。"""
     return (request.input_type == InputType.IMAGE or request.image_identification
-            or any(r.tool_name == "analyze_image" for r in request.input_tools_called))
+            or any(r.tool_name in ("analyze_image", "analyze_image_bundle") for r in request.input_tools_called))
 
 
 def _matches_company_or_brand(request: NormalizedUserRequest, m: ProductCandidateMatch) -> bool:

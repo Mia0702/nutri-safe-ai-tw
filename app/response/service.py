@@ -33,11 +33,20 @@ from app.pipeline import (
 )
 from app.response.actions import parse_postback_data, reachable_actions
 from app.response.line_renderer import AdaptiveLineRenderer
+from app.response.package_observation import (
+    ObservationFocus,
+    build_package_observation,
+    focus_for_intent,
+    focus_items,
+    observed_ingredient_presence,
+)
 from app.response.query_context import image_query_label, is_image_input
 from app.response.sources import source_links
 from app.response.store import RequestRecord, RequestStore
 from app.schemas.enums import (
+    ContextReference,
     DialogueAct,
+    EntityType,
     ProductConfirmationSource,
     ProductReferenceStatus,
     ProductVerificationStatus,
@@ -93,6 +102,14 @@ def confirmed_product_update(result, request_id: str, source: ProductConfirmatio
     return None, explicit
 
 
+PREVIOUS_IMAGE_MISSING_TEXT = "找不到上一張圖片的辨識內容（可能已過期），請重新傳送圖片。"
+FOCUS_NAMES = {ObservationFocus.INGREDIENTS: "成分", ObservationFocus.CLAIMS: "宣稱", ObservationFocus.WARNINGS: "警語",
+               ObservationFocus.ALL: "資訊"}
+VISUAL_UNCONFIRMED_NOT_ENOUGH_TEXT = ("這項產品目前沒有在官方資料中確認，而且剛剛的照片裡沒有辨識到足夠的{what}資訊。"
+                                      "請補拍清楚的背面或標示、提供許可證字號，或直接告訴我完整的產品名稱。")
+VISUAL_NOT_ENOUGH_TEXT = "剛剛的照片裡沒有辨識到足夠的{what}資訊。請補拍清楚的背面或標示。"
+
+
 class AdaptiveResponseService:
     def __init__(
         self,
@@ -140,7 +157,10 @@ class AdaptiveResponseService:
                 if handled is not None:
                     return handled
             if not keep_raw_context:  # 「重新查詢」沿用那一題當時的 context
-                raw = raw.model_copy(update={"context": task.conversation_context()})
+                context = task.conversation_context()
+                if context.last_visual_request_id and self._visual_observation(context.last_visual_request_id, owner_id) is None:
+                    context = context.model_copy(update={"last_visual_request_id": None})  # 過期 / 沒有觀察：不當成可用的參照
+                raw = raw.model_copy(update={"context": context})
             conversation_id = None  # context 由 task store 管理，pipeline 不再自行讀寫
         started = time.monotonic()
         logger.info("line_stage", extra={"request_id": request_id, "stage": "pipeline_started",
@@ -152,6 +172,9 @@ class AdaptiveResponseService:
             "error_code": None if result is not None else "TIMEOUT",
             "duration_ms": int((time.monotonic() - started) * 1000)})
         label = image_query_label(received_at, result) if image else None
+        if (result is not None and result.normalized_request is not None
+                and result.normalized_request.context_reference == ContextReference.PREVIOUS_IMAGE):
+            return self._answer_previous_image(result, raw, owner_id, request_id, received_at, session_id)
         if result is None:
             payload = error_payload(request_id, TIMEOUT_SUMMARY)
             record = RequestRecord(request_id=request_id, owner_id=owner_id, raw_input=raw, response=payload,
@@ -165,14 +188,64 @@ class AdaptiveResponseService:
             )
             if session_id is not None and result.normalized_request is not None:
                 req = result.normalized_request
+                visual_id = request_id if image else None  # 這一題是（已完成的）圖片：之後的文字追問可以指回它
                 confirmed, clear = confirmed_product_update(result, request_id, ProductConfirmationSource.RESOLVER_VERIFIED)
+                entities = context_entities_for_turn(result)
+                clear_products = is_multi_product_comparison(req, result.evidence)
+                if image and confirmed is None and not is_bound_from_context(req):
+                    # 新的圖片沒有唯一確認產品（部分比對 / 查無 / 多候選 / 讀不到）：不從它建立 current product，
+                    # 也不讓更早的產品在這一輪之後被「它」默默指到；視覺參照（visual_request_id）獨立保留
+                    entities = [e for e in entities if e.entity_type != EntityType.PRODUCT]
+                    clear, clear_products = True, True
                 self._contexts.record(owner_id, session_id, request_id, req.normalized_text or raw.text,
-                                      req.intent, context_entities_for_turn(result),
+                                      req.intent, entities,
                                       confirmed=confirmed, clear_confirmed=clear,
                                       pending=pending_clarification_for(result, request_id),
-                                      clear_products=is_multi_product_comparison(req, result.evidence))
+                                      clear_products=clear_products,
+                                      visual_request_id=visual_id)
         self._store.save(record)
         return self._renderer.render_primary(payload, query_label=label)
+
+    def _visual_observation(self, visual_request_id: str | None, owner_id: str | None):
+        """前一張圖片的結構化觀察：必須是同一位使用者、未過期、而且有可呈現的內容（回傳 (record, observation) 或 None）。"""
+        previous = self._store.get(visual_request_id) if visual_request_id else None
+        if previous is None or previous.owner_id != owner_id or previous.normalized_request is None:
+            return None
+        observation = build_package_observation(previous.normalized_request)
+        return None if observation.is_empty else (previous, observation)
+
+    def _answer_previous_image(self, result, raw: RawUserInput, owner_id: str | None, request_id: str,
+                               received_at: datetime, session_id: str | None) -> dict[str, Any]:
+        """文字追問指向上一張圖片本身：以 last_visual_request_id 取回該題保存的結構化觀察（不重跑 Vision / Agent A / Agent B）。
+
+        依既有 intent 只顯示相關區塊（成分 / 宣稱 / 警語 / 全部）；明示這是「照片上辨識到的內容」，不是官方資料。
+        照片沒有相關內容 → 如實說明並請使用者補充，不搜尋網路。"""
+        req = result.normalized_request
+        found = self._visual_observation(req.visual_request_id, owner_id)
+        focus = focus_for_intent(req.intent)
+        content = focus_items(found[1], focus) if found else []
+        logger.info("line_stage", extra={"request_id": request_id, "stage": "previous_image_followup",
+                                         "found": bool(content), "focus": focus.value})
+        self._store.save(RequestRecord(request_id=request_id, owner_id=owner_id, raw_input=raw, response=result.response,
+                                       normalized_request=req, received_at=received_at))
+        if session_id is not None:  # 只記一個回合：不改變目前產品 / 圖片參照
+            self._contexts.record(owner_id, session_id, request_id, req.normalized_text or raw.text, req.intent, [])
+        if found is None:
+            return self._renderer.render_notice(PREVIOUS_IMAGE_MISSING_TEXT)
+        previous, observation = found
+        if not content:
+            verified = (previous.evidence is not None
+                        and previous.evidence.product_match.status == ProductVerificationStatus.VERIFIED)
+            return self._renderer.render_notice(
+                (VISUAL_NOT_ENOUGH_TEXT if verified else VISUAL_UNCONFIRMED_NOT_ENOUGH_TEXT).format(what=FOCUS_NAMES[focus]),
+                query_label=previous.query_label)
+        presence = []
+        if focus == ObservationFocus.INGREDIENTS and req.ingredient_candidates:
+            for name, present in observed_ingredient_presence(req.ingredient_candidates, observation):
+                presence.append(f"照片上辨識到的成分中有「{name}」。" if present else
+                                f"照片上辨識到的成分中沒有看到「{name}」（只代表照片上沒有辨識到，不代表產品一定不含）。")
+        return self._renderer.render_package_observation(observation, query_label=previous.query_label, focus=focus,
+                                                         presence_lines=presence)
 
     def _answer_pending(self, task: TaskContext, raw: RawUserInput, owner_id: str, channel: str, request_id: str,
                         received_at: datetime) -> dict[str, Any] | None:
@@ -281,41 +354,16 @@ class AdaptiveResponseService:
 
     def check_package_claims(self, record: RequestRecord, owner_id: str | None, channel: str = "line",
                              request_id: str | None = None) -> dict[str, Any]:
-        """「查驗包裝宣稱」：使用原 request 保存的 observed claims 與已確認產品（不重新跑 Vision），進入 claim verification。
-        結果沿用原圖片的 query label。"""
+        """「檢視包裝宣稱」：只用這一題在圖片分析時保存的結構化觀察，deterministic 整理成明細卡。
+
+        不重跑 Vision / Controller、不查產品資料庫 / RAG / 官方網站，也不與核准功效比對（尚未查證）；立即回覆。
+        """
         original = record.normalized_request
-        if original is None or not original.observed_package_claims:
+        observation = build_package_observation(original) if original is not None else None
+        if observation is None or observation.is_empty:
             return self._renderer.render_notice(UNAVAILABLE_ACTION_TEXT, query_label=record.query_label)
-        match = record.evidence.product_match if record.evidence else None
-        product = (match.best_match.product
-                   if match is not None and match.status == ProductVerificationStatus.VERIFIED and match.best_match
-                   else None)
-        request_id = request_id or str(uuid.uuid4())
-        request = request_for_package_claims(original, product, request_id)
-        session_id = self._contexts.snapshot(owner_id).session_id if self._contexts is not None and owner_id else None
-        started = time.monotonic()
-        future = self._executor.submit(self._pipeline.resume_with_request, request, channel,
-                                       record.raw_input.input_type.value)
-        result = self._await(future, request_id, "check_package_claims")
-        logger.info("line_stage", extra={
-            "request_id": request_id,
-            "stage": "check_package_claims_done" if result is not None else "check_package_claims_timeout",
-            "duration_ms": int((time.monotonic() - started) * 1000)})
-        if result is None:
-            payload = error_payload(request_id, TIMEOUT_SUMMARY).model_copy(update={"available_actions": []})
-            self._store.save(RequestRecord(request_id=request_id, owner_id=owner_id, raw_input=record.raw_input,
-                                           response=payload, query_label=record.query_label,
-                                           received_at=record.received_at))
-            return self._renderer.render_primary(payload, query_label=record.query_label)
-        self._store.save(RequestRecord(
-            request_id=request_id, owner_id=owner_id, raw_input=record.raw_input, response=result.response,
-            normalized_request=result.normalized_request, evidence=result.evidence, risk=result.risk,
-            query_label=record.query_label, received_at=record.received_at,
-        ))
-        if session_id is not None:  # 同一項產品：已確認產品（來源 / 時間）維持不變
-            self._contexts.record(owner_id, session_id, request_id, request.normalized_text, request.intent,
-                                  context_entities_for_turn(result))
-        return self._renderer.render_primary(result.response, query_label=record.query_label)
+        logger.info("line_stage", extra={"request_id": record.request_id, "stage": "package_observation_rendered"})
+        return self._renderer.render_package_observation(observation, query_label=record.query_label)
 
     def handle_action(self, postback_data: str, owner_id: str | None, channel: str = "line",
                       request_id: str | None = None) -> dict[str, Any]:

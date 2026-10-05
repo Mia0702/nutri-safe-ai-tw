@@ -1,2 +1,0 @@
-alias_id,alias_text,language,entity_id,entity_type,identity_level,mapping_status,source_id,source_url,source_locator,review_status,retrieved_at,candidate_entity_id,match_policy,mapping_context,precedence,notes,overlay_version
-TEST_ONLY_OV_000,TEST_ONLY,zh-Hant,N_ZN,NULL,NULL,AMBIGUOUS,TEST_ONLY_SRC,https://example.invalid/test-only,TEST_ONLY row 0,READY,NULL,NULL,EXACT_NFKC_CASEFOLD_WHITESPACE_AT_DECLARED_LEVEL,OFFICIAL_PRODUCT_INGREDIENT_TOKEN,EXACT_OVERLAY,NULL,TEST_ONLY-OV

@@ -40,7 +40,9 @@ class InteractionSubjectKind(StrEnum):
 
 class SubjectResolutionStatus(StrEnum):
     RESOLVED = "RESOLVED"                                            # 成分 / 藥品 / 產品已確認 identity
-    UNRESOLVED = "UNRESOLVED"                                        # 名稱不在 corpus identity（不翻譯、不猜）
+    UNRESOLVED = "UNRESOLVED"                                        # UNKNOWN_TERM：無法可靠辨識它指什麼（不翻譯、不猜）→ 請使用者確認寫法
+    # 語意層認得這是合理的成分 / 藥品概念，但 Interaction corpus 沒有 canonical identity（資料涵蓋缺口，不是拼錯字）
+    IDENTITY_NOT_IN_INTERACTION_CORPUS = "IDENTITY_NOT_IN_INTERACTION_CORPUS"
     AMBIGUOUS = "AMBIGUOUS"                                          # 同一寫法對到多個 identity（成分 vs 藥品等）
     DRUG_ACTIVE_SUBSTANCE_UNMAPPED = "DRUG_ACTIVE_SUBSTANCE_UNMAPPED"  # 沒有可靠的藥品 → 活性成分對應（例如只有商品名）
     PRODUCT_NEEDS_CONFIRMATION = "PRODUCT_NEEDS_CONFIRMATION"        # 產品未 VERIFIED（多候選 / 低信心 / 查無）
@@ -133,6 +135,11 @@ class InteractionSubjectExtraction(BaseModel):
     text: str = Field(description="對象的名稱，必須逐字取自使用者原文（不可翻譯、不可改寫成英文或其他寫法）")
     kind: InteractionSubjectKind = Field(
         description="ingredient：成分 / 營養素；drug：藥品（用藥 / 藥物名稱）；product：保健食品或其他產品的名稱")
+    concept_recognized: bool = Field(
+        default=False,
+        description="這個名稱是不是一個你能合理辨識的真實成分 / 營養素 / 草本 / 藥品概念（即使很少見）。"
+                    "true：你知道它指的是什麼；false：看起來是亂打的字、無法辨識的錯字、或你無法判斷它指什麼。"
+                    "只是語意判斷，不代表資料庫有收錄；不要因為不確定資料庫有沒有而填 false")
 
 
 class InteractionSubject(BaseModel):
@@ -144,6 +151,8 @@ class InteractionSubject(BaseModel):
     pinned_permit_number: str | None = None
     pinned_product_name: str | None = None
     selection_order: int | None = None
+    # Controller 的語意判斷：這是可合理辨識的成分 / 藥品概念（不代表 corpus 有收錄）；False = 無法可靠辨識
+    concept_recognized: bool = False
 
 
 # --------------------------------------------------------------------------- Agent B 輸出
@@ -307,6 +316,8 @@ class InteractionResearch(BaseModel):
     corpus_version: str | None = None
     # 只有「identity 全部確認、corpus 已查」才有；資料不足（沒有任何 corpus 紀錄）才會依既有 Researcher policy 補 RAG / 官方網站
     corpus_sufficient: bool = False
+    # IDENTITY_NOT_IN_INTERACTION_CORPUS 的對象（使用者原文名稱）：結構化資料尚未收錄；補查的 RAG / 官方網站只是參考資訊
+    coverage_gap_subjects: list[str] = Field(default_factory=list)
     fallback_used: bool = False
     clarification_reason: str | None = None
 

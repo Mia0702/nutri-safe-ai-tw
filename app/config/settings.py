@@ -42,6 +42,8 @@ class Settings(BaseSettings):
     line_channel_access_token: SecretStr | None = None
     # LINE 一題超過此秒數即回 ERROR card、晚到結果丟棄（實測 live pipeline 約 25–75 秒）
     response_timeout_seconds: float = Field(default=120.0, gt=0, le=300)
+    # Automatic Image Burst Gate：LINE 相簿一次選多張照片時，連續到達的圖片在這個 window（毫秒）內合成一組；0 = 停用
+    auto_image_burst_window_ms: int = Field(default=1800, ge=0, le=10000)
 
     supabase_url: str | None = None
     # 後端專用 Supabase secret key（sb_secret_...）；不得回傳給 client

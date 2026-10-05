@@ -373,6 +373,9 @@ class VerificationAgent(InteractionResearchMixin):
             return None
         self._guardrail_product_details(state, rec)
         has_evidence = bool(bundle.approved_claims or bundle.warnings) if package else bool(bundle.approved_claims)
+        # 「查驗包裝宣稱」postback：產品已確認，沒有核准功效 / 警語是預期情況（登記 ≠ 保健功效核准；查驗登記 / 核備類別本來就沒有），
+        # 不是缺資料——仍走結構化 claim-policy → RAG 一次 → assess 一次 → 官方網站最多一次，不回到多輪 planner
+        has_evidence = has_evidence or request.package_claim_check
         if state.failed or not has_evidence:
             bundle.fast_path_reason = f"{label}_declined:structured_evidence_missing"
             return None
@@ -691,6 +694,8 @@ class VerificationAgent(InteractionResearchMixin):
         match = bundle.product_match
         if request.identity_collision:
             reason = "identity_collision"
+        elif request.image_bundle_blocked:  # 多張圖片身份衝突 / 可能不是同一產品：先請使用者確認
+            reason = f"image_bundle:{request.image_bundle.status.value}"
         elif (match.is_ambiguous or match.needs_confirmation) and match.lookup_completed and not state.failed                 and not request.claims and not request.image_identification:
             reason = f"product_needs_user_choice:{match.ambiguity_reason.value if match.ambiguity_reason else 'candidate'}"
         else:
@@ -1426,7 +1431,8 @@ _STAGE_OF_TOOL = {
     "search_tw_official_web": "official_web_ms",
 }
 _INPUT_STAGE_OF_TOOL = {"fetch_url_content": "fetch_ms", "analyze_image": "vision_ms",
-                        "transcribe_audio": "transcription_ms", "reinspect_image_identity": "vision_ms"}
+                        "transcribe_audio": "transcription_ms", "reinspect_image_identity": "vision_ms",
+                        "analyze_image_bundle": "vision_ms"}
 
 
 def stage_timings_ms(records: list[ToolCallRecord]) -> dict[str, int]:

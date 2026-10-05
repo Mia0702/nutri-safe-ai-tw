@@ -136,7 +136,7 @@ def test_image_only_package_routes_to_product_info_without_claim_verification():
     payload = result.response
     assert payload.response_type == ResponseType.PRODUCT_INFO and payload.risk_level is None
     assert payload.available_actions[0] == ResponseAction.CHECK_PACKAGE_CLAIMS
-    assert any("查驗包裝宣稱" in p for p in payload.key_points)
+    assert any("檢視包裝宣稱" in p for p in payload.key_points)
 
 
 def test_observed_exaggerated_label_claims_do_not_force_verification():
@@ -233,30 +233,24 @@ def vision_calls(llm):
     return sum(1 for c in llm.calls if c[0] == "describe_image")
 
 
-def test_on_demand_package_claim_check_uses_stored_claims_without_vision():
+def test_on_demand_package_observation_uses_stored_claims_without_any_pipeline():
+    """「檢視包裝宣稱」（2026-10-05 起是包裝內容檢視，不是官方查證）：只用該題保存的觀察，不跑任何 pipeline / Vision / 查詢。"""
     handler, line, store, contexts, llm = build_line()
     [rid] = send(handler, event(kind="image", message_id="package"))
     label = store.get(rid).query_label
-    assert label.startswith("圖片辨識｜") and "查驗包裝宣稱" in flex(line)
-    vision, intake = vision_calls(llm), llm.calls.count(("parse_structured", "IntakeExtraction"))
-    # 另一張圖片之後才按第一張卡片的按鈕：仍是第一張圖片保存的宣稱與產品
-    send(handler, event(kind="image", message_id="unknown"))
-    after_second_image = vision_calls(llm)
-    assert after_second_image > vision  # 第二張圖片（新的未知產品）跑 Vision（可能含一次身份重讀）
-    intake_after_second = llm.calls.count(("parse_structured", "IntakeExtraction"))
-    assert intake_after_second == intake + 1
+    assert label.startswith("圖片辨識｜") and "檢視包裝宣稱" in flex(line)
+    calls_before, records_before = list(llm.calls), len(store._data)
+
+    class Exploding:
+        def __getattr__(self, name):
+            raise AssertionError(f"pipeline must not be used: {name}")
+
+    handler._service._pipeline = Exploding()
     send(handler, event(kind="postback", data=build_postback_data(ResponseAction.CHECK_PACKAGE_CLAIMS, rid)))
-    assert vision_calls(llm) == after_second_image  # 按鈕沒有重跑 Vision
-    assert llm.calls.count(("parse_structured", "IntakeExtraction")) == intake_after_second  # 也沒有重跑 Agent A
-    rec = list(store._data.values())[-1]
-    assert rec.query_label == label and label in flex(line)
-    assert rec.normalized_request.claims_from_package and len(rec.evidence.claim_assessment) == 3
-    assert rec.evidence.product_match.best_match.product.product_id == "p-1"
-    assert rec.evidence.planner_mode == PACKAGE_CLAIM_MODE
-    assert [t.tool_name for t in rec.evidence.tools_called].count(ASSESSMENT_STEP) <= 2  # 最多一次 web 後再評估一次
-    # 沒有多輪內部 planner：只可能有官方網站查詢語句的那一輪
-    assert all(t.arguments.get("allowed_tools") == ["search_tw_official_web"]
-               for t in rec.evidence.tools_called if t.tool_name == "plan_tool_calls")
+    assert llm.calls == calls_before and len(store._data) == records_before  # 沒有任何 LLM / 查詢 / 新紀錄
+    card = flex(line)
+    assert "包裝上辨識到的內容" in card and "尚未與官方資料逐項比對" in card
+    assert "有助於維持測試機能甲" in card and "建議多留意" in card
 
 
 def test_check_package_claims_postback_from_other_user_is_rejected():

@@ -93,6 +93,14 @@ class ClaimContentSource(StrEnum):
     URL_CONTENT = "url_content"  # 使用者提供網址的頁面內容
 
 
+class ContextReference(StrEnum):
+    """本次文字指的是前文的哪一種對象（Controller 的語意判斷，不是關鍵字規則）。"""
+
+    CURRENT_PRODUCT = "CURRENT_PRODUCT"  # 前文已確認的產品（「它」「這個」問產品資料）
+    PREVIOUS_IMAGE = "PREVIOUS_IMAGE"  # 上一張圖片 / 包裝本身（問上面印了什麼）
+    NONE = "NONE"
+
+
 class ProductReferenceStatus(StrEnum):
     """使用者指的是哪一項產品。"""
 

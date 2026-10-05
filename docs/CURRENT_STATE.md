@@ -1145,3 +1145,47 @@ Supabase：15 DrugSubstance / 25 pairwise Interaction / 17 DuplicateIntakeRule /
 0c. 補官方 policy corpus（醫療效能認定準則、保健功效公告）進 RAG 需使用者同意（DATA FREEZE）
 1. 在 LINE Developers Console 設定 Webhook URL（`https://<public-host>/line/webhook`），以真實手機走一次 demo 主線
 2. RequestStore / TaskContextStore 改 Supabase 持久化（多 instance 前必須；目前為 prototype limitation：單一 process、重啟即清空）
+
+- **Multi-image Fusion Runtime Phase 1（2026-10-05；Perception + Fusion Core，尚無 LINE 蒐集 UI）**：
+  - 2–3 張同一產品照片：`analyze_image_bundle`（`app/tools/input_tools.py`，一次 Vision、每張標 Image k、structured output `ImageBundleObservation`）
+    → `fuse_image_bundle`（`app/services/image_fusion.py`，deterministic）→ `FusedImageBundle`（每個值 `observed_in` / readable / confidence，
+    衝突以 `ImageFieldConflict` 保留）→ Agent A 語意理解（同一段）→ 既有 Agent B / Risk / Agent C。單張圖片流程不變。
+  - 衝突：不同清楚字號 → MULTI_IMAGE_IDENTITY_CONFLICT；不同完整品名且無共同字號 / 公司 / 品牌 → SAME_PRODUCT_UNCERTAIN；
+    兩者都停止（不跑語意理解 / 證據工具）、MISSING_INFORMATION 請使用者確認；錯字層級 → OCR_UNCERTAIN（繼續）。
+  - 擴充點（additive）：`NormalizedUserRequest.image_bundle` / `image_bundle_blocked`、`ExtractedClaim.source_images`；
+    Agent B `_try_identity_clarification_stop`、Reporter（identity_unresolved / select_response_type / summary）、context_binding、
+    `names_from_image` 各加一個條件。log：`image_count` / `vision_bundle_ms` / `semantic_ms` / `total_ms`。
+  - 未做：LINE 蒐集時機 / queue / 按鈕、mixed image+text+URL、多產品比較。tests：`tests/unit/test_image_bundle_fusion.py`（30）。
+- **Multi-image Phase 2 — LINE 蒐集 + 包裝宣稱延遲（2026-10-05）**：
+  - Root cause（真機）：LINE 選多張照片 = 多個獨立 image event，各自跑完整單張 pipeline（先「找不到」再「查到了」），根本沒走 bundle。
+    解法是缺少的蒐集層（resolver 未動）：`app/services/image_collection.py`（`ImageCollectionStore`，per-user session、max 3、TTL 10 分鐘、記憶體）
+    ＋ `app/line/handler.py`：文字「多照片辨識」開始 → 圖片只存（回「已收到 n/3 張」，Quick Reply 開始分析 / 取消）→ postback
+    `multi=analyze|cancel&sid=` → 一個 logical request。全程在 per-user FIFO job 內。`MediaInput.source_id` / `FusedImageBundle.image_source_ids` 保留 LINE message id。
+  - 包裝宣稱 postback 延遲：已確認產品但無核准功效 / 警語 / 成分 → 被當 `structured_evidence_missing` → 通用 planner（~94 秒）。
+    `NormalizedUserRequest.package_claim_check`（由 `request_for_package_claims` 設定）時，`_try_package_claim_path` 不再因此 decline；
+    `resume_with_request` 的 analysis_done log 加上 planner_mode / fast_path_reason / 各階段毫秒。
+  - tests：`test_multi_image_line.py`（18）、`test_package_claim_postback.py`（9）。
+- **Multi-image 最終 UX（2026-10-05）**：蒐集期間靜默（只有進入時一則控制卡，按鈕「開始分析 / 取消」在卡內、primary #333333）；0 張提示先傳照片、1 張走單張、2–3 張走 bundle、第 4 張提示上限。「查驗包裝宣稱」改為「檢視包裝宣稱」（deterministic 包裝觀察，`app/response/package_observation.py`，不跑任何查詢）。tests：`test_multi_image_line.py`（24）、`test_package_observation.py`（6）。
+- **Automatic Image Burst Gate（2026-10-05）**：`app/line/image_burst.py`（`AutoImageBurstStore`）＋ handler。LINE 相簿直接多選不需先按「多照片辨識」：圖片先 debounce（`AUTO_IMAGE_BURST_WINDOW_MS`，預設 1800ms，handler 類別預設 0 = 停用，正式環境由設定傳入）→ 一個分析 job（1 張單張 / 2–3 張 bundle）。log：auto_image_burst_started / extended / finalized（burst_id、image_count、collection_mode=AUTO、burst_wait_ms）。tests：`test_auto_image_burst.py`（17）。
+- **Interaction identity-coverage gap（2026-10-05）**：新增 `SubjectResolutionStatus.IDENTITY_NOT_IN_INTERACTION_CORPUS`（見 FC-I6）；`InteractionSubjectExtraction.concept_recognized`（Controller 語意判斷）、`InteractionResearch.coverage_gap_subjects`；Reporter 固定文案「目前結構化交互作用資料尚未收錄『X』，因此無法直接用知識圖譜判定。」。tests：`test_interaction_coverage_gap.py`（15）。
+- **Sequential image follow-up（2026-10-05）**：`TaskContext.last_visual_request_id`、`NormalizedUserRequest.context_reference / visual_request_id`、Controller `context_reference`（見 FC-I7）；PREVIOUS_IMAGE 追問在 pipeline 短路（不跑 Agent B），由 `AdaptiveResponseService._answer_previous_image` 取回結構化觀察。tests：`test_image_followup.py`（14）。
+- **Final Demo Qualification（2026-10-05）**：full pytest 1475 passed / 1 skipped / 0 failed / 0 errors；Bridge 測試以 project-local basetemp 重跑 49 passed；
+  production read-only 回歸 40 / 42 PASS（FAIL 只有語音 ×2，見 `docs/DEMO_REGRESSION.md`）；展示小抄見 `docs/DEMO_CHEATSHEET.md`。
+  小清理：burst log 加 configured_window_ms / actual_wait_ms / burst_duration_ms（burst_wait_ms 同 actual_wait_ms）、postback log 加 postback_action / source_request_id；
+  成分明細標題依來源範圍（保健功效相關成分 vs 官方登記成分）。
+- **語音簡繁正規化（2026-10-05）**：`app/services/text_normalization.py`（OpenCC `s2t`，新增依賴 `opencc-python-reimplemented`，純 Python 字典轉換、不是模型）；`transcribe_audio` 回傳 normalized `text` ＋ `raw_text`，request 保存 `raw_transcript` / `normalized_transcript`（見 FC-A6）。
+
+## FREEZE（2026-10-06，tag `demo-ready-v1`）
+
+以下 runtime 已 **FROZEN**；修改需使用者明確同意（規則見 `docs/FROZEN_CONTRACTS.md`，每項皆有 regression test）：
+
+- Interaction Runtime（含 identity-coverage gap，FC-I6）
+- Ingredient Retrieval Runtime（含成分明細標題依來源範圍，FC-H3）
+- Multi-image Fusion Runtime（FC-I1）與 LINE 蒐集模式（FC-I2）
+- Automatic Image Burst Gate（FC-I5）
+- Package Observation Runtime（FC-I3 / FC-I4）
+- Sequential Image Follow-up（FC-I7）
+- Audio Traditional-Chinese Normalization（FC-A6；`opencc-python-reimplemented==0.1.7`）
+- LINE context / FIFO contracts（FC-E*、FC-F*）
+
+驗證：full pytest 1487 passed / 1 skipped / 0 failed / 0 errors；production read-only 回歸 42 / 42（`docs/DEMO_REGRESSION.md`）；展示小抄 `docs/DEMO_CHEATSHEET.md`。

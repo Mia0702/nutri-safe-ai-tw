@@ -1,4 +1,0 @@
-mapping_id,form_entity_id,parent_nutrient_entity_id,relationship_type,source_id,source_url,source_locator,evidence_text,review_status,retrieved_at,amount_conversion_allowed,automatic_interaction_inheritance,notes
-TEST_ONLY_REL_F_ZN_TEST_OXIDE,F_ZN_TEST_OXIDE,N_ZN,SAME_AS,TEST_ONLY_SRC,NULL,TEST_ONLY rel F_ZN_TEST_OXIDE,NULL,VERIFIED_OFFICIAL,NULL,false,false,NULL
-TEST_ONLY_REL_F_TEST_THIAMIN,F_TEST_THIAMIN,N_B1,CONTRIBUTES_TO_NUTRIENT,TEST_ONLY_SRC,NULL,TEST_ONLY rel F_TEST_THIAMIN,NULL,VERIFIED_OFFICIAL,NULL,false,false,NULL
-TEST_ONLY_REL_F_CA_CARBONATE,F_CA_CARBONATE,N_CA,CONTRIBUTES_TO_NUTRIENT,TEST_ONLY_SRC,NULL,TEST_ONLY rel F_CA_CARBONATE,NULL,VERIFIED_OFFICIAL,NULL,false,false,NULL

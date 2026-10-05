@@ -77,6 +77,8 @@ class TaskContext(BaseModel):
     last_intent: Intent | None = None
     recent_request_ids: list[str] = Field(default_factory=list)
     turns: list[ConversationTurn] = Field(default_factory=list)
+    # 最近一個「已完成」的圖片 request id（只是參照；不複製圖片）。結構化觀察從 request store 取回，不重跑 Vision。
+    last_visual_request_id: str | None = None
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     def conversation_context(self) -> ConversationContext:
@@ -87,7 +89,8 @@ class TaskContext(BaseModel):
                                     entity_id=self.current_product_id)
             turns.append(ConversationTurn(user_text="", entities=[current]))  # known_entities() 由新到舊，放最後 = 最優先
         return ConversationContext(conversation_id=self.session_id, turns=turns,
-                                   confirmed_product=self.confirmed_product)
+                                   confirmed_product=self.confirmed_product,
+                                   last_visual_request_id=self.last_visual_request_id)
 
 
 class TaskContextStore:
@@ -128,7 +131,8 @@ class TaskContextStore:
     def record(self, user_id: str, session_id: str, request_id: str, user_text: str,
                intent: Intent | None, entities: list[ContextEntity],
                confirmed: ConfirmedProduct | None = None, clear_confirmed: bool = False,
-               pending: PendingClarification | None = None, clear_products: bool = False) -> bool:
+               pending: PendingClarification | None = None, clear_products: bool = False,
+               visual_request_id: str | None = None) -> bool:
         """把一題的結果寫回 context；session 已被重設 / 過期時丟棄（回傳 False）。
 
         pending：這一題留下的產品確認問題；每一題都會取代上一題的 pending（None = 清除）。
@@ -167,6 +171,8 @@ class TaskContextStore:
                              for t in ctx.turns]
             ctx.pending_clarification = (pending.model_copy(update={"created_at": self._clock()})
                                          if pending is not None else None)
+            if visual_request_id is not None:  # 這一題是圖片：之後的文字追問可以指回它
+                ctx.last_visual_request_id = visual_request_id
             ctx.updated_at = self._clock()
             self._data.move_to_end(user_id)
             return True

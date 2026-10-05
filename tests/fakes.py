@@ -290,6 +290,12 @@ class FakeLLM:
         names = " ".join(fixed.product_candidates) if isinstance(fixed, IntakeExtraction) else ""
         return f"TEST_ONLY 圖片文字：{names or '虛構牌晶亮測試膠囊'}"
 
+    def describe_images_structured(self, *, instructions, images, output_model):
+        self.calls.append(("describe_images_structured", [m for _, m in images]))
+        self._maybe_fail("describe_images_structured")
+        value = self.structured.get(output_model)
+        return value(images) if callable(value) and not isinstance(value, BaseModel) else value
+
     def transcribe_audio(self, *, audio, filename):
         self.calls.append(("transcribe_audio", filename))
         self._maybe_fail("transcribe_audio")

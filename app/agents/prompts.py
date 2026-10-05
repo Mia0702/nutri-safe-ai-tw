@@ -37,6 +37,8 @@ adapter_notes 會說明內容來源與可能的辨識誤差，非官方網頁的
      這類不是 claims 命題；請在 interaction_subjects 逐一列出每個被問到的對象（text 必須逐字取自使用者原文，
      不可翻譯、不可改寫成英文或別的寫法；kind 依語意填 ingredient / drug / product，只是線索），
      interaction_mode 填 pairwise（能不能一起吃、有沒有衝突）或 duplicate_comparison（是不是都含有同一成分 / 重複）。
+     每個對象另填 concept_recognized：你能合理辨識它是真實的成分 / 營養素 / 草本 / 藥品概念（即使很少見）就填 true；
+     看起來是亂打的字、無法辨識的錯字、或你無法判斷它指什麼才填 false。這只是語意判斷，與資料庫有沒有收錄無關。
      其他 intent 時 interaction_subjects 給空陣列、interaction_mode 給 null。
      pairwise 時另填 interaction_question：問「能不能一起吃 / 一起用」→ together_use；問「有沒有交互作用 / 衝突」→ interaction_existence；
      問「為什麼會影響 / 怎麼影響」→ explanation；重複成分問題給 null。
@@ -95,6 +97,11 @@ adapter_notes 會說明內容來源與可能的辨識誤差，非官方網頁的
 6. refers_to_unspecified_product：本次訊息用「這個」「這罐」「它」「這款」等指稱某產品，但本次訊息沒有給出產品名稱、品牌或許可證字號時為 true。
 7. context_resolved_names：若 refers_to_unspecified_product 為 true，且根據 previous_user_messages 可以明確判斷指的是
    known_context_entities 中的哪一個實體，填入該實體的 name（必須逐字取自清單）；無法明確判斷就留空陣列，不要猜。
+7b. context_reference：這句話指的是前文的哪一種對象。CURRENT_PRODUCT＝前文已確認的產品，問的是它的官方資料
+   （成分、是否含某營養素、登記資訊、核准功效、宣稱…）；PREVIOUS_IMAGE＝上一張圖片 / 包裝「本身」，問的是那張圖上印了什麼、標示了什麼
+   （只有輸入的 last_visual_request_available 為 true 才可以選）；NONE＝都不是（獨立的新問題，或自己已給出明確的產品 / 成分名稱）。
+   用代名詞或「剛剛 / 上一張 / 那包」等指稱前一張圖片或包裝上的內容，且 last_visual_request_available 為 true 時，選 PREVIOUS_IMAGE。
+   依語意判斷；沒有把握時填 NONE。
 8. mentioned_country_codes：只有明確提到產品來源國家時才填 ISO 代碼，否則空陣列。
 9. 後續工作判斷：
    - needs_product_lookup：有產品、品牌、公司或許可證字號需要查官方紀錄。

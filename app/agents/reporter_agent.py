@@ -63,6 +63,7 @@ from app.schemas.enums import SemanticTone
 from app.schemas.risk import RiskAssessment
 from app.schemas.user_request import NormalizedUserRequest
 from app.services.errors import ServiceError
+from app.services.image_fusion import bundle_stop_message
 from app.services.openai_service import LLMClient
 
 logger = logging.getLogger("nutri_safe_ai.agents.reporter")
@@ -539,7 +540,8 @@ def identity_unresolved(request: NormalizedUserRequest, bundle: EvidenceBundle) 
     指稱無法解析、多個 / 低信心候選、只找到名稱相似或只對應到公司、只傳圖片但沒有確認產品、
     問產品是否合法卻完全沒有產品資訊。這些情況回 MISSING_INFORMATION，不顯示風險燈號。"""
     match = bundle.product_match
-    if request.identity_collision or request.missing_product_context or match.is_ambiguous or match.needs_confirmation:
+    if (request.identity_collision or request.image_bundle_blocked or request.missing_product_context
+            or match.is_ambiguous or match.needs_confirmation):
         return True
     if request.image_identification:
         return match.status != ProductVerificationStatus.VERIFIED
@@ -570,7 +572,7 @@ def select_response_type(request: NormalizedUserRequest, bundle: EvidenceBundle,
         bundle.product_match.is_ambiguous or bundle.product_match.needs_confirmation
     ):
         return ResponseType.RISK
-    if request.missing_product_context or request.identity_collision:
+    if request.missing_product_context or request.identity_collision or request.image_bundle_blocked:
         return ResponseType.MISSING_INFORMATION
     if (bundle.product_match.is_ambiguous or bundle.product_match.needs_confirmation) and request.claims:
         # 產品有多個 / 低信心候選、宣稱沒有高風險：先請使用者確認產品，再逐條比對核准功效（不直接給風險燈）
@@ -707,12 +709,8 @@ def _ingredient_display_lines(evidence: ProductIngredientEvidence) -> list[str]:
     confirmed = _direct_confirmed_by_raw(evidence)
     first, rest = [], []
     for o in evidence.official_ingredients:
-        entry = confirmed.get(o.raw_text)
-        if entry is None:
-            rest.append(o.display_text)
-            continue
-        note = _confirmed_note(entry, o.display_text)
-        first.append(f"{o.display_text}（{note}）" if note else o.display_text)
+        # 只顯示官方登記的成分名稱（原樣）；成分身分 / 來源形式等 mapping metadata 是內部資料，不給使用者看
+        (first if o.raw_text in confirmed else rest).append(o.display_text)
     return _dedupe(first + rest)
 
 
@@ -763,10 +761,8 @@ def _ingredient_answer(evidence: ProductIngredientEvidence, product) -> tuple[st
             points = [line] + points + extra
         return summary, _dedupe(points)
     cov = evidence.coverage
-    summary = f"「{product.product_name_zh}」官方登記的{scope}共 {cov.official_count} 項"
-    if cov.confirmed_count and cov.unresolved_count:
-        summary += f"，其中 {cov.confirmed_count} 項已確認成分身分，其餘 {cov.unresolved_count} 項尚未完成識別"
-    return summary + "。", _ingredient_display_lines(evidence)
+    summary = f"「{product.product_name_zh}」官方登記的{scope}共 {cov.official_count} 項。"
+    return summary, _ingredient_display_lines(evidence)
 
 
 def _ingredient_status(evidence: ProductIngredientEvidence) -> tuple[str, SemanticTone]:
@@ -781,34 +777,23 @@ def _ingredient_status(evidence: ProductIngredientEvidence) -> tuple[str, Semant
 
 
 def ingredient_detail_lines(evidence: ProductIngredientEvidence) -> list[str]:
-    """「查看完整成分」：官方列有的成分；有已確認身分時逐項標示（已確認 / 尚未完成識別）。
+    """「查看完整成分」：只列官方登記的成分名稱（原樣，不換成營養素類別、不標示成分身分 / 來源形式 / 未識別數量）。
 
     每段多行（renderer 一段一個區塊）：成分很多時分成幾段，不會被明細段落上限截掉；
-    超過 MAX_INGREDIENT_DETAIL_ITEMS 時提示其餘項目，並保留官方成分欄位原文。"""
-    confirmed = _direct_confirmed_by_raw(evidence)
-    annotate = bool(evidence.confirmed_ingredients)  # 沒有任何已確認身分時只列官方成分，不逐項標示
-    items = []
-    for o in evidence.official_ingredients:
-        entry = confirmed.get(o.raw_text)
-        if not annotate:
-            items.append(f"・{o.display_text}")
-        elif entry is not None:
-            note = _confirmed_note(entry, o.display_text)
-            items.append(f"・{o.display_text}：已確認成分身分" + (f"（{note}）" if note else ""))
-        else:
-            items.append(f"・{o.display_text}：尚未完成成分識別")
+    清單已完整列出時不再重複官方成分欄位原文；只有超過 MAX_INGREDIENT_DETAIL_ITEMS 而被截斷時才附上原文。"""
+    items = [f"・{o.display_text}" for o in evidence.official_ingredients]
     shown = items[:MAX_INGREDIENT_DETAIL_ITEMS]
-    header = f"官方登記的{_ingredient_scope(evidence)}（{evidence.coverage.official_count} 項）："
+    # 標題反映來源範圍：健康食品登記的是「保健功效相關成分」（不是完整配方），其餘是官方成分欄位；不推論超出來源的完整性
+    header = (f"保健功效相關成分（{evidence.coverage.official_count} 項）"
+              if _ingredient_scope(evidence) == "保健功效相關成分" else f"官方登記成分（{evidence.coverage.official_count} 項）")
     chunks = [shown[i:i + INGREDIENT_DETAIL_LINES_PER_PARAGRAPH]
               for i in range(0, len(shown), INGREDIENT_DETAIL_LINES_PER_PARAGRAPH)] or [[]]
     paragraphs = ["\n".join(([header] if i == 0 else []) + chunk) for i, chunk in enumerate(chunks)]
+    raw = evidence.official_ingredients_raw
     if len(items) > len(shown):
         paragraphs.append(f"另有 {len(items) - len(shown)} 項，可參考下方官方成分欄位原文。")
-    raw = evidence.official_ingredients_raw
-    if raw and ([o.raw_text for o in evidence.official_ingredients] != [raw] or len(items) > len(shown)):
-        paragraphs.append(f"官方成分欄位原文：{_clip_text(raw, MAX_RAW_INGREDIENT_CHARS)}")
-    if annotate and evidence.coverage.unresolved_count:
-        paragraphs.append("「尚未完成成分識別」只代表系統還沒有確認它是哪一種成分，不代表成分有問題。")
+        if raw:
+            paragraphs.append(f"官方成分欄位原文：{_clip_text(raw, MAX_RAW_INGREDIENT_CHARS)}")
     return paragraphs
 
 
@@ -1009,7 +994,7 @@ def _registration_only_product_info(request: NormalizedUserRequest, product) -> 
     else:
         points.append(NO_HEALTH_CLAIM_APPROVAL_TEXT)
     if request.observed_package_claims:
-        points.append(f"包裝上另有 {len(request.observed_package_claims)} 項宣稱文字，需要的話可按「查驗包裝宣稱」。")
+        points.append(f"包裝上另有 {len(request.observed_package_claims)} 項宣稱文字，需要的話可按「檢視包裝宣稱」。")
     if request.intent == Intent.SAFETY_INQUIRY:
         points.insert(0, REGISTRATION_NOT_SAFETY_NOTE)
     return summary, _dedupe(points)
@@ -1046,7 +1031,7 @@ def _summary_and_points(
                   PRODUCT_STATUS_TEXT.get(product.status.value, ""),
                   f"官方核准的保健功效：{functions}" if functions else ""]
         if request.observed_package_claims:
-            points.append(f"包裝上另有 {len(request.observed_package_claims)} 項宣稱文字，需要的話可按「查驗包裝宣稱」。")
+            points.append(f"包裝上另有 {len(request.observed_package_claims)} 項宣稱文字，需要的話可按「檢視包裝宣稱」。")
         if request.intent == Intent.SAFETY_INQUIRY:
             warning_count = sum(1 for w in bundle.warnings if w.product_id == product.product_id)
             points[:0] = [REGISTRATION_NOT_SAFETY_NOTE] + (
@@ -1092,6 +1077,8 @@ def _summary_and_points(
         return OUT_OF_SCOPE_TEXT, ["如果你有想查證的保健食品或廣告說法，可以直接傳給我。"]
     if request.identity_collision:
         return COLLISION_SUMMARY, [COLLISION_ASK]
+    if request.image_bundle_blocked:
+        return bundle_stop_message(request.image_bundle)
     if bundle.product_match.is_ambiguous or bundle.product_match.needs_confirmation:
         options = _dedupe([_candidate_option(c.product) for c in bundle.product_match.candidates])
         claims_note = [CLAIMS_NEED_PRODUCT] if any(c.is_asserted for c in request.claims) else []

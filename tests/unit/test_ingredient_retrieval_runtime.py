@@ -206,8 +206,9 @@ def test_health_food_existing_ingredients_with_bridge_identity():
     assert ev.coverage.model_dump() == {"official_count": 2, "confirmed_count": 1, "unresolved_count": 1}
     p = run(HF_ZINC).response
     assert p.response_type == ResponseType.INGREDIENT_LIST and p.risk_level is None
-    assert p.key_points[0] == "葡萄糖酸鋅（鋅的來源形式）" and "虛構萃取物（fictional extract）" in p.key_points
-    assert "保健功效相關成分共 2 項" in p.summary and "1 項已確認成分身分" in p.summary
+    # 只顯示官方登記的成分名稱；成分身分 / 來源形式 / 未識別數量是內部 metadata，不給使用者看
+    assert p.key_points == ["葡萄糖酸鋅", "虛構萃取物（fictional extract）"]
+    assert "保健功效相關成分共 2 項" in p.summary and "已確認成分身分" not in p.summary and "尚未完成" not in p.summary
 
 
 def test_health_food_without_bridge_mapping_still_lists_official_ingredients():
@@ -221,7 +222,7 @@ def test_health_food_without_bridge_mapping_still_lists_official_ingredients():
     assert "尚未" not in p.summary  # 沒有 bridge mapping 不讓健康食品看起來「沒有成分」或缺資料
     assert (p.status_line, p.status_tone) == ("官方登記成分", SemanticTone.GREEN)
     detail = detail_payload(ResponseAction.INGREDIENTS, result.normalized_request, result.evidence, result.risk)
-    assert detail.body == ["官方登記的保健功效相關成分（1 項）：\n・虛構素甲（fictionin-a）"]
+    assert detail.body == ["保健功效相關成分（1 項）\n・虛構素甲（fictionin-a）"]  # 健康食品：只代表保健功效相關成分，不是完整配方
 
 
 # ============================================================ 3–4. 國產 / 輸入
@@ -237,8 +238,8 @@ def test_domestic_raw_and_confirmed_ingredients():
         ("原料X", "NO_MATCH"), ("原料Y", "NO_MATCH"), ("硬脂酸鎂", "AMBIGUOUS")]
     p = run(DOM_NAME).response
     assert p.response_type == ResponseType.INGREDIENT_LIST
-    assert "官方登記的成分共 4 項" in p.summary and "其餘 3 項尚未完成識別" in p.summary
-    assert p.key_points == ["葡萄糖酸鋅（鋅的來源形式）", "原料X", "原料Y", "硬脂酸鎂"]
+    assert "官方登記的成分共 4 項" in p.summary and "尚未完成" not in p.summary and "已確認成分身分" not in p.summary
+    assert p.key_points == ["葡萄糖酸鋅", "原料X", "原料Y", "硬脂酸鎂"]  # 官方名稱原樣，不換成「鋅」
 
 
 def test_imported_raw_and_confirmed_ingredients():
@@ -249,7 +250,7 @@ def test_imported_raw_and_confirmed_ingredients():
     assert direct["TF_FISH_OIL"].mapping_status == "VERIFIED_EXACT" and direct["TF_FISH_OIL"].parent_nutrient.entity_id == "TN_OMEGA3"
     assert [u.raw_text for u in ev.unresolved_ingredients] == ["原料Z"]
     p = run(IMP_NAME).response
-    assert p.key_points[:2] == ["葡萄糖酸銅（銅的來源形式）", "FISH OIL（Omega-3脂肪酸群的來源形式）"]
+    assert p.key_points[:2] == ["葡萄糖酸銅", "FISH OIL"]
     assert p.key_points[2] == "原料Z"
 
 
@@ -419,10 +420,12 @@ def test_full_ingredient_detail_and_source_provenance():
     assert ResponseAction.INGREDIENTS in p.available_actions
     detail = detail_payload(ResponseAction.INGREDIENTS, result.normalized_request, result.evidence, result.risk)
     lines = detail.body[0].split("\n")
-    assert lines[0] == "官方登記的成分（4 項）："
-    assert "・葡萄糖酸鋅：已確認成分身分（鋅的來源形式）" in lines
-    assert "・硬脂酸鎂：尚未完成成分識別" in lines
-    assert "官方成分欄位原文：葡萄糖酸鋅、原料X、原料Y、硬脂酸鎂" in detail.body  # 研究 token 之外保留官方原文
+    assert lines[0] == "官方登記成分（4 項）"
+    assert lines[1:] == ["・葡萄糖酸鋅", "・原料X", "・原料Y", "・硬脂酸鎂"]  # 只有官方成分名稱（原樣）
+    body = "\n".join(detail.body)
+    for banned in ("已確認成分身分", "尚未完成成分識別", "來源形式", "NutrientGroup", "IngredientForm", "官方成分欄位原文"):
+        assert banned not in body  # mapping metadata 不給使用者看；清單已完整列出就不重複原文
+    assert result.evidence.product_ingredients.official_ingredients_raw == "葡萄糖酸鋅、原料X、原料Y、硬脂酸鎂"  # 原文仍保存在內部資料
     assert detail.available_actions == [ResponseAction.SOURCES]
     assert ResponseAction.SOURCES in reachable_actions(p.available_actions)
     sources = detail_payload(ResponseAction.SOURCES, result.normalized_request, result.evidence, result.risk)
@@ -444,7 +447,7 @@ def test_long_ingredient_list_detail_stays_within_card_limits():
     data.INGREDIENT_STAGING["ing-dom"] = {"ingredients_raw": "、".join(tokens), "parser_draft": {"tokens": tokens}}
     data.INGREDIENT_ENTITY_MAPPINGS[:] = _form_mapping("ing-dom", "葡萄糖酸鋅", "TF_ZN_GLUCONATE", "TN_ZN", token=60)
     result = run(DOM_NAME)
-    assert result.response.key_points[0] == "葡萄糖酸鋅（鋅的來源形式）"  # 已確認的先列，不被長清單淹沒
+    assert result.response.key_points[0] == "葡萄糖酸鋅"  # 已確認的先列，不被長清單淹沒；仍是官方名稱
     detail = detail_payload(ResponseAction.INGREDIENTS, result.normalized_request, result.evidence, result.risk)
     assert len(detail.body) <= 8
     assert "另有 21 項，可參考下方官方成分欄位原文。" in detail.body

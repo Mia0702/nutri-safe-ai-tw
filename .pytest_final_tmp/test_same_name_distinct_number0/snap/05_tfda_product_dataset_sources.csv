@@ -1,3 +1,0 @@
-﻿source_id,source_info_id,source_role,source_url,retrieved_at,retrieval_status,sha256
-SRC_24,24,CORE_FULL_PRODUCT_EXPORT,https://data.fda.gov.tw/data/opendata/export/24/csv,2026-10-04T03:13:44.070804+00:00,SUCCESS,eebcece318cb83b2b43863dc808ea786ff0ea00aa6fc3e407dd3eeb70525f62c
-SRC_23,23,CORE_FULL_PRODUCT_EXPORT,https://data.fda.gov.tw/data/opendata/export/23/csv,2026-10-04T03:13:51.254225+00:00,SUCCESS,a9b485accb82dcba64b9ae0355dfdb4bd0661e7db6cef1c58be65d10826deb7b

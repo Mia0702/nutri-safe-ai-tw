@@ -78,6 +78,10 @@ class MediaClient(Protocol):
 
     def describe_image(self, *, instructions: str, image: bytes, mime_type: str) -> str: ...
 
+    def describe_images_structured(
+        self, *, instructions: str, images: list[tuple[bytes, str]], output_model: type[T]
+    ) -> T: ...
+
     def transcribe_audio(self, *, audio: bytes, filename: str) -> str: ...
 
 
@@ -151,6 +155,26 @@ class OpenAIService:
         if not text:
             raise ServiceError(ErrorCode.UPSTREAM_ERROR, "OpenAI 圖片理解回傳空白內容", "openai")
         return text
+
+    def describe_images_structured(
+        self, *, instructions: str, images: list[tuple[bytes, str]], output_model: type[T]
+    ) -> T:
+        """一次 Vision request 傳入所有圖片（每張前面標示 Image k），回傳結構化觀察。"""
+        content: list[dict[str, Any]] = []
+        for index, (image, mime_type) in enumerate(images, start=1):
+            content.append({"type": "input_text", "text": f"Image {index}"})
+            content.append({"type": "input_image",
+                            "image_url": f"data:{mime_type};base64,{base64.b64encode(image).decode('ascii')}"})
+        try:
+            response = self._client.responses.parse(
+                model=self._settings.openai_model, instructions=instructions,
+                input=[{"role": "user", "content": content}], text_format=output_model)
+        except Exception as exc:  # noqa: BLE001
+            raise _wrap_openai_error(exc) from exc
+        parsed = response.output_parsed
+        if parsed is None:
+            raise ServiceError(ErrorCode.UPSTREAM_ERROR, "OpenAI 沒有回傳可解析的圖片觀察", "openai")
+        return parsed
 
     def transcribe_audio(self, *, audio: bytes, filename: str) -> str:
         try:

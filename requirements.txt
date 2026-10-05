@@ -11,3 +11,4 @@ beautifulsoup4
 python-multipart
 pytest
 pytest-asyncio
+opencc-python-reimplemented==0.1.7

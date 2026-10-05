@@ -23,8 +23,10 @@ from app.schemas.enums import (
     ProductMentionProvenance,
     ProductReferenceStatus,
     UrlSourceRole,
+    ContextReference,
 )
 from app.schemas.evidence import ToolCallRecord
+from app.schemas.image_bundle import FusedImageBundle
 from app.schemas.interaction import (
     InteractionMode,
     InteractionQuestion,
@@ -86,6 +88,8 @@ class ConversationContext(BaseModel):
     conversation_id: str | None = None
     turns: list[ConversationTurn] = Field(default_factory=list)
     confirmed_product: ConfirmedProduct | None = None  # 只有 task context（LINE）會提供
+    # 上一個已完成的圖片 request（只是 id，不含圖片內容；結構化觀察在 request store）
+    last_visual_request_id: str | None = None
 
     def known_entities(self, entity_type: EntityType | None = None) -> list[ContextEntity]:
         """由新到舊列出前文實體（同名只保留最新一次）。"""
@@ -107,6 +111,7 @@ class MediaInput(BaseModel):
     content: bytes = Field(repr=False, exclude=True)
     mime_type: str
     filename: str | None = None
+    source_id: str | None = None  # 來源識別碼（例如 LINE message id）；不含內容
 
 
 class RawUserInput(BaseModel):
@@ -158,6 +163,8 @@ class ExtractedClaim(BaseModel):
     # 以下由系統依 URL source role 填寫（不在 LLM schema 中）：命題來自網頁時的來源角色與網址
     source_role: SkipJsonSchema[UrlSourceRole | None] = None
     source_url: SkipJsonSchema[str | None] = None
+    # multi-image：這句宣稱出現在哪幾張圖片（系統依融合觀察填寫，1-based；不在 LLM schema 中）
+    source_images: SkipJsonSchema[list[int]] = Field(default_factory=list)
 
     @property
     def claim_role(self) -> ClaimOrigin:
@@ -273,6 +280,12 @@ class IntakeExtraction(BaseModel):
         description="pairwise：問兩個以上對象能不能一起吃 / 有沒有衝突；duplicate_comparison：問兩個產品是否都含有同一成分 / 是否重複；"
                     "不是 interaction 問題時給 null",
     )
+    context_reference: ContextReference = Field(
+        default=ContextReference.NONE,
+        description="這句話指的是前文的哪一種對象：CURRENT_PRODUCT＝前文已確認的產品（問它的官方資料，例如成分、登記、功效）；"
+                    "PREVIOUS_IMAGE＝上一張圖片 / 包裝本身（問那張圖上印了什麼、標示了什麼，只有 last_visual_request_available 為 true 才可用）；"
+                    "NONE＝都不是（獨立的新問題，或自己已給出明確的產品 / 成分名稱）。依語意判斷，不要只看有沒有「這個」等字眼",
+    )
     interaction_question: InteractionQuestion | None = Field(
         default=None,
         description="interaction_inquiry 且 pairwise 時，使用者實際在問什麼：together_use＝能不能一起吃 / 一起使用；"
@@ -349,6 +362,7 @@ class NormalizedUserRequest(BaseModel):
     # 圖片輸入：包裝上看到的宣稱先保存為 observed content（不自動查證，可按「查驗包裝宣稱」再查）
     observed_package_claims: list[ExtractedClaim] = Field(default_factory=list)
     image_identification: bool = False  # 只傳圖片：預設目標是辨識產品 / 產品資訊
+    package_claim_check: bool = False  # 由「查驗包裝宣稱」postback 建立（已確認產品 + 原圖保存的 observed claims）
     claims_from_package: bool = False  # claims 來自包裝圖片（明確要求查驗、高風險醫療宣稱、或按鈕觸發）
     # 查詢目標由使用者回覆確認（pending clarification → CONFIRM，或之後沿用該產品的 follow-up）
     user_confirmed_target: UserConfirmedTarget | None = None
@@ -356,6 +370,19 @@ class NormalizedUserRequest(BaseModel):
     interaction_subjects: list[InteractionSubject] = Field(default_factory=list)
     interaction_mode: InteractionMode | None = None
     interaction_question: InteractionQuestion | None = None
+    # 文字追問指向前文的哪一種對象（見 ContextReference）；PREVIOUS_IMAGE 時 visual_request_id 是被指的圖片 request
+    context_reference: ContextReference = ContextReference.NONE
+    visual_request_id: str | None = None
+    # 語音輸入：轉錄原文與字形正規化（簡體 → 繁體）後的逐字稿；Controller 與使用者介面使用 normalized_transcript
+    raw_transcript: str | None = None
+    normalized_transcript: str | None = None
+    # Multi-image（同一產品的 2–3 張照片）：融合後的觀察（含每個值的來源圖片）；單張圖片 / 其他輸入為 None
+    image_bundle: FusedImageBundle | None = None
+
+    @property
+    def image_bundle_blocked(self) -> bool:
+        """多張圖片的身份衝突 / 可能不是同一產品：停止產品查證，先請使用者確認。"""
+        return self.image_bundle is not None and self.image_bundle.blocks_verification
 
     @property
     def has_product_identifiers(self) -> bool:

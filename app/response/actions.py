@@ -29,7 +29,7 @@ ACTION_LABELS = {
     ResponseAction.REGISTRATION_INFO: "查看產品登記資料",
     ResponseAction.WHY: "為什麼？",
     ResponseAction.RETRY: "重新查詢",
-    ResponseAction.CHECK_PACKAGE_CLAIMS: "查驗包裝宣稱",
+    ResponseAction.CHECK_PACKAGE_CLAIMS: "檢視包裝宣稱",
     ResponseAction.FULL_EFFICACY: "查看完整功效",
     ResponseAction.WARNINGS: "警語與注意事項",
     ResponseAction.POLICY_BASIS: "查看法規依據",

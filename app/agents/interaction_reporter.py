@@ -67,6 +67,20 @@ APPLICABILITY_NOTE = "是否適用於你的實際劑量、用法與族群，目�
 APPLICABILITY_NOT_EVALUATED = "是否適用於你的實際劑量、用法與族群，目前尚未評估，需另外確認適用條件。"
 DOSE_NOT_EVALUATED = "尚未完成劑量評估"
 NO_RECORD_MEANING = "未收錄只代表資料庫尚無紀錄，不能當作可以放心一起使用的依據。"
+STATUS_COVERAGE_GAP = "資料庫尚未收錄此成分／藥物"
+GAP_EVIDENCE_FOUND = "找到一些相關資料，但目前不足以形成結構化交互作用結論。"
+GAP_NO_EVIDENCE = "目前也沒有足夠證據可下結論。"
+
+
+def coverage_gap_sentence(names: list[str]) -> str:
+    """資料涵蓋缺口（不是拼錯字）：結構化交互作用資料尚未收錄這些成分 / 藥物。"""
+    shown = "、".join(f"『{n}』" for n in names[:2]) + (f"等 {len(names)} 項" if len(names) > 2 else "")
+    return f"目前結構化交互作用資料尚未收錄{shown}，因此無法直接用知識圖譜判定。"
+
+
+def _gap_evidence_point(bundle: EvidenceBundle) -> str:
+    """補查（RAG / 官方網站）只是參考：找到相關資料也不構成結構化交互作用結論；沒找到就如實說證據不足。"""
+    return GAP_EVIDENCE_FOUND if (bundle.rag_evidence or bundle.official_web_evidence) else GAP_NO_EVIDENCE
 ASK_PROFESSIONAL = "用藥相關問題請詢問醫師或藥師。"
 DISCLAIMER = f"本資訊整理自資料庫收錄的證據，不是醫療建議；{ASK_PROFESSIONAL}"
 NOT_PRODUCT_RISK = "這裡只整理成分與藥品之間的交互作用資料，不是對產品本身的風險判定。"
@@ -407,6 +421,14 @@ def _compose_result(request: NormalizedUserRequest, bundle: EvidenceBundle) -> I
         return InteractionCard(response_type=ResponseType.INTERACTION_RESULT, title=title, summary=reason, key_points=points,
                                warnings=warnings, status_line=tag, status_tone=SemanticTone.ORANGE, actions=_actions(research))
     findings = _ranked_findings(research)
+    if research.coverage_gap_subjects and not findings:
+        # IDENTITY_NOT_IN_INTERACTION_CORPUS：資料涵蓋缺口。不請使用者改寫法；補查結果只是參考，不是 KG 結論，也不是「沒有交互作用」
+        pair_text = _pair(*[_quote(s.text) for s in research.subjects[:2]]) if len(research.subjects) >= 2 else "這組對象"
+        return InteractionCard(
+            response_type=ResponseType.INTERACTION_RESULT, title=_direct_answer(question, ANSWER_NO_RECORD, pair_text),
+            summary=coverage_gap_sentence(research.coverage_gap_subjects),
+            key_points=[_gap_evidence_point(bundle), NO_RECORD_MEANING, LIMIT_BY_ANSWER[ANSWER_NO_RECORD]],
+            warnings=warnings, status_line=STATUS_COVERAGE_GAP, status_tone=SemanticTone.ORANGE, actions=_actions(research))
     top = findings[0] if findings else None
     answer = ANSWER_BY_STATUS[top.conclusion_status] if top else ANSWER_NO_RECORD
     if top is not None:
@@ -442,7 +464,8 @@ def _clarification(request: NormalizedUserRequest, bundle: EvidenceBundle) -> In
     if match.candidates and (match.is_ambiguous or match.needs_confirmation):
         return InteractionCard(response_type=ResponseType.MISSING_INFORMATION, title=TITLE_CLARIFY, summary="",
                                defer_to_generic=True)  # 先出既有的產品候選確認卡；確認前不顯示任何 interaction 結論
-    unresolved = [s for s in research.subjects if s.status != SubjectResolutionStatus.RESOLVED]
+    unresolved = [s for s in research.subjects if s.status not in (
+        SubjectResolutionStatus.RESOLVED, SubjectResolutionStatus.IDENTITY_NOT_IN_INTERACTION_CORPUS)]
     if unresolved:
         s = unresolved[0]
         label = _quote(s.text)
@@ -592,7 +615,10 @@ def why_detail(request: NormalizedUserRequest, bundle: EvidenceBundle) -> list[s
         if unresolved:
             lines.append(f"・仍有 {unresolved} 項成分尚未完成辨識，未納入重複成分比對。")
         body.append("\n".join(lines))
-    if _no_record_pairs(research) and not research.findings:
+    if research.coverage_gap_subjects and not research.findings:
+        body.append("\n".join([coverage_gap_sentence(research.coverage_gap_subjects), f"・{_gap_evidence_point(bundle)}",
+                               f"・{NO_RECORD_MEANING}"]))
+    elif _no_record_pairs(research) and not research.findings:
         lines = [f"資料庫沒有收錄這組關係。{NO_RECORD_MEANING}"]
         note = _fallback_note(bundle, research)
         if note:
@@ -634,6 +660,7 @@ def interaction_facts(request: NormalizedUserRequest, bundle: EvidenceBundle) ->
         "對象": [{"名稱": s.text, "類型": s.kind.value} for s in research.subjects],
         "交互作用紀錄": findings,
         "資料庫沒有收錄的組合": [[p.subject_a, p.subject_b] for p in _no_record_pairs(research)],
+        "結構化交互作用資料尚未收錄的對象（只是資料涵蓋缺口，不是拼錯字，也不代表沒有交互作用）": list(research.coverage_gap_subjects),
         "重複成分": duplicates,
         "尚有未完成辨識的成分數": {c.product_id: c.unresolved_count for c in research.duplicate_coverage if c.unresolved_count},
     }
@@ -678,6 +705,8 @@ def deterministic_body(request: NormalizedUserRequest, bundle: EvidenceBundle) -
         lines.append(f"重複成分：兩項產品都含有{_quote(entity_label(d.nutrient))}。")
     for p in _no_record_pairs(research):
         lines.append(f"{_pair(_quote(p.subject_a), _quote(p.subject_b))}：交互作用資料庫沒有收錄這組的紀錄。")
+    if research.coverage_gap_subjects and not research.findings:
+        lines.append(coverage_gap_sentence(research.coverage_gap_subjects))
     return "\n".join(lines)
 
 
@@ -692,7 +721,7 @@ def limitation_block(bundle: EvidenceBundle) -> str:
         unresolved = _unresolved_total(research)
         if unresolved:
             lines.append(f"・仍有 {unresolved} 項成分尚未完成辨識，未納入重複成分比對。")
-    if _no_record_pairs(research):
+    if _no_record_pairs(research) or research.coverage_gap_subjects:
         lines.append(f"・{NO_RECORD_MEANING}")
     if _has_product_subject(research):
         lines.append(f"・{NOT_PRODUCT_RISK}")

@@ -1,2 +1,0 @@
-mapping_id,form_entity_id,parent_nutrient_entity_id,relationship_type,source_id,source_url,source_locator,evidence_text,review_status,retrieved_at,amount_conversion_allowed,automatic_interaction_inheritance,notes
-TEST_ONLY_REL_F_CA_CARBONATE,F_CA_CARBONATE,N_ZN,CONTRIBUTES_TO_NUTRIENT,TEST_ONLY_SRC,NULL,TEST_ONLY rel F_CA_CARBONATE,NULL,VERIFIED_OFFICIAL,NULL,false,false,NULL

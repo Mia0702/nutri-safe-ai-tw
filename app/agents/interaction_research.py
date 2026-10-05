@@ -120,20 +120,27 @@ class InteractionResearchMixin:
             research.status = InteractionResearchStatus.CORPUS_UNAVAILABLE   # 查詢失敗：如實回報，不請使用者重述、也不當成查無
             research.clarification_reason = SubjectResolutionStatus.LOOKUP_FAILED.value
             return self._finish_interaction(request, rec, bundle, state)
-        if unresolved or len(request.interaction_subjects) < 2:
-            research.status = (InteractionResearchStatus.NEEDS_CLARIFICATION if unresolved
+        gaps = [r for r in unresolved if r.status == SubjectResolutionStatus.IDENTITY_NOT_IN_INTERACTION_CORPUS]
+        blocking = [r for r in unresolved if r not in gaps]  # 真的無法辨識 / 產品未確認 / 歧義：維持 clarification，不上網猜 identity
+        if blocking or len(request.interaction_subjects) < 2:
+            research.status = (InteractionResearchStatus.NEEDS_CLARIFICATION if blocking
                                else InteractionResearchStatus.INSUFFICIENT_SUBJECTS)
-            research.clarification_reason = unresolved[0].status.value if unresolved else "FEWER_THAN_TWO_SUBJECTS"
+            research.clarification_reason = blocking[0].status.value if blocking else "FEWER_THAN_TWO_SUBJECTS"
             bundle.planner_mode = CLARIFICATION_MODE
             bundle.fast_path_reason = f"interaction_clarification:{research.clarification_reason}"
             bundle.planner_trace.append(PlannerStep(
                 round=0, note=f"interaction 對象身份尚未確定（{research.clarification_reason}），先請使用者確認，不進行 interaction 研究"))
             return self._finish_interaction(request, rec, bundle, state)
 
-        self._run_interaction_tools(request, rec, state, service, research, sides)
+        research.coverage_gap_subjects = [r.text for r in gaps]
+        if len(sides) >= 2:  # 至少兩個已確認 identity 的對象才有 corpus 配對可查；其餘只有 coverage gap
+            self._run_interaction_tools(request, rec, state, service, research, sides)
         if not research.corpus_sufficient and not state.failed:
+            # 補查的 RAG / 官方網站（各最多一次）只是參考資訊：不產生 CONCLUSION_ELIGIBLE、不建立 interaction、不補 identity
             self._interaction_fallback(state, rec, research)
-        bundle.fast_path_reason = f"interaction_corpus:{'sufficient' if research.corpus_sufficient else 'no_record'}"
+        reason = "coverage_gap" if gaps and not research.corpus_sufficient else (
+            "sufficient" if research.corpus_sufficient else "no_record")
+        bundle.fast_path_reason = f"interaction_corpus:{reason}"
         bundle.planner_trace.append(PlannerStep(
             round=0, note=("Interaction corpus 結構化證據已足夠，不查 RAG / 官方網站" if research.corpus_sufficient
                            else "Interaction corpus 沒有這組紀錄（不代表沒有交互作用）：依既有 Researcher policy 補查")))
@@ -181,6 +188,10 @@ class InteractionResearchMixin:
 
     @staticmethod
     def _named_resolution(service, subject, status, entities) -> SubjectResolution:
+        if (status == SubjectResolutionStatus.UNRESOLVED and subject.concept_recognized
+                and subject.kind != InteractionSubjectKind.PRODUCT):
+            # 語意層認得這是合理概念，只是 Interaction corpus 沒有 canonical identity：資料涵蓋缺口，不是拼錯字
+            status = SubjectResolutionStatus.IDENTITY_NOT_IN_INTERACTION_CORPUS
         return SubjectResolution(text=subject.text, kind=subject.kind, status=status, entities=list(entities))
 
     def _resolve_product_subject(self, request: NormalizedUserRequest, state: PlannerState, rec: ToolCallRecorder,

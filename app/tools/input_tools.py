@@ -25,12 +25,15 @@ from pydantic import BaseModel, Field
 
 from app.config.project import USER_AGENT
 from app.schemas.enums import ErrorCode, UrlSourceRole
+from app.schemas.image_bundle import MAX_BUNDLE_IMAGES, MIN_BUNDLE_IMAGES, ImageBundleObservation
 from app.services.errors import ServiceError
 from app.services.openai_service import MediaClient
+from app.services.text_normalization import normalize_transcript
 from app.tools.html_text import html_to_text
 from app.tools.url_source import classify_url_source
 
 INPUT_TOOL_NAMES = ("analyze_image", "transcribe_audio", "fetch_url_content", "reinspect_image_identity")
+BUNDLE_INPUT_TOOL_NAMES = ("analyze_image_bundle",)  # multi-image（2–3 張同一產品）；單張圖片仍用 analyze_image
 
 IMAGE_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 MAX_IMAGE_BYTES = 20 * 1024 * 1024
@@ -84,6 +87,7 @@ class ImageIdentityReading(BaseModel):
 class InputToolOutput(BaseModel):
     tool_name: str
     text: str
+    raw_text: str | None = None  # 語音：轉錄原文（text 是字形正規化後的繁體逐字稿；log / debug 用）
     source_url: str | None = None
     title: str | None = None
     notes: list[str] = Field(default_factory=list)
@@ -98,6 +102,48 @@ def analyze_image(client: MediaClient, image: bytes, mime_type: str) -> InputToo
         raise ServiceError(ErrorCode.INVALID_INPUT, "圖片太大", "analyze_image")
     text = client.describe_image(instructions=IMAGE_ANALYSIS_INSTRUCTIONS, image=image, mime_type=mime_type)
     return InputToolOutput(tool_name="analyze_image", text=text.strip(), notes=["內容由圖片讀取而來，可能有辨識誤差"])
+
+
+IMAGE_BUNDLE_INSTRUCTIONS = """\
+你是「呷安心」的多張圖片讀取工具。使用者一次傳來同一件保健食品的多張照片（Image 1、Image 2…，例如正面、背面成分、許可證 / 標示區）。
+只做「逐張讀取」，不要判斷真假、不要評論功效、不要下產品結論，也不要假設這些圖片一定是同一個產品。
+對每一張圖片各自回傳一筆觀察（image_index 必須等於圖片編號）：
+1. product_names：產品名稱（包裝正面最主要的品名；只拍到一部分時 is_complete=false）；成分、宣稱、規格不是產品名稱。
+2. brands / companies / permit_numbers（許可證字號，逐字照抄）。
+3. ingredients：成分表上的每一個成分名稱，一項一筆；成分不是產品名稱。
+4. claims：包裝上的功效 / 健康宣稱原句；warnings：警語與注意事項；certification_marks：標章種類（標章弧形小字看不清楚就不要讀）。
+5. other_visible_text：容量、規格、口味、價格等其他文字。
+逐字照抄；看不清楚的內容 readable=false、value 給空字串，不可猜測或補字，也不要用另一張圖片的內容補這一張。
+每一筆都要給 confidence（0~1）。image_kind 選：front_package / back_label / permit_area / advertisement / other。
+"""
+
+
+class ImageBundleResult(BaseModel):
+    tool_name: str = "analyze_image_bundle"
+    observation: ImageBundleObservation
+    image_count: int
+    notes: list[str] = Field(default_factory=list)
+
+
+def analyze_image_bundle(client: MediaClient, images: list[tuple[bytes, str]]) -> ImageBundleResult:
+    """Multi-image perception：一次 Vision request 看完所有圖片（每張都標示 Image k），回傳逐張的結構化觀察。
+
+    只做觀察，不做產品結論；圖片數量限制 2–3 張（超過直接拒絕，不默默丟掉其中幾張）。
+    """
+    if not (MIN_BUNDLE_IMAGES <= len(images) <= MAX_BUNDLE_IMAGES):
+        raise ServiceError(ErrorCode.INVALID_INPUT, f"一次比對的圖片需為 {MIN_BUNDLE_IMAGES}–{MAX_BUNDLE_IMAGES} 張",
+                           "analyze_image_bundle")
+    for content, mime_type in images:
+        if not content:
+            raise ServiceError(ErrorCode.INVALID_INPUT, "圖片內容是空的", "analyze_image_bundle")
+        if mime_type not in IMAGE_MIME_TYPES:
+            raise ServiceError(ErrorCode.INVALID_INPUT, f"不支援的圖片格式：{mime_type}", "analyze_image_bundle")
+        if len(content) > MAX_IMAGE_BYTES:
+            raise ServiceError(ErrorCode.INVALID_INPUT, "圖片太大", "analyze_image_bundle")
+    observation = client.describe_images_structured(
+        instructions=IMAGE_BUNDLE_INSTRUCTIONS, images=images, output_model=ImageBundleObservation)
+    return ImageBundleResult(observation=observation, image_count=len(images),
+                             notes=["內容由多張圖片讀取而來，可能有辨識誤差"])
 
 
 def reinspect_image_identity(client: MediaClient, image: bytes, mime_type: str) -> ImageIdentityReading:
@@ -123,8 +169,12 @@ def transcribe_audio(client: MediaClient, audio: bytes, filename: str = "audio.m
         raise ServiceError(ErrorCode.INVALID_INPUT, "語音內容是空的", "transcribe_audio")
     if len(audio) > MAX_AUDIO_BYTES:
         raise ServiceError(ErrorCode.INVALID_INPUT, "語音檔太大", "transcribe_audio")
-    text = client.transcribe_audio(audio=audio, filename=filename)
-    return InputToolOutput(tool_name="transcribe_audio", text=text.strip(), notes=["內容由語音轉文字而來，可能有同音錯字"])
+    raw = client.transcribe_audio(audio=audio, filename=filename).strip()
+    transcript = normalize_transcript(raw)  # 簡體字形 → 繁體字形（只處理字形；已是繁體則 no-op）
+    notes = ["內容由語音轉文字而來，可能有同音錯字"]
+    if transcript.changed:
+        notes.append("逐字稿含簡體字，已轉為繁體字形（只處理字形，不改詞意）")
+    return InputToolOutput(tool_name="transcribe_audio", text=transcript.normalized, raw_text=raw, notes=notes)
 
 
 _dns_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="url-dns")

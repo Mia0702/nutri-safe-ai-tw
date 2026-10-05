@@ -28,7 +28,7 @@ class _UnavailableLLM:
         raise ServiceError(ErrorCode.NOT_CONFIGURED, "未設定 OPENAI_API_KEY", "openai")
 
     parse_structured = generate_text = embed = web_search_structured = plan_step = _fail
-    describe_image = transcribe_audio = _fail
+    describe_image = describe_images_structured = transcribe_audio = _fail
 
 
 def build_pipeline(settings: Settings) -> AnalysisPipeline:
@@ -121,4 +121,5 @@ def get_line_handler():
     # watchdog：下載 + pipeline 時限 + 送出餘裕；超過即送 ERROR card 並釋放該 user queue
     job_timeout = CONTENT_DEADLINE_SECONDS + settings.response_timeout_seconds + LINE_DELIVERY_MARGIN_SECONDS
     return LineWebhookHandler(get_response_service(), LineMessagingClient(settings.line_channel_access_token),
-                              get_task_context_store(), queue=PerUserRequestQueue(job_timeout_seconds=job_timeout))
+                              get_task_context_store(), queue=PerUserRequestQueue(job_timeout_seconds=job_timeout),
+                              image_burst_window_ms=settings.auto_image_burst_window_ms)

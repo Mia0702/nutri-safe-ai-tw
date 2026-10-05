@@ -19,6 +19,15 @@ import re
 from typing import Any, Callable
 
 from app.response.actions import ACTION_LABELS, build_postback_data, build_select_product_data
+from app.response.package_observation import (
+    ORANGE_HINT,
+    ObservationFocus,
+    PACKAGE_OBSERVATION_NOTICE,
+    PACKAGE_OBSERVATION_TITLE,
+    RED_HINT,
+    ObservationTone,
+    PackageObservation,
+)
 from app.response.sources import SourceLink, safe_source_url
 from app.schemas.enums import ResponseAction, ResponseType
 from app.schemas.enums import SemanticTone
@@ -38,6 +47,12 @@ MAX_POINT_CHARS = 80
 MAX_ALT_TEXT_CHARS = 400
 MAX_DETAIL_PARAGRAPHS = 30
 MAX_DETAIL_PARAGRAPH_CHARS = 1000
+MAX_OBSERVED_ITEMS = 12
+FOCUS_TITLES = {
+    ObservationFocus.INGREDIENTS: ("從剛剛照片可辨識到的成分", "成分文字"),
+    ObservationFocus.CLAIMS: ("從剛剛照片可辨識到的宣稱", "宣稱文字"),
+    ObservationFocus.WARNINGS: ("從剛剛照片可辨識到的警語", "警語與注意事項"),
+}
 MAX_QUERY_LABEL_CHARS = 30
 MAX_SOURCE_ENTRIES = 8
 MAX_SOURCE_TITLE_CHARS = 60
@@ -68,6 +83,7 @@ _ITEM_MARK_RE = re.compile(r"(?:^|(?<=[\s:：。；;，,]))(?:[(（]\s*(\d{1,2})
 _LIST_NUMBER_RE = re.compile(r"^(?:[(（]\s*\d{1,2}\s*[)）]|\d{1,2}\s*(?:[.．](?!\d)|[、)）]))\s*")
 _MARKERS = tuple(RISK_EMOJI.values())
 
+BUTTON_DARK = "#333333"  # 主要動作按鈕（深色底、白字）；#9c7c53 只作強調色，不當按鈕底色
 COLOR_TITLE = "#111111"
 COLOR_BODY = "#333333"
 COLOR_MUTED = "#888888"
@@ -428,6 +444,82 @@ class AdaptiveLineRenderer:
             body.append(_text(f"（另有 {len(detail.body) - len(paragraphs)} 項未顯示）", "note", color=COLOR_MUTED))
         buttons = [_button(a, detail.request_id) for a in detail.available_actions[:MAX_BUTTONS]]
         return _message(f"{detail.title}：{detail.body[0] if detail.body else ''}", _bubble(body, buttons))
+
+    def render_collection_control(self, text: str, start_data: str, cancel_data: str,
+                                  start_label: str = "開始分析", cancel_label: str = "取消") -> dict[str, Any]:
+        """多照片蒐集的控制卡：按鈕在卡片內（Quick Reply 會在使用者傳照片後消失，蒐集期間需要一直在）。"""
+        body = [_text("多照片辨識", "section", color=COLOR_MUTED), _text(text, "body")]
+        footer = [
+            _button_component({"type": "postback", "label": start_label, "data": start_data, "displayText": start_label},
+                              style="primary", color=BUTTON_DARK),
+            _button_component({"type": "postback", "label": cancel_label, "data": cancel_data, "displayText": cancel_label},
+                              style="secondary", margin="sm"),
+        ]
+        return _message(text, _bubble(body, footer))
+
+    def render_package_observation(self, observation: PackageObservation, query_label: str | None = None,
+                                   focus: ObservationFocus = ObservationFocus.ALL,
+                                   presence_lines: list[str] | None = None) -> dict[str, Any]:
+        """「檢視包裝宣稱」：包裝上辨識到的內容（只是整理，尚未與官方資料比對；不顯示任何風險等級）。
+
+        focus != ALL：前一張圖片的追問，只顯示相關區塊，並明示「這是照片上辨識到的內容，不是官方資料」。"""
+        if focus != ObservationFocus.ALL:
+            return self._render_focused_observation(observation, query_label, focus, presence_lines or [])
+        def refs(sources: list[int]) -> str:
+            return ""  # source_images 只保留在結構化資料 / log，不顯示在使用者介面
+
+        header = [_text(PACKAGE_OBSERVATION_TITLE, "title", color=COLOR_TITLE, weight="bold"),
+                  *_query_label_row(query_label), _text(PACKAGE_OBSERVATION_NOTICE, "body")]
+        claim_rows = []
+        for c in observation.claims:
+            if c.tone == ObservationTone.RED:
+                claim_rows.append(_bullet(f"🔴 {c.text}{refs(c.source_images)}（{RED_HINT}）",
+                                          color=TONE_COLORS[SemanticTone.RED]))
+            elif c.tone == ObservationTone.ORANGE:
+                claim_rows.append(_bullet(f"🟠 {c.text}{refs(c.source_images)}（{ORANGE_HINT}）",
+                                          color=TONE_COLORS[SemanticTone.ORANGE]))
+            else:
+                claim_rows.append(_bullet(f"{c.text}{refs(c.source_images)}"))
+
+        def group(title: str, items: list, limit: int) -> list[dict[str, Any]]:
+            if not items:
+                return []
+            rows = [_text(title, "note", color=COLOR_MUTED, weight="bold"),
+                    *[_bullet(_clip(f"{i.text}{refs(i.source_images)}", MAX_DETAIL_PARAGRAPH_CHARS)) for i in items[:limit]]]
+            if len(items) > limit:
+                rows.append(_text(f"（另有 {len(items) - limit} 項未顯示）", "note", color=COLOR_MUTED))
+            return rows
+
+        body = _sections(header,
+                         group("產品名稱", observation.product_names, MAX_OBSERVED_ITEMS),
+                         group("品牌", observation.brands, MAX_OBSERVED_ITEMS),
+                         group("公司", observation.companies, MAX_OBSERVED_ITEMS),
+                         group("許可證字號", observation.permit_numbers, MAX_OBSERVED_ITEMS),
+                         ([_text("宣稱文字", "note", color=COLOR_MUTED, weight="bold"), *claim_rows] if claim_rows else []),
+                         group("成分", observation.ingredients, MAX_OBSERVED_ITEMS),
+                         group("警語與注意事項", observation.warnings, MAX_OBSERVED_ITEMS),
+                         group("其他文字", observation.other_text, MAX_OBSERVED_ITEMS))
+        return _message(f"{PACKAGE_OBSERVATION_TITLE}：{PACKAGE_OBSERVATION_NOTICE}", _bubble(body))
+
+    def _render_focused_observation(self, observation: PackageObservation, query_label: str | None,
+                                    focus: ObservationFocus, presence_lines: list[str]) -> dict[str, Any]:
+        title, kind = FOCUS_TITLES[focus]
+        header = [_text(title, "title", color=COLOR_TITLE, weight="bold"), *_query_label_row(query_label),
+                  _text(f"以下是照片上辨識到的{kind}，不是官方登記資料，尚未與官方資料比對。", "body")]
+        if focus == ObservationFocus.CLAIMS:
+            rows = []
+            for c in observation.claims:
+                hint = {ObservationTone.RED: f"🔴 {{}}（{RED_HINT}）", ObservationTone.ORANGE: f"🟠 {{}}（{ORANGE_HINT}）"}.get(
+                    c.tone, "{}")
+                color = {ObservationTone.RED: TONE_COLORS[SemanticTone.RED],
+                         ObservationTone.ORANGE: TONE_COLORS[SemanticTone.ORANGE]}.get(c.tone, COLOR_BODY)
+                rows.append(_bullet(hint.format(c.text), color=color))
+        else:
+            items = observation.ingredients if focus == ObservationFocus.INGREDIENTS else observation.warnings
+            rows = [_bullet(_clip(i.text, MAX_DETAIL_PARAGRAPH_CHARS)) for i in items[:MAX_OBSERVED_ITEMS]]
+        presence = [_text(line, "body") for line in presence_lines]
+        body = _sections(header, presence, rows)
+        return _message(f"{title}：{kind}", _bubble(body))
 
     def render_notice(self, text: str, retry_request_id: str | None = None,
                       query_label: str | None = None) -> dict[str, Any]:

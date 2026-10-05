@@ -25,7 +25,9 @@ from app.schemas.enums import (
     ClaimContentSource,
     ClaimOrigin,
     ClaimSemanticCategory,
+    ContextReference,
     EntityType,
+    ErrorCode,
     EvidenceScope,
     InputType,
     Intent,
@@ -55,7 +57,21 @@ from app.schemas.interaction import (
 from app.services.errors import ServiceError
 from app.services.openai_service import LLMClient, MediaClient
 from app.tools.base import ToolCallRecorder
-from app.tools.input_tools import analyze_image, fetch_url_content, reinspect_image_identity, transcribe_audio
+from app.schemas.image_bundle import (
+    MAX_BUNDLE_IMAGES,
+    MIN_BUNDLE_IMAGES,
+    FusedImageBundle,
+    ImageBundleMetrics,
+    ImageConflictCode,
+)
+from app.services.image_fusion import candidate_product_names, fuse_image_bundle, render_fused_content
+from app.tools.input_tools import (
+    analyze_image,
+    analyze_image_bundle,
+    fetch_url_content,
+    reinspect_image_identity,
+    transcribe_audio,
+)
 from app.tools.url_source import classify_url_source, url_domain
 
 logger = logging.getLogger("nutri_safe_ai.agents.intake")
@@ -80,7 +96,8 @@ def _clean_list(values: list[str]) -> list[str]:
 
 
 _INPUT_TOOL_STAGES = {"analyze_image": "image_analysis", "transcribe_audio": "transcription",
-                      "fetch_url_content": "url_fetch", "reinspect_image_identity": "image_reinspection"}
+                      "fetch_url_content": "url_fetch", "reinspect_image_identity": "image_reinspection",
+                      "analyze_image_bundle": "image_bundle_analysis"}
 REINSPECTED_NOTE = "產品身份無法確認，已局部重讀圖片的許可證字號 / 產品名稱區域一次"
 _UNRESOLVED_STATUSES = frozenset({ProductVerificationStatus.NOT_FOUND, ProductVerificationStatus.PARTIAL_MATCH,
                                   ProductVerificationStatus.NOT_APPLICABLE})
@@ -103,7 +120,8 @@ def needs_identity_reinspection(request: NormalizedUserRequest, bundle: Evidence
         and (request.image_identification or request.needs_product_lookup)
         and request.intent not in (Intent.OUT_OF_SCOPE, Intent.GENERAL_QUESTION)
     )
-_SECTION_LABELS = {"analyze_image": "圖片內容", "transcribe_audio": "語音內容", "fetch_url_content": "網頁內容"}
+_SECTION_LABELS = {"analyze_image": "圖片內容", "analyze_image_bundle": "圖片內容", "transcribe_audio": "語音內容",
+                   "fetch_url_content": "網頁內容"}
 USER_TEXT_LABEL = "使用者文字"
 OFFICIAL_URL_LABEL = "官方網頁內容"  # 台灣官方監管網域的頁面：內容是官方來源，不是廣告宣稱
 URL_EXCERPT_CHARS = 1500
@@ -126,22 +144,39 @@ class IntakeAgent:
 
     def prepare_input(
         self, request_id: str, raw: RawUserInput
-    ) -> tuple[RawUserInput, list[ToolCallRecord], list[str], list[UrlSource]]:
+    ) -> tuple[RawUserInput, list[ToolCallRecord], list[str], list[UrlSource], FusedImageBundle | None,
+               list[tuple[str, str]]]:
         """呼叫 Input Tools，把 media / urls 轉成文字併入 text（沒有非文字輸入時原樣返回）。
 
         回傳 (給語意理解的輸入, Input Tool 紀錄, 只記錄在 request 上、不送進語意理解的 notes,
-        每個網址的來源角色 / provenance)。
+        每個網址的來源角色 / provenance, multi-image 融合結果)。
+
+        2 張以上圖片 → bundle path：一次 Vision（analyze_image_bundle）+ deterministic fusion，
+        融合後的觀察（每項標示來源圖片）取代逐張 analyze_image 的 OCR 全文；單張圖片完全沿用原流程。
         """
         if not raw.media and not raw.urls:
-            return raw, [], [], []
+            return raw, [], [], [], None, []
         rec = ToolCallRecorder(request_id, agent="intake")
+        images = [m for m in raw.media if m.kind == "image"]
+        bundle_mode = len(images) >= MIN_BUNDLE_IMAGES
+        if bundle_mode and len(images) > MAX_BUNDLE_IMAGES:
+            raise ServiceError(ErrorCode.INVALID_INPUT,
+                               f"一次最多只能比對 {MAX_BUNDLE_IMAGES} 張照片", "analyze_image_bundle")
+        fused: FusedImageBundle | None = None
+        transcripts: list[tuple[str, str]] = []
         calls = [
             ("analyze_image" if m.kind == "image" else "transcribe_audio",
              {"mime_type": m.mime_type, "size_bytes": len(m.content)},
              (lambda m=m: analyze_image(self._media, m.content, m.mime_type)) if m.kind == "image"
              else (lambda m=m: transcribe_audio(self._media, m.content, m.filename or "audio.m4a")))
-            for m in raw.media
-        ] + [("fetch_url_content", {"url": u}, lambda u=u: self._fetch_url(u)) for u in raw.urls]
+            for m in raw.media if not (bundle_mode and m.kind == "image")
+        ]
+        if bundle_mode:
+            pairs = [(m.content, m.mime_type) for m in images]
+            calls.insert(0, ("analyze_image_bundle",
+                             {"image_count": len(images), "size_bytes": sum(len(c) for c, _ in pairs)},
+                             lambda: analyze_image_bundle(self._media, pairs)))
+        calls += [("fetch_url_content", {"url": u}, lambda u=u: self._fetch_url(u)) for u in raw.urls]
         url_iter = iter(raw.urls)
         url_sources: list[UrlSource] = []
 
@@ -159,10 +194,18 @@ class IntakeAgent:
                 "duration_ms": rec.records[-1].duration_ms if rec.records else None})
             if name == "fetch_url_content":
                 url_sources.append(_url_source(next(url_iter), result.data if result.ok else None))
-            if result.ok and name in USER_VOICED_TOOLS:
+            if result.ok and name == "analyze_image_bundle":
+                fused = fuse_image_bundle(result.data.observation, result.data.image_count)
+                fused.metrics = ImageBundleMetrics(image_count=result.data.image_count,
+                                                   vision_bundle_ms=rec.records[-1].duration_ms)
+                fused.image_source_ids = {i: m.source_id for i, m in enumerate(images, start=1) if m.source_id}
+                sections.append((_SECTION_LABELS[name], render_fused_content(fused)))
+                notes.extend(result.data.notes)
+            elif result.ok and name in USER_VOICED_TOOLS:
                 # 使用者親口說的話 = 使用者文字；轉錄附註只記錄，不影響語意判斷
-                sections.append((USER_TEXT_LABEL, result.data.text))
+                sections.append((USER_TEXT_LABEL, result.data.text))  # 已是字形正規化後的繁體逐字稿
                 record_only_notes.extend(result.data.notes)
+                transcripts.append((result.data.raw_text or result.data.text, result.data.text))
             elif result.ok:
                 label = (OFFICIAL_URL_LABEL if name == "fetch_url_content" and url_sources[-1].is_official
                          else _SECTION_LABELS[name])
@@ -179,7 +222,7 @@ class IntakeAgent:
         else:
             text = "\n\n".join(f"【{label}】\n{body}" for label, body in sections)
         prepared = raw.model_copy(update={"text": text, "adapter_notes": notes, "source_url": source_url})
-        return prepared, rec.records, record_only_notes, url_sources
+        return prepared, rec.records, record_only_notes, url_sources, fused, transcripts
 
     def reinspect_identity(self, request: NormalizedUserRequest, raw: RawUserInput) -> NormalizedUserRequest | None:
         """局部重讀圖片的許可證字號 / 產品名稱（最多一次）；讀到新的識別資訊才回傳更新後的 request。
@@ -227,8 +270,21 @@ class IntakeAgent:
         has_image = any(m.kind == "image" for m in raw.media)
         # 只有圖片：沒有使用者文字、語音（= 使用者的話）或網址
         only_image = has_image and not raw.text.strip() and not raw.urls and all(m.kind == "image" for m in raw.media)
-        raw, input_tool_records, record_only_notes, url_sources = self.prepare_input(request_id, raw)
+        started_total = time.perf_counter()
+        raw, input_tool_records, record_only_notes, url_sources, fused, transcripts = self.prepare_input(request_id, raw)
         text = (raw.text or "").strip()
+        if fused is not None and fused.blocks_verification:
+            # 身份衝突 / 可能不是同一產品：不做語意理解、不查證，直接請使用者確認（不任選其中一個）
+            fused.metrics.total_ms = int((time.perf_counter() - started_total) * 1000)
+            logger.info("intake_done", extra={
+                "request_id": request_id, "agent": "intake", "input_type": raw.input_type.value,
+                "image_count": fused.metrics.image_count, "vision_bundle_ms": fused.metrics.vision_bundle_ms,
+                "semantic_ms": None, "bundle_status": fused.status.value})
+            return NormalizedUserRequest(
+                request_id=request_id, input_type=raw.input_type, original_text=text, normalized_text=text,
+                intent=Intent.PRODUCT_VERIFICATION, source_url=raw.source_url,
+                adapter_notes=raw.adapter_notes + record_only_notes, input_tools_called=input_tool_records,
+                image_bundle=fused)
         if not text:
             return NormalizedUserRequest(
                 request_id=request_id,
@@ -250,6 +306,8 @@ class IntakeAgent:
             "known_context_entities": [{"type": e.entity_type.value, "name": e.name} for e in known],
             "content": text[:MAX_INPUT_CHARS],
         }
+        if raw.context.last_visual_request_id:  # 只有前文有已完成的圖片時才加（其餘 payload 維持不變）
+            payload["last_visual_request_available"] = True
         if url_sources:  # 只有 URL 輸入才加（文字 / 語音的 payload 維持不變）
             payload["url_sources"] = [{"source_url": u.source_url, "source_role": u.source_role.value}
                                       for u in url_sources]
@@ -260,12 +318,22 @@ class IntakeAgent:
             output_model=IntakeExtraction,
         )
         semantic_ms = int((time.perf_counter() - started) * 1000)
+        if fused is not None:
+            extraction = merge_bundle_into_extraction(extraction, fused)
         request = self._to_request(request_id, raw, text, extraction, known)
+        resolve_context_reference(request, extraction.context_reference, raw, has_image=has_image)
         apply_url_source_roles(request, url_sources, only_url_content=only_url_content)
         apply_image_routing(request, has_image=has_image, only_image=only_image)
         apply_product_phrase_routing(request)
+        if fused is not None:
+            fused.metrics.semantic_ms = semantic_ms
+            fused.metrics.total_ms = int((time.perf_counter() - started_total) * 1000)
+            apply_image_bundle(request, fused)
         request.input_tools_called = input_tool_records
         request.adapter_notes = request.adapter_notes + record_only_notes
+        if transcripts:  # 語音：保留轉錄原文與正規化逐字稿（log / debug）；Controller 與後續使用 normalized
+            request.raw_transcript = "\n".join(r for r, _ in transcripts)
+            request.normalized_transcript = "\n".join(n for _, n in transcripts)
         transcriptions = [r for r in input_tool_records if r.tool_name == "transcribe_audio"]
         logger.info(
             "intake_done",
@@ -276,6 +344,7 @@ class IntakeAgent:
                 "semantic_input_type": semantic_type.value,
                 "parity_path_used": semantic_type != raw.input_type,
                 "transcription_completed": any(r.ok for r in transcriptions) if transcriptions else None,
+                "transcript_normalized": (request.raw_transcript != request.normalized_transcript) if transcripts else None,
                 "intent": request.intent.value,
                 "claim_count": len(request.claims),
                 "claim_roles": ",".join(c.origin.value for c in request.claims) or "NONE",
@@ -283,6 +352,9 @@ class IntakeAgent:
                 "official_statement_count": len(request.official_source_statements) if url_sources else None,
                 "semantic_extraction_ms": semantic_ms,
                 "claim_count_observed": len(request.observed_package_claims) if has_image else None,
+                "image_count": fused.metrics.image_count if fused else None,
+                "vision_bundle_ms": fused.metrics.vision_bundle_ms if fused else None,
+                "semantic_ms": semantic_ms if fused else None,
             },
         )
         return request
@@ -397,7 +469,8 @@ def interaction_subjects_for(ex: IntakeExtraction, text: str, products: list[str
         return [], None
     candidates = list(ex.interaction_subjects) or (
         [InteractionSubjectExtraction(text=n, kind=InteractionSubjectKind.PRODUCT) for n in products]
-        + [InteractionSubjectExtraction(text=n, kind=InteractionSubjectKind.INGREDIENT) for n in ingredients])
+        + [InteractionSubjectExtraction(text=n, kind=InteractionSubjectKind.INGREDIENT, concept_recognized=True)
+           for n in ingredients])  # Controller 已把它抽成成分：視為可辨識的成分概念
     subjects: list[InteractionSubject] = []
     seen: set[str] = set()
     for c in candidates:
@@ -405,7 +478,7 @@ def interaction_subjects_for(ex: IntakeExtraction, text: str, products: list[str
         if raw is None or not raw.strip() or normalize_name(raw) in seen:
             continue
         seen.add(normalize_name(raw))
-        subjects.append(InteractionSubject(text=raw.strip(), kind=c.kind))
+        subjects.append(InteractionSubject(text=raw.strip(), kind=c.kind, concept_recognized=c.concept_recognized))
     mode = ex.interaction_mode or InteractionMode.PAIRWISE
     return subjects, mode
 
@@ -616,6 +689,63 @@ def _route_to_identification(request: NormalizedUserRequest) -> None:
     request.image_identification = True
     request.needs_official_web_search = False
     request.needs_claim_check = bool(request.claims)
+
+
+def resolve_context_reference(request: NormalizedUserRequest, reference: ContextReference, raw: RawUserInput,
+                              *, has_image: bool) -> None:
+    """Controller 的 context_reference（語意判斷）→ request（deterministic 守門，不用任何關鍵字）。
+
+    PREVIOUS_IMAGE 只在：前文有可用的圖片觀察、這一題沒有自己的圖片 / 網址、而且文字沒有給出新的產品 / 品牌 / 公司 / 字號
+    （明確的新對象優先）時成立；否則視為 NONE。CURRENT_PRODUCT 且已有已確認產品 → 產品綁定仍由 context_binding 決定；
+    指稱「目前產品」卻沒有已確認產品、前文又有圖片觀察 → 改為 PREVIOUS_IMAGE（不是關鍵字規則，只看結構化欄位）。
+    """
+    visual_id = raw.context.last_visual_request_id
+    own_input = has_image or bool(raw.urls)
+    no_new_identity = not request.has_product_identifiers  # 明確的新產品 / 品牌 / 公司 / 字號優先
+    if reference == ContextReference.PREVIOUS_IMAGE and not (visual_id and not own_input and no_new_identity):
+        reference = ContextReference.NONE
+    elif (reference != ContextReference.PREVIOUS_IMAGE and visual_id and not own_input and no_new_identity
+          and raw.context.confirmed_product is None and request.intent != Intent.INTERACTION_INQUIRY
+          and (reference == ContextReference.CURRENT_PRODUCT or request.missing_product_context)):
+        # 指的是「目前產品」但沒有已確認的產品、而前文有可用的圖片觀察：不進通用 Researcher / planner / 網路，
+        # 改由圖片觀察回答（依既有 intent 決定顯示哪一類；沒有相關內容就請使用者補充）
+        reference = ContextReference.PREVIOUS_IMAGE
+    request.context_reference = reference
+    if reference == ContextReference.PREVIOUS_IMAGE:
+        request.visual_request_id = visual_id
+
+
+# ================================================================== 圖片輸入：multi-image bundle
+
+
+def merge_bundle_into_extraction(ex: IntakeExtraction, fused: FusedImageBundle) -> IntakeExtraction:
+    """用融合後的觀察校正語意抽取（deterministic；LLM 只負責語意，不能弄丟 / 弄混 identity 欄位）。
+
+    * 融合觀察中的「品名 / 許可證字號」一定進入候選（LLM 漏抽也不會掉）。
+    * 成分表上的成分只能是成分：被 LLM 放進 product_candidates 的成分名稱一律移除（不會變成另一個產品候選）。
+    """
+    ex = ex.model_copy(deep=True)
+    name_keys = {normalize_name(v.value) for v in fused.product_names}
+    ingredient_keys = {normalize_name(v.value) for v in fused.ingredients} - name_keys - {""}
+    names = [n for n in ex.product_candidates if normalize_name(n) not in ingredient_keys]
+    have = {normalize_name(n) for n in names}
+    names += [n for n in candidate_product_names(fused) if normalize_name(n) not in have]
+    ex.product_candidates = names
+    have_codes = {extract_permit_code(p) for p in ex.permit_number_candidates}
+    ex.permit_number_candidates = ex.permit_number_candidates + [
+        v.value for v in fused.permit_numbers if extract_permit_code(v.value) not in have_codes]
+    return ex
+
+
+def apply_image_bundle(request: NormalizedUserRequest, fused: FusedImageBundle) -> None:
+    """融合結果存到 request（保留每項來源圖片）；宣稱標示來源圖片；非關鍵的辨識不一致只留紀錄。"""
+    request.image_bundle = fused
+    for c in request.claims + request.observed_package_claims:
+        c.source_images = fused.sources_of(fused.claims, c.claim_text)
+    for conflict in fused.conflicts:
+        if conflict.code == ImageConflictCode.OCR_UNCERTAIN:
+            request.adapter_notes = request.adapter_notes + [
+                f"多張圖片的{conflict.field}辨識不一致（OCR_UNCERTAIN），依既有證據優先序判斷"]
 
 
 # 「成分＋劑型」片語（例如某營養素加上膠囊 / 錠）：中間最多夾幾個字（規格、口味等），不跨標點 / 空白

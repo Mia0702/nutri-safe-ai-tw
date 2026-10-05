@@ -15,7 +15,16 @@ from app.agents.verification_agent import VerificationAgent, stage_timings_ms
 from app.risk.assessment_rules import scope_foreign_signal
 from app.risk.risk_engine import RiskEngine
 from app.schemas.analysis import AnalysisResult
-from app.schemas.enums import EntityType, ErrorCode, Intent, ProductReferenceStatus, ProductVerificationStatus
+from app.schemas.enums import (
+    ContextReference,
+    EntityType,
+    ErrorCode,
+    Intent,
+    ProductReferenceStatus,
+    ProductVerificationStatus,
+    ResponseType,
+)
+from app.schemas.response import ResponsePayload
 from app.schemas.evidence import ProductRecord, ToolError
 from app.schemas.user_request import ContextEntity, ConversationTurn, NormalizedUserRequest, RawUserInput
 from app.services.bare_name_routing import route_bare_name
@@ -25,6 +34,7 @@ from app.services.errors import ServiceError
 logger = logging.getLogger("nutri_safe_ai.pipeline")
 
 UNDERSTANDING_FAILED_TEXT = "抱歉，系統目前暫時無法理解這則訊息，請稍後再按「重新查詢」。"
+PREVIOUS_IMAGE_PLACEHOLDER = "這是對上一張圖片的追問，內容取自上一題保存的辨識結果。"
 INTERNAL_FAILED_TEXT = "抱歉，系統目前發生問題，這次無法完成查證，請稍後再按「重新查詢」。"
 
 
@@ -156,6 +166,7 @@ def request_for_package_claims(
         "observed_package_claims": [],
         "image_identification": False,
         "claims_from_package": True,
+        "package_claim_check": True,
         "needs_claim_check": True,
         "needs_rag": any(c.semantic_category in _REGULATORY_CATEGORIES for c in claims),
         "needs_official_web_search": False,
@@ -214,12 +225,18 @@ class AnalysisPipeline:
                 conversation_id, ConversationTurn(user_text=raw.text, entities=context_entities_for_turn(result))
             )
         result.duration_ms = int((time.perf_counter() - start) * 1000)
+        bundle = result.normalized_request.image_bundle if result.normalized_request else None
+        if bundle is not None:  # multi-image：pipeline 整體耗時（image_count / vision_bundle_ms / semantic_ms 已在 intake_done）
+            bundle.metrics.total_ms = result.duration_ms
         logger.info(
             "analysis_done",
             extra={
                 "request_id": request_id,
                 "channel": channel,
                 "input_type": raw.input_type.value,
+                **({"image_count": bundle.metrics.image_count, "vision_bundle_ms": bundle.metrics.vision_bundle_ms,
+                    "semantic_ms": bundle.metrics.semantic_ms, "total_ms": result.duration_ms,
+                    "bundle_status": bundle.status.value} if bundle is not None else {}),
                 "intent": result.normalized_request.intent.value if result.normalized_request else None,
                 "evidence_count": result.evidence.evidence_count() if result.evidence else 0,
                 "risk_result": result.risk.risk_level.value if result.risk else None,
@@ -252,7 +269,10 @@ class AnalysisPipeline:
             "intent": request.intent.value, "stage": "resumed_with_selected_product",
             "evidence_count": result.evidence.evidence_count() if result.evidence else 0,
             "risk_result": result.risk.risk_level.value if result.risk else None,
+            "planner_mode": result.evidence.planner_mode if result.evidence else None,
+            "fast_path_reason": result.evidence.fast_path_reason if result.evidence else None,
             "duration_ms": result.duration_ms,
+            **stage_timings_ms(result.tools_called),
         })
         if self._log_writer is not None:
             try:
@@ -267,6 +287,13 @@ class AnalysisPipeline:
             request = self._intake.understand(request_id, raw)
         except ServiceError as exc:
             return failed_result(request_id, UNDERSTANDING_FAILED_TEXT, errors=[exc.to_tool_error()])
+        if request.context_reference == ContextReference.PREVIOUS_IMAGE and request.visual_request_id:
+            # 文字追問指向上一張圖片本身：不查證、不重跑 Vision / Agent B；由呼叫端（response service）以 visual_request_id
+            # 取回該題保存的結構化觀察。這裡只回一個佔位 payload。
+            payload = ResponsePayload(request_id=request_id, response_type=ResponseType.MISSING_INFORMATION,
+                                      is_conclusive=False, title="上一張圖片", summary=PREVIOUS_IMAGE_PLACEHOLDER)
+            return AnalysisResult(request_id=request_id, normalized_request=request, response=payload,
+                                  final_answer=payload.plain_text(), tools_called=request.input_tools_called)
         # task context 已確認的產品：產品相關 follow-up 直接以 canonical 產品（字號）查證，不重新比對基本品名
         # 整則訊息只有一個成分名稱時，先判成獨立成分詢問（不沿用前一題產品）；名稱同時是官方產品名稱 → collision
         request = self._verifier.route_bare_name(request)
@@ -277,7 +304,9 @@ class AnalysisPipeline:
                   raw: RawUserInput | None = None) -> AnalysisResult:
         try:
             bundle = self._verifier.verify(request)
-            has_image = raw is not None and any(m.kind == "image" for m in raw.media)
+            # multi-image 已由 bundle Vision 逐張讀過字號 / 品名，不再對「第一張」做局部重讀
+            has_image = (raw is not None and request.image_bundle is None
+                         and any(m.kind == "image" for m in raw.media))
             if needs_identity_reinspection(request, bundle, has_image):
                 # 圖片產品身份仍無法確認：Agent A 最多一次局部重讀字號 / 品名，讀到新線索才重新查證
                 reread = self._intake.reinspect_identity(request, raw)
