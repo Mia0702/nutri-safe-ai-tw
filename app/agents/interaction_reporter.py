@@ -541,6 +541,11 @@ def _clarification(request: NormalizedUserRequest, bundle: EvidenceBundle) -> In
                              "請補充藥品的有效成分，我再幫你查。"])
         if s.status == SubjectResolutionStatus.ENTITY_CANDIDATE_NEEDS_CONFIRMATION:
             choices = [EntityChoice(entity_id=c.entity_id, label=entity_label(c)) for c in s.candidates if entity_label(c)]
+            if s.recovery_method:  # 繁中別名錯字候選：不默默更正，一律請使用者確認
+                lead = "找不到完全相同的藥品成分名稱。"
+                if len(choices) == 1:
+                    return _clarify(f"{lead}你是不是要問『{choices[0].label}』？", [], entity_choices=choices)
+                return _clarify(f"{lead}你是不是要問下面哪一個？", [], entity_choices=choices)
             if len(choices) == 1:  # 按鈕確認後直接用這個 identity 繼續原本的問題（不需要使用者再說一次）
                 return _clarify(f"我聽到『{s.text}』，你是要問『{choices[0].label}』嗎？", [], entity_choices=choices)
             return _clarify(f"我聽到『{s.text}』，你是要問下面哪一個？", [], entity_choices=choices)

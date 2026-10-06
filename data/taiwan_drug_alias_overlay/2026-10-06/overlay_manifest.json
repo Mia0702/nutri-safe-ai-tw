@@ -1,0 +1,32 @@
+{
+  "overlay_version": "1.1",
+  "retrieved_at": "2026-10-06T12:09:00+00:00",
+  "candidate_rows": 325,
+  "status_counts": {
+    "VERIFIED_OFFICIAL": 300,
+    "NEEDS_REVIEW": 18,
+    "REJECTED": 5,
+    "SUPPORTED_OFFICIAL": 2
+  },
+  "snapshots": {
+    "permits_current": {
+      "gov_dataset_id": 9123,
+      "title": "未註銷藥品許可證資料集",
+      "sha256": "34ae87eef23165524977bd37ee7ac5c43b80eb4cb1d22567f4d1966cf88fb426",
+      "rows": 25945
+    },
+    "detail": {
+      "gov_dataset_id": 9121,
+      "title": "藥品詳細處方成分資料集",
+      "sha256": "9c1a562399d5a169b48794db8a59696deb04091ba59022e17b6bc0b24252d264",
+      "rows": 126017
+    },
+    "permits_all": {
+      "gov_dataset_id": 9122,
+      "title": "全部藥品許可證資料集",
+      "sha256": "4257bb38c58d0c97d09400f058a85d734e17e7210c85fbf3703e4c5faec833bd",
+      "rows": 72062
+    }
+  },
+  "evidence_rule": "9123 同一張未註銷藥證內的中文品名 / 英文品名成對；至少 2 張不同藥證；同一中文名稱不得對應其他英文名稱；英文名稱需與 identity 完全相同"
+}

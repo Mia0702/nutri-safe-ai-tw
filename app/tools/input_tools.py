@@ -29,6 +29,7 @@ from app.schemas.image_bundle import MAX_BUNDLE_IMAGES, MIN_BUNDLE_IMAGES, Image
 from app.services.errors import ServiceError
 from app.services.openai_service import MediaClient
 from app.services.text_normalization import normalize_transcript
+from app.services.url_access import REASON_ACCESS_RESTRICTED, REASON_INVALID_URL, REASON_NETWORK, REASON_UNSUPPORTED
 from app.tools.html_text import html_to_text
 from app.tools.url_source import classify_url_source
 
@@ -197,18 +198,27 @@ def _check_public_url(url: str, resolve: Callable[[str], list[str]]) -> None:
     """只允許 http(s) 且解析到公開 IP 的網址，避免被用來存取內部網路（SSRF）。"""
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https") or not parsed.hostname:
-        raise ServiceError(ErrorCode.INVALID_INPUT, "只接受 http / https 網址", "fetch_url_content")
+        raise ServiceError(ErrorCode.INVALID_INPUT, "只接受 http / https 網址", "fetch_url_content", REASON_INVALID_URL)
     try:
         addresses = resolve(parsed.hostname)
     except OSError as exc:
-        raise ServiceError(ErrorCode.UNAVAILABLE, "無法解析網址主機", "fetch_url_content") from exc
+        raise ServiceError(ErrorCode.UNAVAILABLE, "無法解析網址主機", "fetch_url_content", REASON_INVALID_URL) from exc
     if not addresses or not all(ipaddress.ip_address(a.split("%")[0]).is_global for a in addresses):
-        raise ServiceError(ErrorCode.INVALID_INPUT, "不允許存取非公開網路位址", "fetch_url_content")
+        raise ServiceError(ErrorCode.INVALID_INPUT, "不允許存取非公開網路位址", "fetch_url_content", REASON_INVALID_URL)
+
+
+def _reason_for_status(status: int) -> str:
+    """HTTP 狀態 → 失敗類別：401 / 403 / 429 等是存取限制；404 / 410 是網址有誤；其餘（5xx 等）當暫時連不上。"""
+    if status in (401, 402, 403, 407, 429, 451):
+        return REASON_ACCESS_RESTRICTED
+    if status in (400, 404, 410):
+        return REASON_INVALID_URL
+    return REASON_NETWORK
 
 
 def _check_deadline(deadline: float) -> None:
     if time.monotonic() > deadline:
-        raise ServiceError(ErrorCode.TIMEOUT, "讀取網頁逾時", "fetch_url_content")
+        raise ServiceError(ErrorCode.TIMEOUT, "讀取網頁逾時", "fetch_url_content", REASON_NETWORK)
 
 
 def fetch_url_content(
@@ -231,10 +241,12 @@ def fetch_url_content(
                     current = urljoin(current, resp.headers["location"])
                     continue
                 if resp.status_code >= 400:
-                    raise ServiceError(ErrorCode.UPSTREAM_ERROR, f"網頁回傳 {resp.status_code}", "fetch_url_content")
+                    raise ServiceError(ErrorCode.UPSTREAM_ERROR, f"網頁回傳 {resp.status_code}", "fetch_url_content",
+                                       _reason_for_status(resp.status_code))
                 content_type = resp.headers.get("content-type", "").split(";")[0].strip().lower()
                 if content_type not in URL_CONTENT_TYPES:
-                    raise ServiceError(ErrorCode.INVALID_INPUT, f"不支援的網頁內容類型：{content_type}", "fetch_url_content")
+                    raise ServiceError(ErrorCode.INVALID_INPUT, f"不支援的網頁內容類型：{content_type}", "fetch_url_content",
+                                       REASON_UNSUPPORTED)
                 body = b""
                 for chunk in resp.iter_bytes():
                     body += chunk
@@ -244,18 +256,19 @@ def fetch_url_content(
                 html = body[:MAX_URL_BYTES].decode(resp.encoding or "utf-8", errors="replace")
             break
         else:
-            raise ServiceError(ErrorCode.INVALID_INPUT, "重新導向次數過多", "fetch_url_content")
+            raise ServiceError(ErrorCode.INVALID_INPUT, "重新導向次數過多", "fetch_url_content", REASON_ACCESS_RESTRICTED)
     except httpx.TimeoutException as exc:
-        raise ServiceError(ErrorCode.TIMEOUT, "讀取網頁逾時", "fetch_url_content") from exc
+        raise ServiceError(ErrorCode.TIMEOUT, "讀取網頁逾時", "fetch_url_content", REASON_NETWORK) from exc
     except httpx.HTTPError as exc:
-        raise ServiceError(ErrorCode.UNAVAILABLE, f"無法讀取網頁：{type(exc).__name__}", "fetch_url_content") from exc
+        raise ServiceError(ErrorCode.UNAVAILABLE, f"無法讀取網頁：{type(exc).__name__}", "fetch_url_content",
+                           REASON_NETWORK) from exc
     finally:
         if own_client:
             client.close()
 
     title, text = html_to_text(html) if content_type != "text/plain" else ("", html)
     if not text.strip():
-        raise ServiceError(ErrorCode.INVALID_INPUT, "網頁沒有可讀取的文字內容", "fetch_url_content")
+        raise ServiceError(ErrorCode.INVALID_INPUT, "網頁沒有可讀取的文字內容", "fetch_url_content", REASON_UNSUPPORTED)
     content = (f"{title}\n{text}" if title else text)[:MAX_URL_TEXT_CHARS]
     # 來源角色以重新導向後實際讀取的網址判斷（官方網址導向非官方頁 → 非官方）
     note = URL_ROLE_NOTES[classify_url_source(current)]

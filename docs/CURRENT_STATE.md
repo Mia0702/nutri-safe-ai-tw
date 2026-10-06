@@ -1208,3 +1208,27 @@ Supabase：15 DrugSubstance / 25 pairwise Interaction / 17 DuplicateIntakeRule /
 - Neo4j：不寫入（Supabase-only）。
 - 選取規則：nominal Top 1000，門檻 active_permit_count = 6，105 個並列全保留 → 1026 筆。importer 為 insert-only（不 update / delete）；二次 dry-run：Would INSERT 0 / UPDATE 0 / DELETE 0。
 - 已知限制：名錄只有英文官方名稱；Trastuzumab 因大小寫不同有兩個成分代碼（同一 normalized name）→ runtime 同名多筆不猜（維持原行為）；鹽類 / 形式變體（Warfarin sodium、Levothyroxine sodium…）需人工審核才可對應。
+
+## Reviewed Taiwan Drug Chinese Alias Overlay（2026-10-06；Phase 1 小型 overlay）
+
+- 目的：台灣使用者輸入繁體中文藥品成分時，以「已審核的台灣官方中文名稱」對應 canonical identity；不使用 AI 翻譯 / 相似度 / substring。
+- 證據：TFDA 9123 未註銷藥證內「中文品名 / 英文品名」同一張藥證成對（原料藥品名成對，或括號內中文 / 英文成對）；至少 2 張不同藥證；同一中文名稱不得對應其他英文名稱（含母體 vs 鹽類衝突）；英文名稱需與目標 identity 完全相同（官方「(EQ TO …)」註記視為官方同義，鹽類 / 水合物 / 酯類不去除）。
+- 資料：`data/taiwan_drug_alias_overlay/2026-10-06/`（`review_candidates.csv` reviewer 輸入、`reviewed_drug_zh_aliases.csv` 稽核結果、`overlay_manifest.json` 快照 sha256）。重建：`python -m scripts.build_drug_zh_alias_overlay …`（offline）。
+- Runtime：`app/services/drug_zh_alias.py`（只有 `VERIFIED_OFFICIAL` ＋ exact policy 才比對）；`InteractionService._drugs()`（→ DrugSubstance，早於 `DRUG_ACTIVE_SUBSTANCE_UNMAPPED`）與 `catalog_lookup()`（→ 名錄項目，成分代碼需一致）。檔案缺失 / 錯誤 → 空 index（行為不變）。
+- 目前為檔案型 overlay（尚無 Supabase 表 / migration）；改存 Supabase 需要新增 migration 與使用者核准的寫入。
+- tests：`test_drug_zh_alias_overlay.py`。
+
+### 繁中別名 v1.1（2026-10-06）
+
+- 審核分級：`VERIFIED_OFFICIAL`（TFDA 9123 成對證據，且 harvest 需 ≥ 2 個申請商以排除單一藥廠品牌名）、`SUPPORTED_OFFICIAL`（台灣 *.gov.tw 來源直接說明 identity：引文含中文名稱與英文有效成分、有效成分與目標同 declared level、無衝突；目前 2 筆，來源為 TFDA 藥品仿單查詢平台）、`NEEDS_REVIEW`、`REJECTED`。AI 翻譯只能產生 `NEEDS_REVIEW` 候選。
+- 錯字 / 同音字候選：`app/services/drug_zh_typo.py`（編輯距離 ＋ pypinyin；只比對 runtime-active 的已審核別名；子字串關係、鹽類 / 形式字樣不同一律不產生候選；同 canonical 收斂；> 3 個 canonical 不給候選）。只是候選：「找不到完全相同的藥品成分名稱。你是不是要問『X』？」＋確認 / 選擇按鈕，沿用 FC-A8 的 request-scoped postback 續跑原題（不重跑 Controller）。名錄候選的 ID 為 `CAT_<ingredient_code>`。
+
+## Phone-smoke 定稿（2026-10-06，tag `demo-ready-v1.2`；`demo-ready-v1` / `demo-ready-v1.1` 不動）
+
+phone smoke 通過；以下皆為 additive，未改 Risk Engine、claim eligibility、resolver threshold、Supabase / Neo4j 資料：
+
+- 已審核繁中藥品別名 overlay、繁中藥名錯字候選復原（需使用者明確確認）：FC-I10 / FC-I11。
+- 來源連結：raw csv / json / zip provenance 保留，但不當作開啟按鈕；只用 `display_url` 或非 raw 的網址（FC-I12）。目前資料集沒有已審核的 landing 頁，所以 TFDA 資料集來源卡只顯示名稱。
+- 社群網址（Facebook / Instagram / Threads）讀不到或無可分析內容：固定說明並建議截圖 / 貼文字 / 產品照片；一般網址失敗分四類文案（FC-I13）。
+- Brand-only 產品探索 guardrail：只有品牌且無公司 / 別名對應時走品名探索（FC-I14）。調查結論：資料與程式未變，原因是 Agent A 抽取欄位不同造成 NOT_FOUND。
+- 已知限制（未處理）：英文品牌（如 Blackmores）不比對中文品名，仍查不到。

@@ -33,7 +33,7 @@ from app.response.package_observation import (
     ObservationTone,
     PackageObservation,
 )
-from app.response.sources import SourceLink, safe_source_url
+from app.response.sources import SourceLink, display_source_url
 from app.schemas.enums import ResponseAction, ResponseType
 from app.schemas.enums import SemanticTone
 from app.schemas.response import (
@@ -345,7 +345,7 @@ def _query_label_row(query_label: str | None) -> list[dict[str, Any]]:
 
 
 def _uri_button(label: str, url: str) -> dict[str, Any] | None:
-    safe = safe_source_url(url)  # renderer 再驗證一次：不合格不建立按鈕
+    safe = display_source_url(url)  # renderer 再驗證一次：不合格或 raw 匯出網址不建立按鈕
     if safe is None:
         return None
     return _button_component({"type": "uri", "label": label, "uri": safe})

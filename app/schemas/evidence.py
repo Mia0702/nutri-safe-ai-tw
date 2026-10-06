@@ -43,7 +43,8 @@ def utc_now() -> datetime:
 class SourceRef(BaseModel):
     source_name: str
     source_type: SourceType
-    source_url: str | None = None
+    source_url: str | None = None  # canonical / raw provenance（可能是 csv / json 匯出網址）；不給使用者當按鈕
+    display_url: str | None = None  # 已審核的人類可讀官方頁（來源按鈕只用這個或非 raw 的 source_url）
     source_record_id: str | None = None
     retrieved_at: datetime | None = None
     is_official: bool
@@ -53,6 +54,7 @@ class ToolError(BaseModel):
     code: ErrorCode
     message: str
     source: str
+    reason: str | None = None  # 機器可讀的細分原因（例如網址讀取失敗類別）；只供程式判斷，不顯示給使用者
 
 
 class ToolCallRecord(BaseModel):

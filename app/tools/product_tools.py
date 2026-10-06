@@ -71,6 +71,7 @@ def _source_from_row(row: dict[str, Any], record_key_field: str = "source_record
         source_name=row.get("source_name") or "未知來源",
         source_type=SourceType.STRUCTURED_DB,
         source_url=row.get("source_url"),
+        display_url=row.get("display_url"),
         source_record_id=row.get(record_key_field),
         retrieved_at=_parse_dt(row.get("retrieved_at")),
         is_official=bool(row.get("is_official", False)),

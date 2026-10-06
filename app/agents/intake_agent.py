@@ -226,7 +226,7 @@ class IntakeAgent:
                 notes.append(f"{_SECTION_LABELS[name]}無法讀取（{result.error.code.value}）")
         if not sections:  # 所有非文字輸入都失敗、也沒有文字：如實回報錯誤，不假裝理解
             first = rec.errors[0]
-            raise ServiceError(first.code, first.message, first.source)
+            raise ServiceError(first.code, first.message, first.source, first.reason)
         if all(label == USER_TEXT_LABEL for label, _ in sections):
             text = "\n\n".join(body for _, body in sections)  # 與直接打字的格式完全相同
         else:

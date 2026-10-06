@@ -199,6 +199,8 @@ class SubjectResolution(BaseModel):
     note: str | None = None
     # 台灣官方藥品成分名錄（只是 identity；不是 interaction 證據）：名錄有、但沒有已審核 DrugSubstance 對應時的官方名稱
     catalog_official_name: str | None = None
+    # 繁中別名錯字候選（ENTITY_CANDIDATE_NEEDS_CONFIRMATION 且來自已審核別名時）：recovery 方法；None = 語音讀音候選
+    recovery_method: str | None = None
 
 
 class InteractionParticipant(BaseModel):

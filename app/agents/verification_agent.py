@@ -937,6 +937,13 @@ class VerificationAgent(InteractionResearchMixin):
         names = req.company_candidates + req.brand_candidates
         if names and not state.attempted.get("lookup_company"):
             self._guardrail_call(state, rec, "lookup_company", NamesArgs(names=names))
+        # 只寫了品牌（沒有品名 / 字號），而且品牌沒有對應到任何官方公司 / 別名：官方品名常以品牌開頭，品牌名稱改走品名探索，
+        # 否則同一句話只因 Agent A 把名稱放在 product 還是 brand 欄位就得到 NOT_FOUND。結果仍由 resolver 決定（只會是候選，不自動確認）
+        brand_only = bool(req.brand_candidates) and not (req.product_candidates or req.permit_number_candidates)
+        if (brand_only and not state.attempted.get("lookup_product")
+                and not state.company_names_found and not state.inferred_links and not state.failed):
+            self._guardrail_call(state, rec, "lookup_product", LookupProductArgs(
+                product_names=list(req.brand_candidates), brand_names=req.brand_candidates))
 
     def _resolve_product(self, state: PlannerState, rec: ToolCallRecorder) -> ProductMatch:
         req = state.request

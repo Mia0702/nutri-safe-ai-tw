@@ -1,0 +1,51 @@
+alias_text_zh_tw,target_kind,canonical_entity_id,taiwan_drug_ingredient_code,target_english_name,identity_level,reviewer_decision,reviewer_note
+二甲二脈,DRUG_SUBSTANCE,D_MET,,Metformin,ACTIVE_MOIETY,ACCEPT,官方品名括號英文為母體 METFORMIN
+二甲二胍,DRUG_SUBSTANCE,D_MET,,Metformin,ACTIVE_MOIETY,ACCEPT,官方資料中的另一種寫法；以證據筆數決定
+二甲雙胍,DRUG_SUBSTANCE,D_MET,,Metformin,ACTIVE_MOIETY,ACCEPT,對岸常見寫法；不接受任何未經台灣官方成對證據支持的寫法
+鹽酸二甲二脈,DRUG_SUBSTANCE,D_MET,,Metformin,ACTIVE_MOIETY,REJECT,鹽酸鹽（metformin HCl）不是母體 identity；不自動併入 D_MET
+奧美拉唑,DRUG_SUBSTANCE,D_OME,,Omeprazole,ACTIVE_MOIETY,ACCEPT,
+塞浦弗洒辛,DRUG_SUBSTANCE,D_CIP,,Ciprofloxacin,ACTIVE_MOIETY,ACCEPT,
+塞普沙辛,DRUG_SUBSTANCE,D_CIP,,Ciprofloxacin,ACTIVE_MOIETY,ACCEPT,
+塞浦弗酒辛,DRUG_SUBSTANCE,D_CIP,,Ciprofloxacin,ACTIVE_MOIETY,ACCEPT,疑似「洒」的異體寫法；只有單一藥證
+環丙沙星,DRUG_SUBSTANCE,D_CIP,,Ciprofloxacin,ACTIVE_MOIETY,ACCEPT,對岸常見寫法；不接受任何未經台灣官方成對證據支持的寫法
+鹽酸塞普沙辛,DRUG_SUBSTANCE,D_CIP,,Ciprofloxacin,ACTIVE_MOIETY,REJECT,鹽酸鹽不是母體 identity；不自動併入 D_CIP
+去氧羥四環素,DRUG_SUBSTANCE,D_DOX,,Doxycycline,ACTIVE_MOIETY,ACCEPT,
+去氧羥四環素鹽酸鹽,DRUG_SUBSTANCE,D_DOX,,Doxycycline,ACTIVE_MOIETY,REJECT,doxycycline hyclate 是鹽類 / 形式，不是母體 identity
+多西環素,DRUG_SUBSTANCE,D_DOX,,Doxycycline,ACTIVE_MOIETY,ACCEPT,對岸常見寫法；不接受任何未經台灣官方成對證據支持的寫法
+氫氯苯噻,DRUG_SUBSTANCE,D_HCTZ,,Hydrochlorothiazide,ACTIVE_MOIETY,ACCEPT,
+氫氯苯塞,DRUG_SUBSTANCE,D_HCTZ,,Hydrochlorothiazide,ACTIVE_MOIETY,ACCEPT,疑似「噻」的異體寫法；只有單一藥證
+雙氫化氯噻治,DRUG_SUBSTANCE,D_HCTZ,,Hydrochlorothiazide,ACTIVE_MOIETY,ACCEPT,只有單一藥證
+氫氯噻嗪,DRUG_SUBSTANCE,D_HCTZ,,Hydrochlorothiazide,ACTIVE_MOIETY,ACCEPT,對岸常見寫法；不接受任何未經台灣官方成對證據支持的寫法
+左旋多巴,DRUG_SUBSTANCE,D_LDOPA,,Levodopa,ACTIVE_MOIETY,ACCEPT,
+歐利斯特,DRUG_SUBSTANCE,D_ORL,,Orlistat,ACTIVE_MOIETY,ACCEPT,
+奧利司他,DRUG_SUBSTANCE,D_ORL,,Orlistat,ACTIVE_MOIETY,ACCEPT,對岸常見寫法；不接受任何未經台灣官方成對證據支持的寫法
+每索特,DRUG_SUBSTANCE,D_MTX,,Methotrexate,ACTIVE_MOIETY,ACCEPT,
+甲氨蝶呤,DRUG_SUBSTANCE,D_MTX,,Methotrexate,ACTIVE_MOIETY,ACCEPT,對岸常見寫法；不接受任何未經台灣官方成對證據支持的寫法
+苯乙內醯脲,DRUG_SUBSTANCE,D_PHT,,Phenytoin,ACTIVE_MOIETY,ACCEPT,
+苯妥英,DRUG_SUBSTANCE,D_PHT,,Phenytoin,ACTIVE_MOIETY,ACCEPT,官方資料只在商品名中出現，不是成對寫法
+二苯乙內醯脲鈉,DRUG_SUBSTANCE,D_PHT,,Phenytoin,ACTIVE_MOIETY,REJECT,鈉鹽（phenytoin sodium）不是母體 identity；不自動併入 D_PHT
+配尼西拉明,DRUG_SUBSTANCE,D_PEN,,Penicillamine,ACTIVE_MOIETY,ACCEPT,官方資料只在商品名中出現，不是成對寫法
+青黴胺,DRUG_SUBSTANCE,D_PEN,,Penicillamine,ACTIVE_MOIETY,ACCEPT,只出現在已註銷藥證
+華法林,DRUG_SUBSTANCE,D_WAR,,Warfarin,ACTIVE_MOIETY,ACCEPT,常見寫法；官方資料中是否有成對證據由稽核決定
+苯甲香豆醇鈉籠晶,DRUG_SUBSTANCE,D_WAR,,Warfarin,ACTIVE_MOIETY,REJECT,官方品名對應 warfarin sodium clathrate（鈉鹽籠合物），不是母體 identity
+左甲狀腺素,DRUG_SUBSTANCE,D_LT4,,Levothyroxine,ACTIVE_MOIETY,ACCEPT,常見寫法；官方資料中是否有成對證據由稽核決定
+阿崙膦酸鈉,DRUG_SUBSTANCE,D_ALN,,Alendronate,ACTIVE_MOIETY,ACCEPT,常見寫法；官方資料中是否有成對證據由稽核決定
+多替拉韋,DRUG_SUBSTANCE,D_DTG,,Dolutegravir,ACTIVE_MOIETY,ACCEPT,對岸常見寫法；官方資料中是否有成對證據由稽核決定
+乙醯胺酚,TAIWAN_DRUG_INGREDIENT,,2808000100,Acetaminophen,CATALOG_OFFICIAL_NAME,ACCEPT,
+對位乙醯氨基酚,TAIWAN_DRUG_INGREDIENT,,2808000100,Acetaminophen,CATALOG_OFFICIAL_NAME,ACCEPT,
+乙醯氨酚,TAIWAN_DRUG_INGREDIENT,,2808000100,Acetaminophen,CATALOG_OFFICIAL_NAME,ACCEPT,
+阿斯匹林,TAIWAN_DRUG_INGREDIENT,,2808600300,Aspirin,CATALOG_OFFICIAL_NAME,ACCEPT,
+異布洛芬,TAIWAN_DRUG_INGREDIENT,,2808401300,Ibuprofen,CATALOG_OFFICIAL_NAME,ACCEPT,
+啡莫替定,TAIWAN_DRUG_INGREDIENT,,5640002100,Famotidine,CATALOG_OFFICIAL_NAME,ACCEPT,
+他達拉非,TAIWAN_DRUG_INGREDIENT,,9200043000,Tadalafil,CATALOG_OFFICIAL_NAME,ACCEPT,
+纈沙坦,TAIWAN_DRUG_INGREDIENT,,2408005100,Valsartan,CATALOG_OFFICIAL_NAME,ACCEPT,
+乙醯半胱胺酸,TAIWAN_DRUG_INGREDIENT,,4800000100,Acetylcysteine,CATALOG_OFFICIAL_NAME,ACCEPT,
+阿立哌唑,TAIWAN_DRUG_INGREDIENT,,9200095400,Aripiprazole,CATALOG_OFFICIAL_NAME,ACCEPT,
+奧氮平,TAIWAN_DRUG_INGREDIENT,,9200036800,Olanzapine,CATALOG_OFFICIAL_NAME,ACCEPT,
+左乙拉西坦,TAIWAN_DRUG_INGREDIENT,,2820003700,Levetiracetam,CATALOG_OFFICIAL_NAME,ACCEPT,
+阿托伐他汀鈣,TAIWAN_DRUG_INGREDIENT,,2406003110,Atorvastatin calcium,CATALOG_OFFICIAL_NAME,ACCEPT,
+洛沙坦鉀,TAIWAN_DRUG_INGREDIENT,,2408005210,Losartan potassium,CATALOG_OFFICIAL_NAME,ACCEPT,
+氟康那唑,TAIWAN_DRUG_INGREDIENT,,0812203400,Fluconazole,CATALOG_OFFICIAL_NAME,ACCEPT,
+待克菲那,TAIWAN_DRUG_INGREDIENT,,2808400410,Diclofenac sodium,CATALOG_OFFICIAL_NAME,ACCEPT,官方資料同時以「待克菲那」對應母體 diclofenac 與 diclofenac sodium
+鹽酸二甲二脈,TAIWAN_DRUG_INGREDIENT,,6820400710,Metformin HCl,CATALOG_OFFICIAL_NAME,ACCEPT,鹽酸鹽只可對應到鹽酸鹽名錄項目（不是 D_MET）；官方證據筆數由稽核決定
+鹽酸二甲二胍,TAIWAN_DRUG_INGREDIENT,,6820400710,Metformin HCl,CATALOG_OFFICIAL_NAME,ACCEPT,鹽酸鹽只可對應到鹽酸鹽名錄項目（不是 D_MET）

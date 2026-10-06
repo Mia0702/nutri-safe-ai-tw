@@ -10,7 +10,7 @@ import uuid
 from typing import Protocol
 
 from app.agents.intake_agent import IntakeAgent, needs_identity_reinspection
-from app.agents.reporter_agent import ReporterAgent, error_payload
+from app.agents.reporter_agent import TYPE_TITLES, ReporterAgent, error_payload
 from app.agents.verification_agent import VerificationAgent, stage_timings_ms
 from app.risk.assessment_rules import scope_foreign_signal
 from app.risk.risk_engine import RiskEngine
@@ -30,6 +30,14 @@ from app.schemas.user_request import ContextEntity, ConversationTurn, Normalized
 from app.services.bare_name_routing import route_bare_name
 from app.services.context_binding import bind_confirmed_product, bind_interaction_overview
 from app.services.errors import ServiceError
+from app.services.url_access import (
+    URL_ACCESS_POINTS,
+    URL_ACCESS_SUMMARY,
+    UrlAccessIssue,
+    is_social_url,
+    issue_from_fetch_error,
+    social_content_unavailable,
+)
 
 logger = logging.getLogger("nutri_safe_ai.pipeline")
 
@@ -41,6 +49,20 @@ INTERNAL_FAILED_TEXT = "抱歉，系統目前發生問題，這次無法完成�
 def failed_result(request_id: str, summary: str, **fields) -> AnalysisResult:
     payload = error_payload(request_id, summary)
     return AnalysisResult(request_id=request_id, response=payload, final_answer=summary, **fields)
+
+
+def url_access_result(request_id: str, issue: UrlAccessIssue, request: NormalizedUserRequest | None = None,
+                      **fields) -> AnalysisResult:
+    """網址讀不到 / 社群平台存取限制：deterministic 的說明與下一步（不進 Controller / Researcher / RAG / 官方網站 / 產品查詢）。"""
+    payload = ResponsePayload(
+        request_id=request_id, response_type=ResponseType.MISSING_INFORMATION, is_conclusive=False,
+        title=TYPE_TITLES[ResponseType.MISSING_INFORMATION], summary=URL_ACCESS_SUMMARY[issue],
+        key_points=list(URL_ACCESS_POINTS[issue]), available_actions=[],
+    )
+    logger.info("url_access_guidance", extra={"request_id": request_id, "url_access_issue": issue.value})
+    return AnalysisResult(request_id=request_id, normalized_request=request, response=payload,
+                          final_answer=payload.plain_text(),
+                          tools_called=request.input_tools_called if request is not None else [], **fields)
 
 
 class AnalysisLogWriter(Protocol):
@@ -301,7 +323,13 @@ class AnalysisPipeline:
         try:
             request = self._intake.understand(request_id, raw)
         except ServiceError as exc:
+            if exc.source == "fetch_url_content" and raw.urls:  # 只有網址、而且讀不到：說明原因與下一步，不回通用失敗
+                url = next((u for u in raw.urls if is_social_url(u)), raw.urls[0])
+                return url_access_result(request_id, issue_from_fetch_error(exc.to_tool_error(), url),
+                                         errors=[exc.to_tool_error()])
             return failed_result(request_id, UNDERSTANDING_FAILED_TEXT, errors=[exc.to_tool_error()])
+        if social_content_unavailable(request):  # 社群網址讀到的只有預覽外殼 / 沒有可分析內容：停在 intake
+            return url_access_result(request_id, UrlAccessIssue.SOCIAL_RESTRICTED, request)
         if request.context_reference == ContextReference.PREVIOUS_IMAGE and request.visual_request_id:
             # 文字追問指向上一張圖片本身：不查證、不重跑 Vision / Agent B；由呼叫端（response service）以 visual_request_id
             # 取回該題保存的結構化觀察。這裡只回一個佔位 payload。

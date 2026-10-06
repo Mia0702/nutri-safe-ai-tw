@@ -219,7 +219,16 @@ class InteractionResearchMixin:
     def _resolve_subject(self, request: NormalizedUserRequest, state: PlannerState, rec: ToolCallRecorder,
                          service: InteractionService, subject: InteractionSubject):
         """→ (SubjectResolution, Side, ProductMatch | None)。"""
+        if subject.pinned_entity_id and subject.pinned_entity_id.startswith(service.CATALOG_ENTITY_PREFIX):
+            row = service.catalog_by_code(subject.pinned_entity_id[len(service.CATALOG_ENTITY_PREFIX):])  # 繁中別名候選（名錄項目）確認
+            if row is not None:
+                logger.info("drug_zh_alias_recovery_confirmed", extra={
+                    "request_id": request.request_id, "agent": "verification", "recovery_confirmed": True, "alias_target_kind": "TAIWAN_DRUG_INGREDIENT"})
+                return (*self._catalog_row_resolution(service, subject, row), None)
         if subject.pinned_entity_id and (pinned := service.entity_ref(subject.pinned_entity_id)) is not None:
+            if pinned.kind == "DrugSubstance":
+                logger.info("drug_zh_alias_recovery_confirmed", extra={
+                    "request_id": request.request_id, "agent": "verification", "recovery_confirmed": True, "alias_target_kind": "DRUG_SUBSTANCE"})
             # 使用者在語音候選按鈕上確認的 canonical entity（系統只會固定「那一題提供過的候選」）
             resolution = SubjectResolution(text=subject.text, kind=subject.kind, status=SubjectResolutionStatus.RESOLVED,
                                            entities=[pinned])
@@ -236,11 +245,18 @@ class InteractionResearchMixin:
                 return recovered, Side(subject.text), None
             return resolution, side, match
         status, entities = service.resolve_named(subject.text, subject.kind)
+        if status == SubjectResolutionStatus.RESOLVED and (hit := service.zh_alias_hit(subject.text)) is not None:
+            self._log_alias_exact(request, hit)
         if (status in (SubjectResolutionStatus.UNRESOLVED, SubjectResolutionStatus.DRUG_ACTIVE_SUBSTANCE_UNMAPPED)
                 and subject.kind != InteractionSubjectKind.PRODUCT and (via_catalog := self._catalog_resolution(service, subject))):
+            if (hit := service.zh_alias_hit(subject.text)) is not None:
+                self._log_alias_exact(request, hit)
             return via_catalog[0], via_catalog[1], None
         if status == SubjectResolutionStatus.UNRESOLVED and (recovered := self._recover_asr_entity(request, service, subject)):
             return recovered, Side(subject.text), None
+        if (status in (SubjectResolutionStatus.UNRESOLVED, SubjectResolutionStatus.DRUG_ACTIVE_SUBSTANCE_UNMAPPED)
+                and subject.kind != InteractionSubjectKind.PRODUCT and (typo := self._recover_alias_typo(request, service, subject))):
+            return typo, Side(subject.text), None
         return (self._named_resolution(service, subject, status, entities),
                 service.side_from_entities(subject.text, entities), None)
 
@@ -253,12 +269,34 @@ class InteractionResearchMixin:
         row = service.catalog_lookup(subject.text)
         if not row:
             return None
+        return InteractionResearchMixin._catalog_row_resolution(service, subject, row)
+
+    @staticmethod
+    def _catalog_row_resolution(service: InteractionService, subject: InteractionSubject, row: dict):
         drug = service.drug_ref(row["mapped_drug_substance_id"]) if row.get("mapped_drug_substance_id") else None
         if drug is not None:
             return (SubjectResolution(text=subject.text, kind=subject.kind, status=SubjectResolutionStatus.RESOLVED, entities=[drug]),
                     service.side_from_entities(subject.text, [drug]))
         return (SubjectResolution(text=subject.text, kind=subject.kind, status=SubjectResolutionStatus.IDENTITY_NOT_IN_INTERACTION_CORPUS,
                                   catalog_official_name=row["official_name"]), Side(subject.text))
+
+    @staticmethod
+    def _log_alias_exact(request: NormalizedUserRequest, hit) -> None:
+        logger.info("drug_zh_alias_exact_match", extra={
+            "request_id": request.request_id, "agent": "verification", "alias_id": hit.alias_id, "alias_target_kind": hit.target_kind})
+
+    def _recover_alias_typo(self, request: NormalizedUserRequest, service: InteractionService, subject: InteractionSubject
+                            ) -> SubjectResolution | None:
+        """已審核繁中別名的錯字 / 同音字候選（文字與語音皆可）：只是建議，一律需要使用者確認；不默默更正原文。"""
+        found, refs = service.zh_typo_candidates(subject.text)
+        if not found:
+            return None
+        logger.info("drug_zh_alias_recovery_used", extra={
+            "request_id": request.request_id, "agent": "verification", "recovery_method": "+".join(sorted({c.method for c in found})),
+            "recovery_candidate_count": len(found), "recovery_candidate_ids": [r.entity_id for r in refs],
+            "recovery_best_score": round(found[0].score, 3)})
+        return SubjectResolution(text=subject.text, kind=subject.kind, status=SubjectResolutionStatus.ENTITY_CANDIDATE_NEEDS_CONFIRMATION,
+                                 candidates=refs, recovery_confidence=found[0].score, recovery_method=found[0].method)
 
     def _recover_asr_entity(self, request: NormalizedUserRequest, service: InteractionService, subject: InteractionSubject
                             ) -> SubjectResolution | None:

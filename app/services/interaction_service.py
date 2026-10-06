@@ -41,6 +41,8 @@ from app.schemas.interaction import (
     SubjectResolutionStatus,
     direction_role,
 )
+from app.services.drug_zh_alias import TARGET_CATALOG, TARGET_DRUG, DrugZhAliasIndex, ZhAliasHit, load_default_index
+from app.services.drug_zh_typo import TypoCandidate, typo_candidates
 from app.tools.ingredient_tools import IngredientReference, query_key
 
 logger = logging.getLogger(__name__)
@@ -99,8 +101,10 @@ class Side:
 
 
 class InteractionService:
-    def __init__(self, repo: InteractionRepository, bridge_reference: dict[str, Any] | None = None):
+    def __init__(self, repo: InteractionRepository, bridge_reference: dict[str, Any] | None = None,
+                 zh_alias_index: DrugZhAliasIndex | None = None):
         self._repo = repo
+        self._zh_aliases = zh_alias_index if zh_alias_index is not None else load_default_index()  # 已審核繁中藥品成分 alias（只含 VERIFIED_OFFICIAL）
         self._ref = IngredientReference(bridge_reference or {})
         self._drug_ref: dict[str, Any] | None = None
         self.corpus_version: str | None = repo.interaction_corpus_version()
@@ -126,6 +130,9 @@ class InteractionService:
             for a in raw.get("aliases") or []:
                 if a.get("match_policy") == EXACT_POLICY and a.get("drug_substance_id") in drugs and query_key(a.get("alias_text")):
                     formal.setdefault(query_key(a["alias_text"]), set()).add(a["drug_substance_id"])
+            for hit in self._zh_aliases.entries(TARGET_DRUG):  # 已審核繁中 alias → DrugSubstance（exact；只含 VERIFIED_OFFICIAL）
+                if hit.canonical_entity_id in drugs and query_key(hit.alias_text):
+                    formal.setdefault(query_key(hit.alias_text), set()).add(hit.canonical_entity_id)
             self._drug_ref = {"drugs": drugs, "formal": formal}
         return self._drug_ref
 
@@ -186,10 +193,63 @@ class InteractionService:
         if finder is None:
             return None
         try:
-            return finder(text)
+            row = finder(text)
+            if row is None:  # 已審核繁中 alias → 名錄項目（再以官方成分名稱 exact 回查名錄；成分代碼必須一致）
+                hit = self._zh_aliases.lookup(text)
+                if hit is not None and hit.target_kind == TARGET_CATALOG and hit.official_name:
+                    via = finder(hit.official_name)
+                    if via and via.get("ingredient_code") == hit.taiwan_drug_ingredient_code:
+                        row = via
+            return row
         except Exception:  # noqa: BLE001 - 名錄是附加資料層，失敗不得影響既有 interaction 流程
             logger.warning("taiwan_drug_catalog_lookup_failed")
             return None
+
+    CATALOG_ENTITY_PREFIX = "CAT_"  # 名錄項目的候選 / pinned ID（CAT_<ingredient_code>；只用於確認按鈕）
+    CATALOG_KIND = "TaiwanDrugIngredient"
+
+    def zh_alias_hit(self, text: str) -> ZhAliasHit | None:
+        """已審核繁中別名的 exact 命中（只供 log / 稽核；比對本身仍走 resolve_named / catalog_lookup）。"""
+        return self._zh_aliases.lookup(text)
+
+    def catalog_by_code(self, code: str) -> dict[str, Any] | None:
+        """按鈕確認後以名錄 ingredient_code 取回名錄列（成分代碼必須與 overlay 一致；失敗 → None）。"""
+        finder = getattr(self._repo, "find_taiwan_drug_ingredient", None)
+        entry = self._zh_aliases.catalog_entry_by_code(code)
+        if finder is None or entry is None or not entry.official_name:
+            return None
+        try:
+            row = finder(entry.official_name)
+        except Exception:  # noqa: BLE001
+            logger.warning("taiwan_drug_catalog_lookup_failed")
+            return None
+        return row if row and row.get("ingredient_code") == code else None
+
+    def zh_typo_candidates(self, text: str) -> tuple[list[TypoCandidate], list[EntityRefOut]]:
+        """exact 失敗後的錯字候選（只來自 runtime-active 的已審核別名；至多 3 個 canonical；一律需要使用者確認）。
+
+        標籤用使用者看得懂的「已審核中文別名」；名錄候選的 entity_id 為 CAT_<code>。ingredient Bridge 已能解析的別名不列入
+        （避免把保健食品成分的錯字導向藥品名錄）；名錄候選需確認名錄列確實存在。
+        """
+        found = typo_candidates(text, self._zh_aliases.entries())
+        refs: list[EntityRefOut] = []
+        kept: list[TypoCandidate] = []
+        for c in found:
+            if self._ref.available and self._ref.resolve_query(c.alias_text)[0] != IngredientQueryResolution.NOT_IN_CORPUS:
+                continue
+            if c.target_kind == TARGET_DRUG:
+                base = self.drug_ref(c.target_id)
+                if base is None:
+                    continue
+                refs.append(base.model_copy(update={"display_name_zh": c.alias_text}))
+            else:
+                if self.catalog_by_code(c.target_id) is None:
+                    continue
+                refs.append(EntityRefOut(entity_id=self.CATALOG_ENTITY_PREFIX + c.target_id, kind=self.CATALOG_KIND,
+                                         canonical_name_en=c.official_name or "", display_name_zh=c.alias_text,
+                                         identity_level="CATALOG_OFFICIAL_NAME"))
+            kept.append(c)
+        return (kept, refs) if len(kept) == len(found) else ([], [])  # 任一候選不可用 → 不給部分候選（避免誤導）
 
     @staticmethod
     def side_from_entities(label: str, entities: Iterable[EntityRefOut]) -> Side:

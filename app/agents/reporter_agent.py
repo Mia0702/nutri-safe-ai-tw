@@ -62,6 +62,7 @@ from app.schemas.response import CLAIM_RISK_LABEL, RISK_EMOJI, DetailPayload, Pr
 from app.schemas.enums import SemanticTone
 from app.schemas.risk import RiskAssessment
 from app.schemas.user_request import NormalizedUserRequest
+from app.response.sources import display_source_url
 from app.services.errors import ServiceError
 from app.services.image_fusion import bundle_stop_message
 from app.services.openai_service import LLMClient
@@ -107,7 +108,8 @@ def format_sources(sources: list[SourceRef]) -> str:
         return ""
     lines = ["資料來源："]
     for s in official:
-        lines.append(f"・{s.source_name}" + (f"\n  {s.source_url}" if s.source_url else ""))
+        shown = display_source_url(s.source_url, s.display_url)  # raw 匯出網址不顯示（手機會直接下載）
+        lines.append(f"・{s.source_name}" + (f"\n  {shown}" if shown else ""))
     return "\n".join(lines)
 
 
@@ -1312,7 +1314,8 @@ def detail_payload(
 ) -> DetailPayload:
     product = _verified_product(bundle)
     if action == ResponseAction.SOURCES:
-        body = [s.source_name + (f"\n{s.source_url}" if s.source_url else "") for s in bundle.all_sources() if s.is_official]
+        body = [s.source_name + (f"\n{shown}" if (shown := display_source_url(s.source_url, s.display_url)) else "")
+                for s in bundle.all_sources() if s.is_official]
         body = body or ["這次沒有可列出的官方資料來源。"]
     elif action == ResponseAction.INGREDIENTS:
         evidence = _ingredient_evidence(bundle)

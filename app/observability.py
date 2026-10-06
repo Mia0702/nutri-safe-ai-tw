@@ -48,6 +48,12 @@ LOG_FIELDS = (
     "recovery_candidate_count",
     "recovery_confidence",
     "recovery_proposed_entity",
+    "recovery_method",
+    "recovery_candidate_ids",
+    "recovery_best_score",
+    "recovery_confirmed",
+    "alias_id",
+    "alias_target_kind",
     # URL source role / stage latency（只有代碼與毫秒數）
     "url_source_roles",
     "official_statement_count",
