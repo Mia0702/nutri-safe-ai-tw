@@ -79,6 +79,7 @@ BUTTON_HEIGHT = "md"
 # 多行文字的行距（只加在內文 / 輔助資訊；大字時仍清楚分行）
 LINE_SPACING = {"body": "4px", "note": "2px"}
 SECTION_MARGIN = "lg"
+PARAGRAPH_SPACING = "md"  # 邏輯段落（各個 text / bullet component）之間的間距；同一段換行不受影響
 BULLET = "・"
 # 原始文字自帶的「純列表編號」（1. / 1、/ (1) / （1））：顯示時改由 bullet component 表示，不改原始資料
 SUB_BULLET = "◦"  # 列表子項目（與第一層重點區分，不算在 FC-E8 的 3 個重點內）
@@ -90,8 +91,10 @@ _MARKERS = tuple(RISK_EMOJI.values())
 
 BUTTON_DARK = "#333333"  # 主要動作按鈕（深色底、白字）；#9c7c53 只作強調色，不當按鈕底色
 COLOR_TITLE = "#111111"
+# 文字層級（純呈現）：內文 #333333 > 欄位標籤 / 次要內容 #555555 > 查詢 / 來源等中繼資料 #777777
 COLOR_BODY = "#333333"
-COLOR_MUTED = "#888888"
+COLOR_LABEL = "#555555"
+COLOR_MUTED = "#777777"
 COLOR_SEPARATOR = "#EEEEEE"
 # 語意顏色只用在關鍵短語（status / 宣稱風險 / 風險標題），內文維持黑字
 TONE_COLORS = {SemanticTone.GREEN: "#1B7F3B", SemanticTone.ORANGE: "#B45309", SemanticTone.RED: "#C62828"}
@@ -138,7 +141,7 @@ def _text(text: str, role: str = "body", *, color: str = COLOR_BODY, weight: str
 
 def _section(contents: list[dict[str, Any]], margin: str = SECTION_MARGIN) -> dict[str, Any]:
     """一個內容區塊（標題區 / 結論 / 重點 / 附註）；區塊之間用 margin + separator 分開。"""
-    return {"type": "box", "layout": "vertical", "spacing": "sm", "margin": margin, "contents": contents}
+    return {"type": "box", "layout": "vertical", "spacing": PARAGRAPH_SPACING, "margin": margin, "contents": contents}
 
 
 def _bullet(text: str, role: str = "body", *, color: str = COLOR_BODY) -> dict[str, Any]:
@@ -236,7 +239,7 @@ def _button(action: ResponseAction, request_id: str) -> dict[str, Any]:
 def _bubble(body: list[dict[str, Any]], footer: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     bubble: dict[str, Any] = {
         "type": "bubble", "size": "kilo",
-        "body": {"type": "box", "layout": "vertical", "spacing": "sm", "contents": body},
+        "body": {"type": "box", "layout": "vertical", "spacing": PARAGRAPH_SPACING, "contents": body},
     }
     if footer:
         bubble["footer"] = {"type": "box", "layout": "vertical", "spacing": "none", "contents": footer}
@@ -274,19 +277,19 @@ RECOGNIZED_HEADING = "圖片辨識到："
 def _recognized_rows(payload: ResponsePayload) -> list[dict[str, Any]]:
     if not payload.recognized_content:
         return []
-    return [_text(RECOGNIZED_HEADING, "note", color=COLOR_MUTED, weight="bold"),
-            *[_text(f"・{line}", "note", color=COLOR_MUTED) for line in payload.recognized_content]]
+    return [_text(RECOGNIZED_HEADING, "note", color=COLOR_LABEL, weight="bold"),
+            *[_text(f"・{line}", "note", color=COLOR_BODY) for line in payload.recognized_content]]
 
 
 def _minimal_body(payload: ResponsePayload) -> list[dict[str, Any]]:
-    return [_text(payload.summary, "body")] + [_text(p, "note", color=COLOR_MUTED) for p in payload.key_points[:1]]
+    return [_text(payload.summary, "body")] + [_text(p, "note", color=COLOR_BODY) for p in payload.key_points[:1]]
 
 
 def _missing_info_body(payload: ResponsePayload) -> list[dict[str, Any]]:
     """需要補充：要讓使用者看到所有可選的官方候選（例如同名的多個品項）才能回覆。"""
     recognized = _recognized_rows(payload)
     return [_text(payload.summary, "body"), *([_separator(), *recognized, _separator()] if recognized else [])] + [
-        _text(p, "note", color=COLOR_MUTED) for p in payload.key_points[:MAX_MISSING_INFO_POINTS]
+        _text(p, "note", color=COLOR_BODY) for p in payload.key_points[:MAX_MISSING_INFO_POINTS]
     ]
 
 
@@ -320,8 +323,8 @@ def _choice_rows(choice: ProductChoice, request_id: str) -> list[dict[str, Any]]
     label = f"選擇：{choice.label}"
     return [
         _text(choice.label, "body", color=COLOR_TITLE, weight="bold"),
-        *([_text(choice.full_name, "note", color=COLOR_MUTED)] if choice.full_name != choice.label else []),
-        _text(_choice_detail(choice), "note", color=COLOR_MUTED),
+        *([_text(choice.full_name, "note", color=COLOR_LABEL)] if choice.full_name != choice.label else []),
+        _text(_choice_detail(choice), "note", color=COLOR_LABEL),
         _button_component({"type": "postback", "label": _clip(label, MAX_CHOICE_BUTTON_CHARS),
                            "data": build_select_product_data(request_id, choice.product_id),
                            "displayText": _clip(f"選擇：{choice.full_name}", MAX_ALT_TEXT_CHARS)},
@@ -376,12 +379,12 @@ class AdaptiveLineRenderer:
         """產品確認卡：候選 <= 3 放在同一張卡片；更多候選用一則 carousel（仍是一則訊息）。
         Flex 按鈕只處理這一題；「開始新問題 / 結束本次查證」仍由 Quick Reply 負責。"""
         heading = self.heading(payload)
-        intro = [_text(TYPE_LABELS[payload.response_type], "section", color=COLOR_MUTED),
+        intro = [_text(TYPE_LABELS[payload.response_type], "section", color=COLOR_LABEL),
                  *_query_label_row(query_label),
                  _text(heading, "title", color=COLOR_TITLE, weight="bold"),
                  *_status_rows(payload),
                  _text(payload.summary, "body", color=COLOR_BODY)]
-        note = [_text(payload.choice_note, "note", color=COLOR_MUTED)] if payload.choice_note else []
+        note = [_text(payload.choice_note, "note", color=COLOR_BODY)] if payload.choice_note else []
         recognized = _recognized_rows(payload)
         if recognized:
             intro = intro + [_separator(), *recognized]
@@ -392,7 +395,7 @@ class AdaptiveLineRenderer:
             for choice in choices:
                 body += [_separator(), *_choice_rows(choice, payload.request_id)]
             return _message(alt, _bubble(body + ([_separator()] + note if note else [])))
-        bubbles = [_bubble(intro + [_text("請左右滑動，點選你要查的品項。", "note", color=COLOR_MUTED)] + note)]
+        bubbles = [_bubble(intro + [_text("請左右滑動，點選你要查的品項。", "note", color=COLOR_LABEL)] + note)]
         bubbles += [_bubble(_choice_rows(choice, payload.request_id)) for choice in choices]
         return {"type": "flex", "altText": _clip(alt, MAX_ALT_TEXT_CHARS),
                 "contents": {"type": "carousel", "contents": bubbles}}
@@ -401,9 +404,9 @@ class AdaptiveLineRenderer:
         """語音候選成分確認卡：一個候選 →「確認：X」；多個候選 →「選擇：X」…；一律附「不是，重新輸入」。
         按鈕只處理這一題（request-scoped postback，帶 canonical entity ID）；候選文字全部來自該題的結構化候選。"""
         single = len(payload.entity_choices) == 1
-        body = [_text(TYPE_LABELS[payload.response_type], "section", color=COLOR_MUTED), *_query_label_row(query_label),
+        body = [_text(TYPE_LABELS[payload.response_type], "section", color=COLOR_LABEL), *_query_label_row(query_label),
                 _text(payload.summary, "body", color=COLOR_TITLE, weight="bold"),
-                *[_text(p, "note", color=COLOR_MUTED) for p in payload.key_points[:2]]]
+                *[_text(p, "note", color=COLOR_BODY) for p in payload.key_points[:2]]]
         footer = []
         for choice in payload.entity_choices:
             label = _clip(f"{'確認' if single else '選擇'}：{choice.label}", MAX_CHOICE_BUTTON_CHARS)
@@ -425,7 +428,7 @@ class AdaptiveLineRenderer:
         heading = self.heading(payload)
         badge = self.claim_badge(payload)
         header = [
-            _text(TYPE_LABELS[payload.response_type], "section", color=COLOR_MUTED),
+            _text(TYPE_LABELS[payload.response_type], "section", color=COLOR_LABEL),
             *_query_label_row(query_label),
             # 風險卡的標題本身就是關鍵結論 → 依語意上色；其他卡片標題維持黑字，只替 status / 宣稱風險短語上色
             _text(heading, "title", color=_tone_color(payload) if payload.response_type == ResponseType.RISK else COLOR_TITLE,
@@ -433,9 +436,12 @@ class AdaptiveLineRenderer:
             *([_text(badge, "body", color=_tone_color(payload), weight="bold")] if badge else []),
             *_status_rows(payload),
         ]
-        notes = [_text(_clip(w, 120), "note", color=COLOR_MUTED) for w in payload.warnings[:MAX_WARNINGS]]
+        # 與已顯示的重點完全相同的附註不重複渲染（只比對呈現文字，不改 payload）
+        shown_points = {p.strip() for p in payload.key_points[:MAX_KEY_POINTS]}
+        notes = [_text(_clip(w, 120), "note", color=COLOR_BODY) for w in payload.warnings[:MAX_WARNINGS]
+                 if w.strip() not in shown_points]
         if payload.source_count:
-            notes.append(_text(f"官方資料來源 {payload.source_count} 筆", "note", color=COLOR_MUTED))
+            notes.append(_text(f"官方資料來源 {payload.source_count} 筆", "note", color=COLOR_LABEL))
         body = [_section(header, margin="none"), _separator(), *TEMPLATES[payload.response_type](payload)]
         if notes:
             body += [_separator(), _section(notes)]
@@ -474,7 +480,7 @@ class AdaptiveLineRenderer:
     def render_collection_control(self, text: str, start_data: str, cancel_data: str,
                                   start_label: str = "開始分析", cancel_label: str = "取消") -> dict[str, Any]:
         """多照片蒐集的控制卡：按鈕在卡片內（Quick Reply 會在使用者傳照片後消失，蒐集期間需要一直在）。"""
-        body = [_text("多照片辨識", "section", color=COLOR_MUTED), _text(text, "body")]
+        body = [_text("多照片辨識", "section", color=COLOR_LABEL), _text(text, "body")]
         footer = [
             _button_component({"type": "postback", "label": start_label, "data": start_data, "displayText": start_label},
                               style="primary", color=BUTTON_DARK),
@@ -510,7 +516,7 @@ class AdaptiveLineRenderer:
         def group(title: str, items: list, limit: int) -> list[dict[str, Any]]:
             if not items:
                 return []
-            rows = [_text(title, "note", color=COLOR_MUTED, weight="bold"),
+            rows = [_text(title, "note", color=COLOR_LABEL, weight="bold"),
                     *[_bullet(_clip(f"{i.text}{refs(i.source_images)}", MAX_DETAIL_PARAGRAPH_CHARS)) for i in items[:limit]]]
             if len(items) > limit:
                 rows.append(_text(f"（另有 {len(items) - limit} 項未顯示）", "note", color=COLOR_MUTED))
@@ -521,7 +527,7 @@ class AdaptiveLineRenderer:
                          group("品牌", observation.brands, MAX_OBSERVED_ITEMS),
                          group("公司", observation.companies, MAX_OBSERVED_ITEMS),
                          group("許可證字號", observation.permit_numbers, MAX_OBSERVED_ITEMS),
-                         ([_text("宣稱文字", "note", color=COLOR_MUTED, weight="bold"), *claim_rows] if claim_rows else []),
+                         ([_text("宣稱文字", "note", color=COLOR_LABEL, weight="bold"), *claim_rows] if claim_rows else []),
                          group("成分", observation.ingredients, MAX_OBSERVED_ITEMS),
                          group("警語與注意事項", observation.warnings, MAX_OBSERVED_ITEMS),
                          group("其他文字", observation.other_text, MAX_OBSERVED_ITEMS))
