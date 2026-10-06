@@ -20,6 +20,7 @@ import logging
 
 from app.normalization import extract_permit_code, normalize_name
 from app.schemas.enums import EntityType, Intent, ProductConfirmationSource, ProductReferenceStatus
+from app.schemas.interaction import InteractionSubject, InteractionSubjectKind
 from app.schemas.user_request import ConfirmedProduct, ContextEntity, NormalizedUserRequest, UserConfirmedTarget
 
 logger = logging.getLogger("nutri_safe_ai.context_binding")
@@ -83,6 +84,19 @@ def bind_confirmed_product(request: NormalizedUserRequest, confirmed: ConfirmedP
         "request_id": request.request_id, "stage": "confirmed_product_bound",
         "selected_product_id": confirmed.product_id, "match_type": confirmed.confirmation_source.value})
     return bound
+
+
+def bind_interaction_overview(request: NormalizedUserRequest, confirmed: ConfirmedProduct | None) -> NormalizedUserRequest:
+    """泛指的交互作用總覽：以 task context 中已確認的產品（canonical 字號）作為唯一的對象；沒有已確認產品時不綁定
+    （Agent B 會請使用者先指定產品）。不把任何泛稱當成產品名稱。"""
+    if not request.interaction_overview or request.interaction_subjects or confirmed is None:
+        return request
+    subject = InteractionSubject(text=confirmed.official_product_name, kind=InteractionSubjectKind.PRODUCT,
+                                 pinned_permit_number=confirmed.permit_number, pinned_product_name=confirmed.official_product_name,
+                                 selection_order=1)
+    logger.info("context_bound", extra={"request_id": request.request_id, "stage": "interaction_overview_bound",
+                                        "selected_product_id": confirmed.product_id, "match_type": confirmed.confirmation_source.value})
+    return request.model_copy(update={"interaction_subjects": [subject], "adapter_notes": request.adapter_notes + [BOUND_NOTE]})
 
 
 def is_bound_from_context(request: NormalizedUserRequest) -> bool:

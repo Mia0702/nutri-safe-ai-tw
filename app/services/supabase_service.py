@@ -398,6 +398,18 @@ class SupabaseInteractionRepository:
 
         return self._cached("drugs", load)
 
+    def find_taiwan_drug_ingredient(self, text: str) -> dict[str, Any] | None:
+        """台灣官方藥品成分名錄（0007；唯讀；normalized exact name）。名錄成員資格不是 interaction 證據。"""
+        from app.ingestion.taiwan_drug_catalog import normalize_exact_name
+
+        key = normalize_exact_name(text)
+        if not key:
+            return None
+        rows = self._db.select(self._db.table("taiwan_drug_ingredients").select(
+            "ingredient_code,official_name,active_permit_count,rank,interaction_mapping_status,mapped_drug_substance_id")
+            .eq("normalized_exact_name", key).limit(2))
+        return rows[0] if len(rows) == 1 else None  # 同名多筆（理論上不會）→ 不猜
+
     def get_interactions_involving(self, entity_ids: list[str]) -> list[dict[str, Any]]:
         if not entity_ids:
             return []

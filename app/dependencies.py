@@ -64,8 +64,13 @@ def build_pipeline(settings: Settings) -> AnalysisPipeline:
         graph_repo = Neo4jGraphRepository(Neo4jService(settings))
 
     reporter = ReporterAgent(llm)
+    vocabulary = None
+    if official_repo is not None and interaction_repo is not None:  # 語音詞彙提示：只用已審核的 Interaction Corpus 名稱
+        from app.services.asr_vocabulary import InteractionVocabularyProvider
+
+        vocabulary = InteractionVocabularyProvider(official_repo.get_ingredient_bridge_reference, interaction_repo.get_drug_reference)
     return AnalysisPipeline(
-        intake=IntakeAgent(llm or _UnavailableLLM()),
+        intake=IntakeAgent(llm or _UnavailableLLM(), vocabulary_provider=vocabulary),
         verifier=VerificationAgent(
             official_repo=official_repo,
             graph_repo=graph_repo,

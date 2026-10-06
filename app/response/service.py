@@ -18,7 +18,8 @@
 import logging
 import time
 import uuid
-from datetime import datetime, timezone
+from collections import OrderedDict
+from datetime import datetime, timedelta, timezone
 from concurrent.futures import Future, ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
 from typing import Any
@@ -29,6 +30,7 @@ from app.pipeline import (
     context_entities_for_turn,
     is_multi_product_comparison,
     request_for_package_claims,
+    request_for_selected_asr_entity,
     request_for_selected_product,
 )
 from app.response.actions import parse_postback_data, reachable_actions
@@ -52,6 +54,7 @@ from app.schemas.enums import (
     ProductVerificationStatus,
     ResponseAction,
 )
+from app.schemas.interaction import SubjectResolutionStatus
 from app.schemas.user_request import ConfirmedProduct, PendingClarification, RawUserInput
 from app.services.clarification import (
     classify_dialogue_act,
@@ -102,6 +105,12 @@ def confirmed_product_update(result, request_id: str, source: ProductConfirmatio
     return None, explicit
 
 
+ASR_CONFIRM_TTL = timedelta(minutes=10)  # 語音候選確認的有效時間（同 pending clarification）
+ASR_EXPIRED_TEXT = "這個確認已經失效了，請再說一次你的問題，或改用文字輸入。"
+ASR_REJECTED_TEXT = "好的，請直接輸入，或重新說一次你的問題。"
+ASR_INVALID_TEXT = "這個選項不屬於這個問題，請重新輸入或再說一次。"
+MAX_DISMISSED_ASR = 1000
+
 PREVIOUS_IMAGE_MISSING_TEXT = "找不到上一張圖片的辨識內容（可能已過期），請重新傳送圖片。"
 FOCUS_NAMES = {ObservationFocus.INGREDIENTS: "成分", ObservationFocus.CLAIMS: "宣稱", ObservationFocus.WARNINGS: "警語",
                ObservationFocus.ALL: "資訊"}
@@ -128,6 +137,12 @@ class AdaptiveResponseService:
         self._timeout = timeout_seconds
         self._executor = executor or ThreadPoolExecutor(max_workers=8, thread_name_prefix="analysis")
         self._contexts = context_store
+        self._asr_used: OrderedDict[str, None] = OrderedDict()  # 已確認 / 已取消的語音候選卡（每張只能處理一次）
+
+    def _mark_asr_used(self, request_id: str) -> None:
+        self._asr_used[request_id] = None
+        while len(self._asr_used) > MAX_DISMISSED_ASR:
+            self._asr_used.popitem(last=False)
 
     def _await(self, future: Future, request_id: str, stage: str):
         try:
@@ -352,6 +367,49 @@ class AdaptiveResponseService:
                                   clear_products=is_multi_product_comparison(result.normalized_request, result.evidence))
         return self._renderer.render_primary(result.response, query_label=record.query_label)
 
+    def select_asr_entity(self, record: RequestRecord, candidate_id: str, owner_id: str | None, channel: str = "line",
+                          request_id: str | None = None) -> dict[str, Any]:
+        """語音候選按鈕：驗證（同一位使用者、原題仍在、未過期、候選確實是那一題提供的）→ 以原題的結構化 request 繼續，
+        把「那一個」無法辨識的對象固定成所選 canonical entity（不重跑 Controller、不把按鈕文字當新問題、不寫任何資料 / alias）。"""
+        research = record.evidence.interaction_research if record.evidence is not None else None
+        if (record.request_id in self._asr_used or record.normalized_request is None or research is None
+                or datetime.now(timezone.utc) - record.created_at > ASR_CONFIRM_TTL):
+            logger.info("line_stage", extra={"request_id": record.request_id, "stage": "select_asr_entity_rejected"})
+            return self._renderer.render_notice(ASR_EXPIRED_TEXT, query_label=record.query_label)
+        subject = next((s for s in research.subjects
+                        if s.status == SubjectResolutionStatus.ENTITY_CANDIDATE_NEEDS_CONFIRMATION), None)
+        if subject is None or candidate_id not in {c.entity_id for c in subject.candidates}:
+            return self._renderer.render_notice(ASR_INVALID_TEXT, query_label=record.query_label)
+        self._mark_asr_used(record.request_id)
+        request_id = request_id or str(uuid.uuid4())
+        request = request_for_selected_asr_entity(record.normalized_request, subject.text, candidate_id, request_id)
+        session_id = self._contexts.snapshot(owner_id).session_id if self._contexts is not None and owner_id else None
+        started = time.monotonic()
+        future = self._executor.submit(self._pipeline.resume_with_request, request, channel, record.raw_input.input_type.value)
+        result = self._await(future, request_id, "select_asr_entity")
+        logger.info("line_stage", extra={
+            "request_id": request_id, "stage": "select_asr_entity_done" if result is not None else "select_asr_entity_timeout",
+            "duration_ms": int((time.monotonic() - started) * 1000)})
+        if result is None:
+            payload = error_payload(request_id, TIMEOUT_SUMMARY).model_copy(update={"available_actions": []})
+            self._store.save(RequestRecord(request_id=request_id, owner_id=owner_id, raw_input=record.raw_input, response=payload,
+                                           query_label=record.query_label, received_at=record.received_at))
+            return self._renderer.render_primary(payload, query_label=record.query_label)
+        self._store.save(RequestRecord(
+            request_id=request_id, owner_id=owner_id, raw_input=record.raw_input, response=result.response,
+            normalized_request=result.normalized_request, evidence=result.evidence, risk=result.risk,
+            query_label=record.query_label, received_at=record.received_at))
+        if session_id is not None:
+            self._contexts.record(owner_id, session_id, request_id, request.normalized_text, request.intent,
+                                  context_entities_for_turn(result),
+                                  clear_products=is_multi_product_comparison(result.normalized_request, result.evidence))
+        return self._renderer.render_primary(result.response, query_label=record.query_label)
+
+    def reject_asr_entity(self, record: RequestRecord) -> dict[str, Any]:
+        """「不是，重新輸入」：取消這一題的語音候選（之後不能再用這張卡確認）。"""
+        self._mark_asr_used(record.request_id)
+        return self._renderer.render_notice(ASR_REJECTED_TEXT, query_label=record.query_label)
+
     def check_package_claims(self, record: RequestRecord, owner_id: str | None, channel: str = "line",
                              request_id: str | None = None) -> dict[str, Any]:
         """「檢視包裝宣稱」：只用這一題在圖片分析時保存的結構化觀察，deterministic 整理成明細卡。
@@ -374,6 +432,10 @@ class AdaptiveResponseService:
         record = self._store.get(act.request_id)
         if record is None or record.owner_id != owner_id:  # 不洩漏他人的查詢，也不猜是哪一題
             return self._renderer.render_notice(EXPIRED_ACTION_TEXT)
+        if act.action == ResponseAction.SELECT_ASR_ENTITY:
+            return self.select_asr_entity(record, act.candidate_id, owner_id, channel=channel, request_id=request_id)
+        if act.action == ResponseAction.REJECT_ASR_ENTITY:
+            return self.reject_asr_entity(record)
         if act.action == ResponseAction.SELECT_PRODUCT:
             return self.select_product(record, act.candidate_id, owner_id, channel=channel, request_id=request_id)
         if act.action == ResponseAction.RETRY:  # 同一張圖片：沿用原本的收到時間

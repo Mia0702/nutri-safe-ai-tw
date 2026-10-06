@@ -35,6 +35,7 @@ from app.schemas.interaction import (
     SubjectResolution,
     SubjectResolutionStatus,
 )
+from app.schemas.response import EntityChoice
 from app.schemas.user_request import NormalizedUserRequest
 from app.services.errors import ServiceError
 from app.services.interaction_service import VIA_FORM
@@ -72,8 +73,14 @@ GAP_EVIDENCE_FOUND = "找到一些相關資料，但目前不足以形成結構�
 GAP_NO_EVIDENCE = "目前也沒有足夠證據可下結論。"
 
 
-def coverage_gap_sentence(names: list[str]) -> str:
-    """資料涵蓋缺口（不是拼錯字）：結構化交互作用資料尚未收錄這些成分 / 藥物。"""
+def coverage_gap_sentence(names: list[str], catalog: dict[str, str] | None = None) -> str:
+    """資料涵蓋缺口（不是拼錯字）：結構化交互作用資料尚未收錄這些成分 / 藥物。
+
+    對象已在台灣官方藥品成分名錄辨識到時，先如實說「已辨識到台灣官方藥品成分」（名錄只是 identity，不是交互作用證據）。
+    """
+    recognized = [(catalog or {})[n] for n in names if n in (catalog or {})]
+    if recognized and len(recognized) == len(names):
+        return f"已辨識到台灣官方藥品成分{'、'.join(f'『{n}』' for n in recognized[:2])}，但目前結構化交互作用資料尚未收錄這組關係。"
     shown = "、".join(f"『{n}』" for n in names[:2]) + (f"等 {len(names)} 項" if len(names) > 2 else "")
     return f"目前結構化交互作用資料尚未收錄{shown}，因此無法直接用知識圖譜判定。"
 
@@ -227,6 +234,7 @@ class InteractionCard:
     status_line: str | None = None
     status_tone: SemanticTone | None = None
     actions: list[ResponseAction] = field(default_factory=list)
+    entity_choices: list = field(default_factory=list)  # 語音候選成分（EntityChoice）：確認 / 選擇按鈕
     defer_to_generic: bool = False  # 產品候選確認：沿用既有確認卡（候選按鈕）
 
 
@@ -409,10 +417,59 @@ def _compose_duplicate_answer(research: InteractionResearch, names: _Names) -> t
     return ("以已確認的成分比對，沒有找到重複的成分。", reason, ["尚未辨識的成分不在比對範圍內。"], STATUS_NO_DUPLICATE)
 
 
+STATUS_SHORT = {
+    Status.CONCLUSION_ELIGIBLE: "有可用的證據（適用條件尚待確認）",
+    Status.EVIDENCE_CONFLICT: "證據不一致",
+    Status.NEEDS_REVIEW: "資料庫尚待審核",
+    Status.INSUFFICIENT_FOR_CONCLUSION: "只有背景或輔助證據",
+    Status.LINEAGE_NOT_INHERITED: "不能直接套用到這項產品",
+}
+OVERVIEW_MAX_PARTNERS = 3
+OVERVIEW_NO_RECORD_TITLE = "目前結構化交互作用資料中沒有找到可直接列出的紀錄"
+OVERVIEW_NO_RECORD_SUMMARY = "這不代表一定沒有交互作用。若想比較特定產品或藥物，可以直接輸入名稱。"
+OVERVIEW_SUMMARY = "以下只列出資料庫已收錄的對象，不代表其他組合沒有交互作用。若想比較特定產品或藥物，可以直接輸入名稱。"
+STATUS_OVERVIEW = "資料庫已收錄的對象"
+
+
+def overview_partners(research: InteractionResearch, names: _Names) -> list[tuple[str, str, InteractionFinding]]:
+    """(產品所含成分名稱, 交互作用對象名稱, finding)：依結論資格排序、每個對象只列一次、最多 3 個；全部取自結構化 finding。"""
+    out, seen = [], set()
+    for f in _ranked_findings(research):
+        own_id = f.subject_matches[0].entity_id if f.subject_matches else None
+        partner = next((p.entity for p in f.participants if p.entity.entity_id != own_id), None)
+        own = next((p.entity for p in f.participants if p.entity.entity_id == own_id), None)
+        if partner is None or partner.entity_id in seen or not entity_label(partner):
+            continue
+        seen.add(partner.entity_id)
+        out.append((entity_label(own) or names.name(own_id), entity_label(partner), f))
+        if len(out) >= OVERVIEW_MAX_PARTNERS:
+            break
+    return out
+
+
+def _compose_overview(request: NormalizedUserRequest, bundle: EvidenceBundle) -> InteractionCard:
+    """目前產品的泛指交互作用總覽：列出（最多 3 個）corpus 已知的交互作用對象與證據狀態；不下肯定結論、不建立產品 ↔ 產品關係。"""
+    research = bundle.interaction_research
+    names = _Names(research)
+    product = (research.subjects[0].product_name or research.subjects[0].text) if research.subjects else "這項產品"
+    warnings = [NOT_PRODUCT_RISK, DISCLAIMER]
+    partners = overview_partners(research, names)
+    if not partners:
+        return InteractionCard(response_type=ResponseType.INTERACTION_RESULT, title=OVERVIEW_NO_RECORD_TITLE,
+                               summary=OVERVIEW_NO_RECORD_SUMMARY, key_points=[], warnings=warnings,
+                               status_line=STATUS_NO_RECORD, status_tone=SemanticTone.ORANGE, actions=_actions(research))
+    points = [_fit(f"{_quote(own)}與{_quote(partner)}：{STATUS_SHORT[f.conclusion_status]}") for own, partner, f in partners]
+    return InteractionCard(response_type=ResponseType.INTERACTION_RESULT, title=f"{_quote(product)}所含成分有這些已知的交互作用對象",
+                           summary=OVERVIEW_SUMMARY, key_points=points, warnings=warnings, status_line=STATUS_OVERVIEW,
+                           status_tone=SemanticTone.ORANGE, actions=_actions(research))
+
+
 def _compose_result(request: NormalizedUserRequest, bundle: EvidenceBundle) -> InteractionCard:
     """Answer-first：標題 = 直接回答使用者的問題；summary = 一句原因；重點（≤ 3）= 限制 / 還需要的資訊。
     證據筆數、來源、證據方向、技術說明都在按鈕（為什麼？/ 查看證據 / 查看成分對應）。"""
     research = bundle.interaction_research
+    if research.mode == InteractionMode.CURRENT_PRODUCT_OVERVIEW:
+        return _compose_overview(request, bundle)
     names = _Names(research)
     warnings = ([NOT_PRODUCT_RISK] if _has_product_subject(research) else []) + [DISCLAIMER]
     question = question_of(request, research)
@@ -426,7 +483,7 @@ def _compose_result(request: NormalizedUserRequest, bundle: EvidenceBundle) -> I
         pair_text = _pair(*[_quote(s.text) for s in research.subjects[:2]]) if len(research.subjects) >= 2 else "這組對象"
         return InteractionCard(
             response_type=ResponseType.INTERACTION_RESULT, title=_direct_answer(question, ANSWER_NO_RECORD, pair_text),
-            summary=coverage_gap_sentence(research.coverage_gap_subjects),
+            summary=coverage_gap_sentence(research.coverage_gap_subjects, research.catalog_recognized),
             key_points=[_gap_evidence_point(bundle), NO_RECORD_MEANING, LIMIT_BY_ANSWER[ANSWER_NO_RECORD]],
             warnings=warnings, status_line=STATUS_COVERAGE_GAP, status_tone=SemanticTone.ORANGE, actions=_actions(research))
     top = findings[0] if findings else None
@@ -449,9 +506,10 @@ def _compose_result(request: NormalizedUserRequest, bundle: EvidenceBundle) -> I
 # --------------------------------------------------------------------------- 需要補充（clarification）
 
 
-def _clarify(summary: str, points: list[str], actions: list[ResponseAction] | None = None) -> InteractionCard:
+def _clarify(summary: str, points: list[str], actions: list[ResponseAction] | None = None,
+             entity_choices: list | None = None) -> InteractionCard:
     return InteractionCard(response_type=ResponseType.MISSING_INFORMATION, title=TITLE_CLARIFY, summary=summary,
-                           key_points=points, actions=actions or [])
+                           key_points=points, actions=actions or [], entity_choices=entity_choices or [])
 
 
 def _clarification(request: NormalizedUserRequest, bundle: EvidenceBundle) -> InteractionCard:
@@ -460,6 +518,8 @@ def _clarification(request: NormalizedUserRequest, bundle: EvidenceBundle) -> In
         # 查詢失敗 / 資料尚未可用：如實說明，不當成「查無」，也不產生任何結論
         return _clarify("交互作用資料暫時查詢不到，這次沒有結果。請稍後再按「重新查詢」。", [],
                         [ResponseAction.RETRY])
+    if research.clarification_reason == "OVERVIEW_NEEDS_CURRENT_PRODUCT":
+        return _clarify("要看這個產品有哪些交互作用，請先告訴我是哪一個產品（品名或許可證字號）。", [])
     match = bundle.product_match
     if match.candidates and (match.is_ambiguous or match.needs_confirmation):
         return InteractionCard(response_type=ResponseType.MISSING_INFORMATION, title=TITLE_CLARIFY, summary="",
@@ -479,6 +539,11 @@ def _clarification(request: NormalizedUserRequest, bundle: EvidenceBundle) -> In
             return _clarify(f"{label}目前無法對應到藥品的有效成分，所以不能查它的交互作用。",
                             ["目前只能用藥品的有效成分名稱（英文）查詢，還不能從商品名判斷是哪一種藥。",
                              "請補充藥品的有效成分，我再幫你查。"])
+        if s.status == SubjectResolutionStatus.ENTITY_CANDIDATE_NEEDS_CONFIRMATION:
+            choices = [EntityChoice(entity_id=c.entity_id, label=entity_label(c)) for c in s.candidates if entity_label(c)]
+            if len(choices) == 1:  # 按鈕確認後直接用這個 identity 繼續原本的問題（不需要使用者再說一次）
+                return _clarify(f"我聽到『{s.text}』，你是要問『{choices[0].label}』嗎？", [], entity_choices=choices)
+            return _clarify(f"我聽到『{s.text}』，你是要問下面哪一個？", [], entity_choices=choices)
         if s.status == SubjectResolutionStatus.AMBIGUOUS:
             return _clarify(f"{label}可能是成分，也可能是藥品，我還不確定你指的是哪一個。",
                             ["請補充說明，例如寫出完整的成分或藥品名稱。"])
@@ -551,6 +616,77 @@ def evidence_detail(request: NormalizedUserRequest, bundle: EvidenceBundle) -> l
     return body or ["這次沒有可列出的交互作用證據來源。"]
 
 
+EVIDENCE_SUMMARY_MAX_ITEMS = 2
+EVIDENCE_SUMMARY_CHARS = 90
+OPPOSING_ROLES = frozenset({EvidenceDirectionRole.NOT_SUPPORTING, EvidenceDirectionRole.MIXED})
+_CERTAINTY_RANK = {"HIGH": 0, "MODERATE": 1, "LOW": 2}
+
+
+def evidence_total(bundle: EvidenceBundle) -> int:
+    research = bundle.interaction_research
+    return sum(len(f.evidence) for f in research.findings) + sum(len(d.duplicate_rule_evidence) for d in research.duplicates)
+
+
+def _strength_key(item: InteractionEvidenceItem) -> tuple:
+    """代表性證據的排序：官方優先 → certainty（HIGH > MODERATE > LOW）→ evidence_id（穩定排序）。"""
+    return (not item.is_official, _CERTAINTY_RANK.get((item.certainty or "").upper(), 3), item.evidence_id)
+
+
+def representative_evidence(finding: InteractionFinding) -> list[InteractionEvidenceItem]:
+    """依結論資格挑最多 2 筆代表性證據（通用政策，不看任何個別紀錄）：
+    * EVIDENCE_CONFLICT：一筆支持 ＋ 一筆相反 / 不一致（NO_SIGNIFICANT_EFFECT、MIXED）。
+    * CONCLUSION_ELIGIBLE：最多兩筆最強的 DECISION_ELIGIBLE 支持證據。
+    * 其他（NEEDS_REVIEW …）：最多兩筆最相關的證據（支持者優先）。"""
+    items = list(finding.evidence)
+    supporting = sorted((e for e in items if e.counts_as_support), key=_strength_key)
+    if finding.conclusion_status == Status.EVIDENCE_CONFLICT:
+        opposing = sorted((e for e in items if e.direction_role in OPPOSING_ROLES), key=_strength_key)
+        picked = supporting[:1] + opposing[:1]
+    elif finding.conclusion_status == Status.CONCLUSION_ELIGIBLE:
+        decision = [e for e in supporting if e.evidence_use == "DECISION_ELIGIBLE"]
+        picked = (decision or supporting)[:EVIDENCE_SUMMARY_MAX_ITEMS]
+    else:
+        picked = sorted(items, key=lambda e: (not e.counts_as_support,) + _strength_key(e))[:EVIDENCE_SUMMARY_MAX_ITEMS]
+    for item in sorted(items, key=lambda e: (not e.counts_as_support,) + _strength_key(e)):  # 不足兩筆時補齊
+        if len(picked) >= EVIDENCE_SUMMARY_MAX_ITEMS:
+            break
+        if item not in picked:
+            picked.append(item)
+    return picked[:EVIDENCE_SUMMARY_MAX_ITEMS]
+
+
+def _summary_item(item: InteractionEvidenceItem, *, duplicate_rule: bool = False) -> str:
+    """摘要裡的一筆證據：只有證據方向、來源名稱 / 機構、一句已保存的摘要（限制與其他中繼資料留在「全部證據」）。"""
+    source = (item.source_title or "（未命名來源）") + (f"（{item.authority}）" if item.authority else "")
+    lines = [f"・{source}", f"證據方向：{direction_label(item, duplicate_rule=duplicate_rule)}"]
+    if item.result_summary_zh:
+        lines.append(f"摘要：{_clip(item.result_summary_zh, EVIDENCE_SUMMARY_CHARS)}")
+    return "\n".join(lines)
+
+
+def evidence_summary(request: NormalizedUserRequest, bundle: EvidenceBundle) -> list[str]:
+    """「查看證據」預設：簡短摘要——證據總數、整體證據狀態、最多 2 筆代表性證據；完整明細在「查看全部證據」。deterministic。"""
+    research = bundle.interaction_research
+    total = evidence_total(bundle)
+    if total == 0:
+        return ["這次沒有可列出的交互作用證據來源。"]
+    findings = _ranked_findings(research)
+    top = next((f for f in findings if f.evidence), None)
+    if top is not None:
+        support = sum(f.supporting_evidence_count for f in findings)
+        head = [f"共 {total} 筆證據（支持 {support} 筆，不支持、不一致或背景資料 {total - support} 筆）", f"整體：{STATUS_PHRASES[top.conclusion_status]}"]
+        shown = [_summary_item(e) for e in representative_evidence(top)]
+    else:  # 只有重複成分規則的證據
+        rule = next(d for d in research.duplicates if d.duplicate_rule_evidence)
+        head = [f"共 {total} 筆證據", "整體：重複成分說明（不是有害交互作用，也沒有評估攝取量）"]
+        shown = [_summary_item(e, duplicate_rule=True)
+                 for e in sorted(rule.duplicate_rule_evidence, key=_strength_key)[:EVIDENCE_SUMMARY_MAX_ITEMS]]
+    body = ["\n".join(head)] + shown
+    if total > len(shown):
+        body.append(f"另有 {total - len(shown)} 筆證據，可按「查看全部證據」。")
+    return body
+
+
 def _mapping_line(m, raw_forms_listed: set[str]) -> str | None:
     raw = "、".join(m.raw_texts[:2]) if m.raw_texts else ""
     source = f"官方成分「{raw}」" if raw else "官方成分"
@@ -589,25 +725,45 @@ def mapping_detail(request: NormalizedUserRequest, bundle: EvidenceBundle) -> li
     return body or ["這次沒有可列出的成分對應。"]
 
 
+WHY_SECTIONS = (("🔎", "可能影響"), ("💡", "建議"), ("📌", "適用條件"), ("ℹ️", "其他說明"))
+
+
+def _section(emoji_label: tuple[str, str], values: list[str | None]) -> str | None:
+    """一個「為什麼？」區塊（標題＋內容）；沒有內容就省略。內容全部來自已保存的結構化欄位，不由 LLM 改寫。"""
+    items = [v.strip() for v in values if v and v.strip()]
+    return f"{emoji_label[0]} {emoji_label[1]}\n" + "\n".join(items) if items else None
+
+
+def why_sections(f: InteractionFinding, names: _Names) -> list[str]:
+    """把一筆 interaction 的結構化欄位對應到固定區塊（通用對應，沒有任何個別紀錄的句子）：
+    clinical_effect → 可能影響；recommendation / timing_advice → 建議；applicability（條件 / 劑量 / 族群背景）→ 適用條件；
+    mechanism_summary 與資格說明 / 尚未評估的提醒 → 其他說明。"""
+    a = f.applicability
+    eligible = f.conclusion_status == Status.CONCLUSION_ELIGIBLE
+    notes = [f.mechanism_summary, a.dose_context if eligible else None, a.population_context if eligible else None]
+    if eligible:
+        notes.append(APPLICABILITY_NOT_EVALUATED)
+    elif f.conclusion_status == Status.LINEAGE_NOT_INHERITED:
+        notes.append(_lineage_summary(names, f)[0])
+    sections = (
+        _section(WHY_SECTIONS[0], [f.clinical_effect]),
+        _section(WHY_SECTIONS[1], [f.recommendation, a.timing_advice]),
+        _section(WHY_SECTIONS[2], [a.conditions] if eligible else []),
+        _section(WHY_SECTIONS[3], notes),
+    )
+    return [s for s in sections if s]
+
+
 def why_detail(request: NormalizedUserRequest, bundle: EvidenceBundle) -> list[str]:
-    """「為什麼？」：用白話說明資料庫記載的影響與適用條件（deterministic；只重述 interaction_research 的結構化欄位）。"""
+    """「為什麼？」：依固定區塊（🔎 可能影響 / 💡 建議 / 📌 適用條件 / ℹ️ 其他說明）呈現資料庫記載的內容；
+    deterministic，只重述 interaction_research 的結構化欄位；沒有內容的區塊省略。"""
     research = bundle.interaction_research
     names = _Names(research)
     body: list[str] = []
     for f in _ranked_findings(research)[:3]:
         a, b = _finding_sides(names, f)
-        lines = [f"{_pair(a, b)}：{STATUS_PHRASES[f.conclusion_status]}"]
-        for label, value in (("資料庫記載的影響", f.clinical_effect), ("機制說明", f.mechanism_summary),
-                             ("資料庫記載的建議", f.recommendation), ("時間間隔建議", f.applicability.timing_advice)):
-            if value:
-                lines.append(f"・{label}：{value}")
-        if f.conclusion_status == Status.CONCLUSION_ELIGIBLE:
-            if f.applicability.conditions:
-                lines.append(f"・適用條件（資料庫原文）：{f.applicability.conditions}")
-            lines.append(f"・{APPLICABILITY_NOT_EVALUATED}")
-        elif f.conclusion_status == Status.LINEAGE_NOT_INHERITED:
-            lines.append(f"・{_lineage_summary(names, f)[0]}")
-        body.append("\n".join(lines))
+        body.append(f"{_pair(a, b)}：{STATUS_PHRASES[f.conclusion_status]}")
+        body += why_sections(f, names)
     if research.duplicates:
         nutrients = [entity_label(d.nutrient) for d in research.duplicates if entity_label(d.nutrient)]
         lines = [f"重複成分：兩項產品都含有{_list_names(nutrients)}。", f"・{DUPLICATE_MEANING}"]
@@ -616,7 +772,7 @@ def why_detail(request: NormalizedUserRequest, bundle: EvidenceBundle) -> list[s
             lines.append(f"・仍有 {unresolved} 項成分尚未完成辨識，未納入重複成分比對。")
         body.append("\n".join(lines))
     if research.coverage_gap_subjects and not research.findings:
-        body.append("\n".join([coverage_gap_sentence(research.coverage_gap_subjects), f"・{_gap_evidence_point(bundle)}",
+        body.append("\n".join([coverage_gap_sentence(research.coverage_gap_subjects, research.catalog_recognized), f"・{_gap_evidence_point(bundle)}",
                                f"・{NO_RECORD_MEANING}"]))
     elif _no_record_pairs(research) and not research.findings:
         lines = [f"資料庫沒有收錄這組關係。{NO_RECORD_MEANING}"]
@@ -706,7 +862,7 @@ def deterministic_body(request: NormalizedUserRequest, bundle: EvidenceBundle) -
     for p in _no_record_pairs(research):
         lines.append(f"{_pair(_quote(p.subject_a), _quote(p.subject_b))}：交互作用資料庫沒有收錄這組的紀錄。")
     if research.coverage_gap_subjects and not research.findings:
-        lines.append(coverage_gap_sentence(research.coverage_gap_subjects))
+        lines.append(coverage_gap_sentence(research.coverage_gap_subjects, research.catalog_recognized))
     return "\n".join(lines)
 
 

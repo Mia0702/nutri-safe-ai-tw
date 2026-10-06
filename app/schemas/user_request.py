@@ -286,6 +286,12 @@ class IntakeExtraction(BaseModel):
                     "PREVIOUS_IMAGE＝上一張圖片 / 包裝本身（問那張圖上印了什麼、標示了什麼，只有 last_visual_request_available 為 true 才可用）；"
                     "NONE＝都不是（獨立的新問題，或自己已給出明確的產品 / 成分名稱）。依語意判斷，不要只看有沒有「這個」等字眼",
     )
+    interaction_partner_unspecified: bool = Field(
+        default=False,
+        description="intent = interaction_inquiry 時：使用者泛指「它跟其他產品 / 別的東西有沒有交互作用」，沒有指定第二個具體的"
+                    "成分 / 藥品 / 產品名稱時為 true（此時 interaction_subjects 不要列出代名詞或「其他產品」這類泛稱）；"
+                    "有明確指名的對象時為 false",
+    )
     interaction_question: InteractionQuestion | None = Field(
         default=None,
         description="interaction_inquiry 且 pairwise 時，使用者實際在問什麼：together_use＝能不能一起吃 / 一起使用；"
@@ -370,6 +376,8 @@ class NormalizedUserRequest(BaseModel):
     interaction_subjects: list[InteractionSubject] = Field(default_factory=list)
     interaction_mode: InteractionMode | None = None
     interaction_question: InteractionQuestion | None = None
+    # 「目前產品」的泛指交互作用總覽（沒有第二個對象）；對象由 pipeline 以 task context 中已確認的產品綁定
+    interaction_overview: bool = False
     # 文字追問指向前文的哪一種對象（見 ContextReference）；PREVIOUS_IMAGE 時 visual_request_id 是被指的圖片 request
     context_reference: ContextReference = ContextReference.NONE
     visual_request_id: str | None = None

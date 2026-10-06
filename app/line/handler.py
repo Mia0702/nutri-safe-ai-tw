@@ -81,6 +81,39 @@ MULTI_NEED_MORE_TEXT = "還沒有收到照片，請先傳至少 1 張同一產�
 MULTI_FULL_TEXT = f"最多只能放 {MAX_COLLECTED_IMAGES} 張，這張沒有加入。請按「開始分析」，或取消後重新開始。"
 
 
+# ---- Rich Menu 說明入口：導覽 / 使用說明，不是使用者的語意問題 → 在 LINE 層固定回覆（不經 Controller / Researcher，不呼叫 LLM / DB / KG / RAG / 網路）
+HELP_PHOTO, HELP_ASK, HELP_VOICE, HELP_TFDA = "photo", "ask", "voice", "tfda"
+HELP_TEXT, HELP_AUDIO = "text", "audio"  # 目前 Rich Menu 送出的兩則固定訊息（完全比對）；postback help=text / help=audio 亦可
+HELP_LABELS = {"拍照查產品": HELP_PHOTO, "直接問問題": HELP_ASK, "語音詢問": HELP_VOICE, "TFDA官方資料查詢": HELP_TFDA,
+               "我想詢問保健食品問題": HELP_TEXT, "我想使用語音詢問": HELP_AUDIO}
+HELP_TEXTS = {
+    HELP_TEXT: ("想問保健食品嗎？直接跟我說就可以！\n點開聊天室左下角的鍵盤，輸入產品名稱、成分、許可證字號，或直接問問題。\n\n"
+                "例如：\n『鋅和銅可以一起吃嗎？』\n『這個產品有哪些成分？』"),
+    HELP_AUDIO: ("不想打字也沒問題！\n點開聊天室的語音功能，直接說出產品名稱或完整問題，我會幫你整理後查詢。\n\n"
+                 "例如可以說：\n『鋅跟銅可以一起吃嗎？』"),
+    HELP_PHOTO: "拍照查產品：傳 1 張產品包裝照片就可以查。一次傳 2–3 張同一產品的照片（例如正面、成分表、許可證字號），系統會自動合併辨識。",
+    HELP_ASK: "直接問問題：可以輸入產品名稱、許可證字號、成分，或問兩個成分／藥品能不能一起吃。查完一個產品後，也可以接著問它的成分、核准功效等。",
+    HELP_VOICE: "語音詢問：直接傳一則語音訊息，說出產品名稱或你想問的問題就可以了。",
+    HELP_TFDA: "TFDA 官方資料查詢：輸入產品名稱或許可證字號，我會對照台灣食藥署（TFDA）的官方資料回覆，也可以貼上官方網頁連結。",
+}
+
+
+def help_key_for_text(text: str) -> str | None:
+    """Rich Menu 文字入口（完全比對固定的選單名稱，忽略空白）；其他文字不是說明入口。"""
+    return HELP_LABELS.get("".join((text or "").split()))
+
+
+def parse_help_postback(data: str) -> str | None:
+    try:
+        fields = parse_qs(data or "", strict_parsing=True, max_num_fields=2)
+    except ValueError:
+        return None
+    values = fields.get("help", [])
+    if set(fields) != {"help"} or len(values) != 1 or values[0] not in HELP_TEXTS:
+        return None
+    return values[0]
+
+
 def multi_postback_data(action: str, session_id: str) -> str:
     return f"multi={action}&sid={session_id}"
 
@@ -218,6 +251,8 @@ class LineWebhookHandler:
             return {"postback_action": f"session_{session}"}
         if (multi := parse_multi_postback(event.postback_data)) is not None:
             return {"postback_action": f"multi_{multi[0]}"}
+        if (help_key := parse_help_postback(event.postback_data)) is not None:
+            return {"postback_action": f"help_{help_key}"}
         if (act := parse_postback_data(event.postback_data)) is not None:
             return {"postback_action": act.action.value, "source_request_id": act.request_id}
         return {"postback_action": "invalid"}
@@ -349,10 +384,14 @@ class LineWebhookHandler:
                 self._contexts.close(user_id)
                 self._collections.clear(user_id)
                 return self._renderer.render_notice(SESSION_END_TEXT)
+            if (help_key := parse_help_postback(event.postback_data)) is not None:
+                return self._renderer.render_notice(HELP_TEXTS[help_key])
             if (multi := parse_multi_postback(event.postback_data)) is not None:
                 return self._handle_multi_postback(multi, user_id, request_id, sent_at)
             return self._service.handle_action(event.postback_data, owner_id=user_id, request_id=request_id)
 
+        if event.message_type == "text" and (help_key := help_key_for_text(event.text)) is not None:
+            return self._renderer.render_notice(HELP_TEXTS[help_key])
         if event.message_type == "text" and event.text.strip() == MULTI_START_COMMAND:
             return self._start_collection(user_id)
         if event.message_type == "image" and event.message_id and self._collections.active(user_id) is not None:

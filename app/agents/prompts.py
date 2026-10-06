@@ -40,6 +40,8 @@ adapter_notes 會說明內容來源與可能的辨識誤差，非官方網頁的
      每個對象另填 concept_recognized：你能合理辨識它是真實的成分 / 營養素 / 草本 / 藥品概念（即使很少見）就填 true；
      看起來是亂打的字、無法辨識的錯字、或你無法判斷它指什麼才填 false。這只是語意判斷，與資料庫有沒有收錄無關。
      其他 intent 時 interaction_subjects 給空陣列、interaction_mode 給 null。
+     使用者泛指「它跟其他產品 / 別的東西有沒有交互作用」、沒有指定第二個具體對象時：interaction_partner_unspecified 填 true，
+     interaction_subjects 不要列出代名詞或「其他產品」這類泛稱（有明確指名的對象才列出，此時填 false）。
      pairwise 時另填 interaction_question：問「能不能一起吃 / 一起用」→ together_use；問「有沒有交互作用 / 衝突」→ interaction_existence；
      問「為什麼會影響 / 怎麼影響」→ explanation；重複成分問題給 null。
    - safety_inquiry：詢問警語、注意事項、誰不能吃、副作用

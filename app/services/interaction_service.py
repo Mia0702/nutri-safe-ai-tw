@@ -17,6 +17,7 @@ C. Product ↔ Product 重複成分：產品先各自經 Bridge 對應到已確�
 from __future__ import annotations
 
 import itertools
+import logging
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Protocol
 
@@ -41,6 +42,8 @@ from app.schemas.interaction import (
     direction_role,
 )
 from app.tools.ingredient_tools import IngredientReference, query_key
+
+logger = logging.getLogger(__name__)
 
 PAIRWISE = "PAIRWISE_INTERACTION"
 DUPLICATE_RULE = "DUPLICATE_INTAKE_RULE"
@@ -126,6 +129,15 @@ class InteractionService:
             self._drug_ref = {"drugs": drugs, "formal": formal}
         return self._drug_ref
 
+    def phonetic_entity_candidates(self, text: str):
+        """語音 ASR 文字無法辨識時：讀音相同 / 相近的已審核成分 identity（候選建議；不是確認）。只用中文名稱。"""
+        from app.services.asr_vocabulary import interaction_terms, phonetic_candidates
+
+        if getattr(self, "_phonetic_terms", None) is None:
+            bridge = {"entities": list(self._ref.entities.values()), "aliases": self._ref.aliases}
+            self._phonetic_terms = [t for t in interaction_terms(bridge, None)]
+        return phonetic_candidates(text, self._phonetic_terms)
+
     def drug_ref(self, drug_id: str) -> EntityRefOut | None:
         d = self._drugs()["drugs"].get(drug_id)
         if d is None:
@@ -164,6 +176,20 @@ class InteractionService:
         if kind == InteractionSubjectKind.DRUG:  # 沒有可靠的藥品 → 活性成分對應（商品名 / 譯名）：不翻譯、不猜
             return SubjectResolutionStatus.DRUG_ACTIVE_SUBSTANCE_UNMAPPED, []
         return SubjectResolutionStatus.UNRESOLVED, []
+
+    def catalog_lookup(self, text: str) -> dict[str, Any] | None:
+        """台灣官方藥品成分名錄（唯讀、exact normalized name）。名錄成員資格只代表「官方藥品成分 identity」，不是 interaction 證據。
+
+        repo 沒有名錄 / 表尚未建立 / 查詢失敗 → None（行為與沒有名錄時完全相同，不影響既有流程）。
+        """
+        finder = getattr(self._repo, "find_taiwan_drug_ingredient", None)
+        if finder is None:
+            return None
+        try:
+            return finder(text)
+        except Exception:  # noqa: BLE001 - 名錄是附加資料層，失敗不得影響既有 interaction 流程
+            logger.warning("taiwan_drug_catalog_lookup_failed")
+            return None
 
     @staticmethod
     def side_from_entities(label: str, entities: Iterable[EntityRefOut]) -> Side:
@@ -236,6 +262,35 @@ class InteractionService:
                                               status=PairStatus.RECORDS_FOUND if found else PairStatus.NO_CORPUS_RECORD,
                                               interaction_ids=found))
         return sorted(findings.values(), key=lambda f: f.interaction_id), pair_coverage
+
+    def overview(self, side: Side) -> list[InteractionFinding]:
+        """某一邊（已確認的目前產品所含的成分 entity）在 corpus 中已知的 pairwise interaction（只列 corpus 已收錄的對象）。
+
+        只用 canonical entity ID；不建立任何 Product ↔ Product 關係；結論資格沿用既有規則（conclusion_status）。"""
+        own = side.best_handles()
+        ids = sorted(own)
+        rows = [r for r in self._repo.get_interactions_involving(ids) if r.get("record_kind") == PAIRWISE] if ids else []
+        matches = []
+        for row in rows:
+            ends = {(p.get("ingredient_entity_id") or p.get("drug_substance_id")) for p in row["participants"]}
+            hits = [own[e] for e in sorted(ends) if e in own]
+            if len(ends) == 2 and hits:
+                matches.append((row, hits))
+        matched_forms = {h.via_entity_id for _, hits in matches for h in hits if h.via_entity_id}
+        links = {l["form_entity_id"]: l for l in self._repo.get_form_nutrient_links(sorted(matched_forms))} if matched_forms else {}
+        evidence = self._evidence([row["interaction_id"] for row, _ in matches])
+        findings = []
+        for row, hits in matches:
+            direct = [h for h in hits if h.match_basis == DIRECT]
+            used = direct or hits
+            identity_match = DIRECT if direct else VIA_FORM
+            via_forms = [h.via_entity_id for h in used if h.via_entity_id]
+            ev = evidence.get(row["interaction_id"], [])
+            status = self.conclusion_status(row, ev, identity_match, self._inherit_allowed(via_forms, links))
+            matched = [SubjectMatch(subject_text=side.label, entity_id=used[0].entity_id, match_basis=used[0].match_basis,
+                                    via_entity_id=used[0].via_entity_id)]
+            findings.append(self._finding(row, ev, status, identity_match, matched))
+        return sorted(findings, key=lambda f: f.interaction_id)
 
     @staticmethod
     def conclusion_status(row: dict[str, Any], evidence: list[InteractionEvidenceItem], identity_match: str,

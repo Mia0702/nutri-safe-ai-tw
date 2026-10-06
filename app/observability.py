@@ -44,6 +44,10 @@ LOG_FIELDS = (
     "parity_path_used",
     "transcription_completed",
     "transcript_normalized",
+    "asr_entity_recovery_used",
+    "recovery_candidate_count",
+    "recovery_confidence",
+    "recovery_proposed_entity",
     # URL source role / stage latency（只有代碼與毫秒數）
     "url_source_roles",
     "official_statement_count",

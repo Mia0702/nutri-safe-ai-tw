@@ -19,7 +19,9 @@ class InteractionMode(StrEnum):
     """Agent A 判斷的問題型態（Interaction inquiry 的子類型）。"""
 
     PAIRWISE = "pairwise"                          # 「A 跟 B 可以一起吃嗎？」「這個跟 warfarin 有衝突嗎？」
-    DUPLICATE_COMPARISON = "duplicate_comparison"  # 「這兩個都有鋅嗎？」（重複成分比較）
+    DUPLICATE_COMPARISON = "duplicate_comparison"
+    # 已確認的「目前產品」問泛指的交互作用對象（沒有指定第二個對象）：列出該產品所含成分在 corpus 中已知的交互作用對象
+    CURRENT_PRODUCT_OVERVIEW = "current_product_overview"  # 「這兩個都有鋅嗎？」（重複成分比較）
 
 
 class InteractionQuestion(StrEnum):
@@ -43,6 +45,8 @@ class SubjectResolutionStatus(StrEnum):
     UNRESOLVED = "UNRESOLVED"                                        # UNKNOWN_TERM：無法可靠辨識它指什麼（不翻譯、不猜）→ 請使用者確認寫法
     # 語意層認得這是合理的成分 / 藥品概念，但 Interaction corpus 沒有 canonical identity（資料涵蓋缺口，不是拼錯字）
     IDENTITY_NOT_IN_INTERACTION_CORPUS = "IDENTITY_NOT_IN_INTERACTION_CORPUS"
+    # 語音：ASR 文字無法辨識，但讀音與語料中的 identity 相同 / 相近 → 只是「候選建議」，一律需使用者確認（不自動採用）
+    ENTITY_CANDIDATE_NEEDS_CONFIRMATION = "ENTITY_CANDIDATE_NEEDS_CONFIRMATION"
     AMBIGUOUS = "AMBIGUOUS"                                          # 同一寫法對到多個 identity（成分 vs 藥品等）
     DRUG_ACTIVE_SUBSTANCE_UNMAPPED = "DRUG_ACTIVE_SUBSTANCE_UNMAPPED"  # 沒有可靠的藥品 → 活性成分對應（例如只有商品名）
     PRODUCT_NEEDS_CONFIRMATION = "PRODUCT_NEEDS_CONFIRMATION"        # 產品未 VERIFIED（多候選 / 低信心 / 查無）
@@ -151,6 +155,8 @@ class InteractionSubject(BaseModel):
     pinned_permit_number: str | None = None
     pinned_product_name: str | None = None
     selection_order: int | None = None
+    # 使用者在語音候選按鈕上確認的 canonical entity（只由系統從「那一題提供過的候選」填入；Controller 不會產生）
+    pinned_entity_id: str | None = None
     # Controller 的語意判斷：這是可合理辨識的成分 / 藥品概念（不代表 corpus 有收錄）；False = 無法可靠辨識
     concept_recognized: bool = False
 
@@ -185,10 +191,14 @@ class SubjectResolution(BaseModel):
     product_confirmed: bool = False
     # 產品對象的 entity 來源：direct = 官方原文直接對應；via_form = 只經 form → group 對應（Bridge lineage）
     via_forms: dict[str, list[str]] = Field(default_factory=dict)     # group entity_id → 產生它的 form entity_id
+    candidates: list[EntityRefOut] = Field(default_factory=list)       # ENTITY_CANDIDATE_NEEDS_CONFIRMATION：建議的 identity（需確認）
+    recovery_confidence: float | None = None
     unresolved_ingredient_count: int = 0                              # 產品仍有幾個官方成分沒有已確認 identity
     ingredient_mappings: list[IngredientMappingOut] = Field(default_factory=list)  # 產品已確認的成分對應（Reporter 用）
     official_ingredient_count: int = 0
     note: str | None = None
+    # 台灣官方藥品成分名錄（只是 identity；不是 interaction 證據）：名錄有、但沒有已審核 DrugSubstance 對應時的官方名稱
+    catalog_official_name: str | None = None
 
 
 class InteractionParticipant(BaseModel):
@@ -318,6 +328,8 @@ class InteractionResearch(BaseModel):
     corpus_sufficient: bool = False
     # IDENTITY_NOT_IN_INTERACTION_CORPUS 的對象（使用者原文名稱）：結構化資料尚未收錄；補查的 RAG / 官方網站只是參考資訊
     coverage_gap_subjects: list[str] = Field(default_factory=list)
+    # coverage gap 對象中，已在台灣官方藥品成分名錄辨識到者：使用者原文 → 官方名稱（只影響措辭；不是證據）
+    catalog_recognized: dict[str, str] = Field(default_factory=dict)
     fallback_used: bool = False
     clarification_reason: str | None = None
 

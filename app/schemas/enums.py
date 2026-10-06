@@ -383,6 +383,9 @@ class ResponseAction(StrEnum):
     POLICY_BASIS = "policy_basis"  # 為什麼 → 法規依據（結構化 claim-policy 規則 / 例示 / 保健功效定義）
     REGISTRATION_INFO = "registration_info"  # 查驗登記／核備類別的產品登記資料（與官方資訊同內容，用語不同）
     INTERACTION_EVIDENCE = "interaction_evidence"  # 交互作用卡 → 證據來源（逐筆保留 supports_direction 語意）
+    INTERACTION_EVIDENCE_ALL = "interaction_evidence_all"  # 證據摘要 → 查看全部證據（完整逐筆明細，deterministic）
+    SELECT_ASR_ENTITY = "select_asr_entity"  # 語音候選成分確認 / 選擇（postback 帶 canonical entity ID，request-scoped）
+    REJECT_ASR_ENTITY = "reject_asr_entity"  # 「不是，重新輸入」：取消這一題的語音候選
     INTERACTION_MAPPING = "interaction_mapping"  # 交互作用卡 → 成分對應（官方成分 → 成分形式 / 營養素類別）
 
 

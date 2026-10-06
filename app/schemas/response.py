@@ -39,6 +39,13 @@ class ProductChoice(BaseModel):
     category_label: str | None = None  # 非健康食品類別的資料類別（跨類別同名時可分辨）
 
 
+class EntityChoice(BaseModel):
+    """語音辨識的候選成分 / 藥品（只來自該題的 Researcher 結果）；按鈕 postback 帶 canonical entity ID。"""
+
+    entity_id: str
+    label: str
+
+
 class ResponsePayload(BaseModel):
     request_id: str
     response_type: ResponseType
@@ -55,6 +62,7 @@ class ResponsePayload(BaseModel):
     sources: list[SourceRef] = Field(default_factory=list)
     # 產品確認卡：可直接點選的候選（Flex action，屬於這一題）；choice_note 是候選下方的補充說明
     product_choices: list[ProductChoice] = Field(default_factory=list)
+    entity_choices: list[EntityChoice] = Field(default_factory=list)  # 語音候選成分確認 / 選擇（MISSING_INFORMATION）
     choice_note: str | None = None
     # 圖片辨識到的少量識別資訊（產品名 / 品牌 / 字號 / 公司）：產品尚未確認時讓使用者知道系統看到了什麼
     recognized_content: list[str] = Field(default_factory=list)
@@ -72,6 +80,8 @@ class ResponsePayload(BaseModel):
             raise ValueError("available_actions 不可重複")
         if self.product_choices and self.response_type != ResponseType.MISSING_INFORMATION:
             raise ValueError("product_choices 只用於產品確認（MISSING_INFORMATION）")
+        if self.entity_choices and self.response_type != ResponseType.MISSING_INFORMATION:
+            raise ValueError("entity_choices 只用於候選確認（MISSING_INFORMATION）")
         if (self.status_line is None) != (self.status_tone is None):
             raise ValueError("status_line 與 status_tone 必須同時提供")
         return self

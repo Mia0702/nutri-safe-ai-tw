@@ -82,7 +82,7 @@ class MediaClient(Protocol):
         self, *, instructions: str, images: list[tuple[bytes, str]], output_model: type[T]
     ) -> T: ...
 
-    def transcribe_audio(self, *, audio: bytes, filename: str) -> str: ...
+    def transcribe_audio(self, *, audio: bytes, filename: str, prompt: str | None = None) -> str: ...
 
 
 def _wrap_openai_error(exc: Exception) -> ServiceError:
@@ -176,12 +176,13 @@ class OpenAIService:
             raise ServiceError(ErrorCode.UPSTREAM_ERROR, "OpenAI 沒有回傳可解析的圖片觀察", "openai")
         return parsed
 
-    def transcribe_audio(self, *, audio: bytes, filename: str) -> str:
+    def transcribe_audio(self, *, audio: bytes, filename: str, prompt: str | None = None) -> str:
+        extra = {"prompt": prompt} if prompt else {}  # 領域詞彙提示（只有名稱清單，不含使用者內容）
         try:
             # 不重試：預設 timeout × 重試會讓語音一題卡到整題逾時
             response = self._client.with_options(max_retries=0).audio.transcriptions.create(
                 model=self._settings.openai_transcription_model, file=(filename, audio),
-                timeout=self._settings.openai_transcription_timeout_seconds,
+                timeout=self._settings.openai_transcription_timeout_seconds, **extra,
             )
         except Exception as exc:  # noqa: BLE001
             raise _wrap_openai_error(exc) from exc

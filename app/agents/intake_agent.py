@@ -137,10 +137,20 @@ def semantic_input_type(raw: RawUserInput) -> InputType:
 
 
 class IntakeAgent:
-    def __init__(self, llm: LLMClient, media: MediaClient | None = None, url_fetcher=fetch_url_content):
+    def __init__(self, llm: LLMClient, media: MediaClient | None = None, url_fetcher=fetch_url_content,
+                 vocabulary_provider=None):
+        self._vocabulary = vocabulary_provider  # 語音轉錄的領域詞彙提示（動態由 Interaction Corpus 建立；None = 不使用）
         self._llm = llm
         self._media = media if media is not None else llm  # OpenAIService 同時實作兩個介面
         self._fetch_url = url_fetcher
+
+    def _vocabulary_prompt(self) -> str | None:
+        if self._vocabulary is None:
+            return None
+        try:
+            return self._vocabulary() or None
+        except Exception:  # noqa: BLE001 - 詞彙提示只是輔助
+            return None
 
     def prepare_input(
         self, request_id: str, raw: RawUserInput
@@ -168,7 +178,7 @@ class IntakeAgent:
             ("analyze_image" if m.kind == "image" else "transcribe_audio",
              {"mime_type": m.mime_type, "size_bytes": len(m.content)},
              (lambda m=m: analyze_image(self._media, m.content, m.mime_type)) if m.kind == "image"
-             else (lambda m=m: transcribe_audio(self._media, m.content, m.filename or "audio.m4a")))
+             else (lambda m=m: transcribe_audio(self._media, m.content, m.filename or "audio.m4a", self._vocabulary_prompt())))
             for m in raw.media if not (bundle_mode and m.kind == "image")
         ]
         if bundle_mode:
@@ -414,7 +424,8 @@ class IntakeAgent:
         needs_rag = ex.needs_rag or any(c.semantic_category in _REGULATORY_CATEGORIES for c in claims)
 
         subjects, interaction_mode = interaction_subjects_for(ex, text, products, ingredients)
-        if subjects:
+        overview = interaction_mode == InteractionMode.CURRENT_PRODUCT_OVERVIEW
+        if subjects or overview:
             # interaction 的產品對象只放 interaction_subjects（逐一由 Agent B 確認）；不放 product_candidates，避免當成單一產品比對
             products, corrected, mentions = [], [], []
             needs_product_lookup = needs_claim_check = needs_graph_lookup = needs_rag = False
@@ -452,6 +463,7 @@ class IntakeAgent:
             source_url=raw.source_url,
             adapter_notes=raw.adapter_notes,
             interaction_subjects=subjects,
+            interaction_overview=overview,
             interaction_mode=interaction_mode,
             interaction_question=ex.interaction_question if subjects else None,
         )
@@ -467,6 +479,12 @@ def interaction_subjects_for(ex: IntakeExtraction, text: str, products: list[str
     """
     if ex.intent != Intent.INTERACTION_INQUIRY:
         return [], None
+    # 泛指的交互作用總覽（Controller 的結構化判斷：沒有指定第二個對象）：沒有任何具體對象，或只有「這個產品」本身的指稱
+    # （唯一的 product 對象 + 本次有未指明產品的指稱）→ 對象由 pipeline 以已確認的目前產品綁定；不把泛稱當成產品名稱查詢
+    lone_reference = (len(ex.interaction_subjects) == 1 and ex.interaction_subjects[0].kind == InteractionSubjectKind.PRODUCT
+                      and ex.refers_to_unspecified_product)
+    if ex.interaction_partner_unspecified and (not ex.interaction_subjects or lone_reference):
+        return [], InteractionMode.CURRENT_PRODUCT_OVERVIEW
     candidates = list(ex.interaction_subjects) or (
         [InteractionSubjectExtraction(text=n, kind=InteractionSubjectKind.PRODUCT) for n in products]
         + [InteractionSubjectExtraction(text=n, kind=InteractionSubjectKind.INGREDIENT, concept_recognized=True)

@@ -28,7 +28,7 @@ from app.schemas.response import ResponsePayload
 from app.schemas.evidence import ProductRecord, ToolError
 from app.schemas.user_request import ContextEntity, ConversationTurn, NormalizedUserRequest, RawUserInput
 from app.services.bare_name_routing import route_bare_name
-from app.services.context_binding import bind_confirmed_product
+from app.services.context_binding import bind_confirmed_product, bind_interaction_overview
 from app.services.errors import ServiceError
 
 logger = logging.getLogger("nutri_safe_ai.pipeline")
@@ -148,6 +148,21 @@ def request_for_selected_interaction_product(
     return original.model_copy(deep=True, update={
         "request_id": request_id, "interaction_subjects": subjects, "input_tools_called": [],
         "adapter_notes": original.adapter_notes + ["使用者從確認卡選定產品"],
+    })
+
+
+def request_for_selected_asr_entity(original: NormalizedUserRequest, heard_text: str, entity_id: str,
+                                    request_id: str) -> NormalizedUserRequest:
+    """使用者在語音候選按鈕上確認 canonical entity 後的 request：沿用原題（intent / 對象 / 問題型態 / 逐字稿），只把「那一個」
+    無法辨識的對象固定成所選 entity（以 pinned_entity_id）；不重跑 Controller，也不把按鈕文字當成新問題。"""
+    subjects, pinned = [], False
+    for s in original.interaction_subjects:
+        if not pinned and s.text == heard_text and not s.pinned_entity_id and not s.pinned_permit_number:
+            s, pinned = s.model_copy(update={"pinned_entity_id": entity_id}), True
+        subjects.append(s)
+    return original.model_copy(deep=True, update={
+        "request_id": request_id, "interaction_subjects": subjects, "input_tools_called": [],
+        "adapter_notes": original.adapter_notes + ["使用者確認了語音辨識的候選成分"],
     })
 
 
@@ -298,6 +313,7 @@ class AnalysisPipeline:
         # 整則訊息只有一個成分名稱時，先判成獨立成分詢問（不沿用前一題產品）；名稱同時是官方產品名稱 → collision
         request = self._verifier.route_bare_name(request)
         request = bind_confirmed_product(request, raw.context.confirmed_product)
+        request = bind_interaction_overview(request, raw.context.confirmed_product)
         return self._evaluate(request, request_id, raw)
 
     def _evaluate(self, request: NormalizedUserRequest, request_id: str,

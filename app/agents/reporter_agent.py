@@ -309,13 +309,19 @@ class ReporterAgent:
     def detail(
         self, action: ResponseAction, request: NormalizedUserRequest, bundle: EvidenceBundle, risk: RiskAssessment
     ) -> DetailPayload:
-        if action in (ResponseAction.INTERACTION_EVIDENCE, ResponseAction.INTERACTION_MAPPING) and ir.is_interaction_request(
-                request, bundle):  # 交互作用的證據來源 / 成分對應：只整理已保存的 interaction_research（deterministic）
-            evidence = action == ResponseAction.INTERACTION_EVIDENCE
-            return DetailPayload(
-                request_id=request.request_id, action=action, title=DETAIL_TITLES[action], query_text=request.normalized_text,
-                body=ir.evidence_detail(request, bundle) if evidence else ir.mapping_detail(request, bundle),
-                available_actions=[ResponseAction.SOURCES] if evidence and bundle.all_sources() else [])
+        if action in (ResponseAction.INTERACTION_EVIDENCE, ResponseAction.INTERACTION_EVIDENCE_ALL,
+                      ResponseAction.INTERACTION_MAPPING) and ir.is_interaction_request(
+                request, bundle):  # 交互作用的證據 / 成分對應：只整理已保存的 interaction_research（deterministic，不查任何資料）
+            if action == ResponseAction.INTERACTION_MAPPING:
+                body, follow_ups = ir.mapping_detail(request, bundle), []
+            elif action == ResponseAction.INTERACTION_EVIDENCE:  # 預設：簡短摘要（漸進揭露）
+                body = ir.evidence_summary(request, bundle)
+                follow_ups = ([ResponseAction.INTERACTION_EVIDENCE_ALL] if ir.evidence_total(bundle) > ir.EVIDENCE_SUMMARY_MAX_ITEMS
+                              else []) + ([ResponseAction.SOURCES] if bundle.all_sources() else [])
+            else:
+                body, follow_ups = ir.evidence_detail(request, bundle), ([ResponseAction.SOURCES] if bundle.all_sources() else [])
+            return DetailPayload(request_id=request.request_id, action=action, title=DETAIL_TITLES[action],
+                                 query_text=request.normalized_text, body=body, available_actions=follow_ups)
         if action == ResponseAction.WHY and ir.is_interaction_request(request, bundle):  # 交互作用的「為什麼？」：deterministic
             return DetailPayload(request_id=request.request_id, action=action, title=DETAIL_TITLES[action],
                                  query_text=request.normalized_text, body=ir.why_detail(request, bundle))
@@ -351,7 +357,8 @@ DETAIL_TITLES = {
     ResponseAction.FULL_EFFICACY: "完整核准功效",
     ResponseAction.WARNINGS: "警語與注意事項",
     ResponseAction.POLICY_BASIS: "法規依據",
-    ResponseAction.INTERACTION_EVIDENCE: "證據來源",
+    ResponseAction.INTERACTION_EVIDENCE: "證據摘要",
+    ResponseAction.INTERACTION_EVIDENCE_ALL: "全部證據來源",
     ResponseAction.INTERACTION_MAPPING: "成分對應",
 }
 MAX_EFFICACY_SUMMARY_CHARS = 40
@@ -1180,7 +1187,7 @@ def compose_payload(request: NormalizedUserRequest, bundle: EvidenceBundle, risk
                 is_conclusive=bool(rtype == ResponseType.INTERACTION_RESULT and bundle.interaction_research.conclusion_eligible),
                 title=card.title, summary=card.summary, key_points=card.key_points, warnings=card.warnings,
                 available_actions=card.actions, source_count=0, sources=official,  # 來源筆數不放在 primary（在「查看證據」）
-                status_line=card.status_line, status_tone=card.status_tone)
+                status_line=card.status_line, status_tone=card.status_tone, entity_choices=card.entity_choices)
     summary, points = _summary_and_points(rtype, request, bundle, risk)
     # 使用者確認的目標已說明差異（字號來自使用者確認，不是圖片）；否則才說明圖片文字辨識差異
     note = user_confirmed_target_note(request) or image_text_difference_note(request, bundle)

@@ -12,3 +12,4 @@ python-multipart
 pytest
 pytest-asyncio
 opencc-python-reimplemented==0.1.7
+pypinyin==0.55.0

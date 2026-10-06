@@ -18,7 +18,12 @@ UI 原則
 import re
 from typing import Any, Callable
 
-from app.response.actions import ACTION_LABELS, build_postback_data, build_select_product_data
+from app.response.actions import (
+    ACTION_LABELS,
+    build_postback_data,
+    build_select_asr_entity_data,
+    build_select_product_data,
+)
 from app.response.package_observation import (
     ORANGE_HINT,
     ObservationFocus,
@@ -392,8 +397,29 @@ class AdaptiveLineRenderer:
         return {"type": "flex", "altText": _clip(alt, MAX_ALT_TEXT_CHARS),
                 "contents": {"type": "carousel", "contents": bubbles}}
 
+    def render_entity_choices(self, payload: ResponsePayload, query_label: str | None = None) -> dict[str, Any]:
+        """語音候選成分確認卡：一個候選 →「確認：X」；多個候選 →「選擇：X」…；一律附「不是，重新輸入」。
+        按鈕只處理這一題（request-scoped postback，帶 canonical entity ID）；候選文字全部來自該題的結構化候選。"""
+        single = len(payload.entity_choices) == 1
+        body = [_text(TYPE_LABELS[payload.response_type], "section", color=COLOR_MUTED), *_query_label_row(query_label),
+                _text(payload.summary, "body", color=COLOR_TITLE, weight="bold"),
+                *[_text(p, "note", color=COLOR_MUTED) for p in payload.key_points[:2]]]
+        footer = []
+        for choice in payload.entity_choices:
+            label = _clip(f"{'確認' if single else '選擇'}：{choice.label}", MAX_CHOICE_BUTTON_CHARS)
+            footer.append(_button_component(
+                {"type": "postback", "label": label, "data": build_select_asr_entity_data(payload.request_id, choice.entity_id),
+                 "displayText": label}, style="primary", color=BUTTON_DARK, margin="sm"))
+        reject = ACTION_LABELS[ResponseAction.REJECT_ASR_ENTITY]
+        footer.append(_button_component(
+            {"type": "postback", "label": reject, "data": build_postback_data(ResponseAction.REJECT_ASR_ENTITY, payload.request_id),
+             "displayText": reject}, style="secondary", margin="sm"))
+        return _message(payload.summary, _bubble(body, footer))
+
     def render_primary(self, payload: ResponsePayload, query_label: str | None = None) -> dict[str, Any]:
         """每個 request 唯一的 primary response：一則 Flex Message（query_label 標示回答的是哪一則輸入）。"""
+        if payload.entity_choices:
+            return self.render_entity_choices(payload, query_label)
         if payload.product_choices:
             return self.render_choices(payload, query_label)
         heading = self.heading(payload)

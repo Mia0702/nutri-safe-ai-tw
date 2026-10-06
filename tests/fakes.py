@@ -132,6 +132,15 @@ class InMemoryInteractionRepo:
         self._check("get_drug_reference")
         return {"drugs": [dict(d) for d in idata.DRUGS], "aliases": [dict(a) for a in idata.DRUG_ALIASES]}
 
+    catalog: list[dict] | None = None  # TEST_ONLY taiwan_drug_ingredients 列（None = 沒有名錄）
+
+    def find_taiwan_drug_ingredient(self, text):
+        from app.ingestion.taiwan_drug_catalog import normalize_exact_name
+
+        self._check("find_taiwan_drug_ingredient")
+        hits = [dict(r) for r in (self.catalog or []) if r["normalized_exact_name"] == normalize_exact_name(text)]
+        return hits[0] if len(hits) == 1 else None
+
     def get_interactions_involving(self, entity_ids):
         self._check("get_interactions_involving")
         wanted = set(entity_ids)
@@ -296,8 +305,9 @@ class FakeLLM:
         value = self.structured.get(output_model)
         return value(images) if callable(value) and not isinstance(value, BaseModel) else value
 
-    def transcribe_audio(self, *, audio, filename):
+    def transcribe_audio(self, *, audio, filename, prompt=None):
         self.calls.append(("transcribe_audio", filename))
+        self.transcription_prompts = getattr(self, "transcription_prompts", []) + [prompt]
         self._maybe_fail("transcribe_audio")
         return self.transcript or "TEST_ONLY 語音：這個可以降血糖嗎"
 

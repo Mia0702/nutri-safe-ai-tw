@@ -34,7 +34,10 @@ ACTION_LABELS = {
     ResponseAction.WARNINGS: "警語與注意事項",
     ResponseAction.POLICY_BASIS: "查看法規依據",
     ResponseAction.INTERACTION_EVIDENCE: "查看證據",
+    ResponseAction.INTERACTION_EVIDENCE_ALL: "查看全部證據",
     ResponseAction.INTERACTION_MAPPING: "查看成分對應",
+    ResponseAction.SELECT_ASR_ENTITY: "確認",
+    ResponseAction.REJECT_ASR_ENTITY: "不是，重新輸入",
 }
 
 # 詳細卡片上的下一層按鈕：只有 primary card 提供了上一層，才允許按下一層（仍是同一個 request_id）
@@ -46,7 +49,8 @@ DETAIL_FOLLOW_UPS: dict[ResponseAction, tuple[ResponseAction, ...]] = {
     # 完整成分 → 成分資料的官方來源
     ResponseAction.INGREDIENTS: (ResponseAction.SOURCES,),
     # 交互作用證據來源 → 可點擊的來源卡（沿用既有 request-scoped SOURCES）
-    ResponseAction.INTERACTION_EVIDENCE: (ResponseAction.SOURCES,),
+    # 證據摘要（預設）→ 全部證據（完整明細）/ 來源卡
+    ResponseAction.INTERACTION_EVIDENCE: (ResponseAction.INTERACTION_EVIDENCE_ALL, ResponseAction.SOURCES),
 }
 
 
@@ -57,7 +61,7 @@ def reachable_actions(primary_actions: list[ResponseAction]) -> set[ResponseActi
     return out
 
 
-_CANDIDATE_ID_RE = re.compile(r"^[A-Za-z0-9-]{1,64}$")
+_CANDIDATE_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")  # 產品 ID（UUID / 短代碼）或 canonical entity ID（含底線）
 
 
 class RequestAction(BaseModel):
@@ -96,7 +100,7 @@ def parse_postback_data(data: str) -> RequestAction | None:
         request_id = str(uuid.UUID(fields.get("request_id", [""])[0]))
     except ValueError:
         return None
-    if action == ResponseAction.SELECT_PRODUCT:
+    if action in (ResponseAction.SELECT_PRODUCT, ResponseAction.SELECT_ASR_ENTITY):
         candidate = fields.get("candidate_id", [""])[0]
         if set(fields) != {"action", "request_id", "candidate_id"} or not _CANDIDATE_ID_RE.match(candidate):
             return None
@@ -104,3 +108,13 @@ def parse_postback_data(data: str) -> RequestAction | None:
     if set(fields) != {"action", "request_id"}:
         return None
     return RequestAction(action=action, request_id=request_id)
+
+
+def build_select_asr_entity_data(request_id: str, entity_id: str) -> str:
+    if not _CANDIDATE_ID_RE.match(entity_id or ""):
+        raise ValueError("entity_id 格式不正確")
+    data = urlencode({"action": ResponseAction.SELECT_ASR_ENTITY.value, "request_id": str(uuid.UUID(request_id)),
+                      "candidate_id": entity_id})
+    if len(data) > MAX_POSTBACK_DATA_CHARS:
+        raise ValueError("postback data 超過 LINE 上限")
+    return data

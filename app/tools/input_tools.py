@@ -164,12 +164,15 @@ def reinspect_image_identity(client: MediaClient, image: bytes, mime_type: str) 
     })
 
 
-def transcribe_audio(client: MediaClient, audio: bytes, filename: str = "audio.m4a") -> InputToolOutput:
+def transcribe_audio(client: MediaClient, audio: bytes, filename: str = "audio.m4a",
+                     prompt: str | None = None) -> InputToolOutput:
     if not audio:
         raise ServiceError(ErrorCode.INVALID_INPUT, "語音內容是空的", "transcribe_audio")
     if len(audio) > MAX_AUDIO_BYTES:
         raise ServiceError(ErrorCode.INVALID_INPUT, "語音檔太大", "transcribe_audio")
-    raw = client.transcribe_audio(audio=audio, filename=filename).strip()
+    # prompt = 領域詞彙提示（動態由 Interaction Corpus 建立；沒有時不傳，行為與原本相同）
+    raw = (client.transcribe_audio(audio=audio, filename=filename, prompt=prompt) if prompt
+           else client.transcribe_audio(audio=audio, filename=filename)).strip()
     transcript = normalize_transcript(raw)  # 簡體字形 → 繁體字形（只處理字形；已是繁體則 no-op）
     notes = ["內容由語音轉文字而來，可能有同音錯字"]
     if transcript.changed:

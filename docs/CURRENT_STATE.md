@@ -1189,3 +1189,22 @@ Supabase：15 DrugSubstance / 25 pairwise Interaction / 17 DuplicateIntakeRule /
 - LINE context / FIFO contracts（FC-E*、FC-F*）
 
 驗證：full pytest 1487 passed / 1 skipped / 0 failed / 0 errors；production read-only 回歸 42 / 42（`docs/DEMO_REGRESSION.md`）；展示小抄 `docs/DEMO_CHEATSHEET.md`。
+
+## Post-freeze demo polish（2026-10-06；`demo-ready-v1` tag 不動，目標 `demo-ready-v1.1`）
+
+- Rich Menu 說明入口在 LINE 層固定回覆（FC-E10）。
+- 語音 Interaction 領域詞彙提示 ＋ 同音錯字候選建議（FC-A7；`app/services/asr_vocabulary.py`；依賴 `pypinyin==0.55.0`）。
+- Interaction「為什麼？」固定分區、「查看證據」摘要 / 「查看全部證據」（FC-E11；新增 `ResponseAction.INTERACTION_EVIDENCE_ALL`）。
+- 未改動：Supabase / Neo4j 資料、Interaction Corpus、eligibility 規則、resolver 門檻、Risk Engine、Ingredient Bridge 語意、multi-image runtime。
+- **對話層修正（2026-10-06，尚未 commit）**：目前產品的泛指交互作用總覽（FC-I8）、語音候選確認按鈕與按鈕續跑原題（FC-A8；新增 `ResponseAction.SELECT_ASR_ENTITY` / `REJECT_ASR_ENTITY`、`InteractionSubject.pinned_entity_id`、`NormalizedUserRequest.interaction_overview`）。tests：`test_overview_and_asr_buttons.py`（16）。
+
+## Taiwan Official Drug Ingredient Catalog（2026-10-06；production 已套用：1026 名錄列、29,846 藥證連結、5 筆 REVIEWED_EXACT_MAP、1021 筆 NOT_MAPPED）
+
+- 資料層（additive）：`migrations/0007_taiwan_drug_ingredient_catalog.sql`（`taiwan_drug_ingredients`、`taiwan_drug_ingredient_permits`；RLS；不動 0001–0006）。
+- 來源：TFDA 開放資料 9123（未註銷藥證，canonical 範圍與「主成分略述」）、9121（詳細處方成分，成分代碼）、9122（只做註銷交叉檢查）。
+- 主成分規則：9121 沒有主成分 / 賦形劑欄位 → 不推測；用 9123「主成分略述」，並以同一藥證內「完全相同名稱」取成分代碼。
+- 工具：`app/ingestion/taiwan_drug_catalog.py`（純函式）、`scripts/import_taiwan_drug_catalog.py`（預設 dry-run；`--apply --confirm-project nutri_safe_ai`）。
+- Runtime（唯讀）：`InteractionService.catalog_lookup` → `InteractionResearchMixin._catalog_resolution`；名錄 ≠ 證據（FC-I9）。
+- Neo4j：不寫入（Supabase-only）。
+- 選取規則：nominal Top 1000，門檻 active_permit_count = 6，105 個並列全保留 → 1026 筆。importer 為 insert-only（不 update / delete）；二次 dry-run：Would INSERT 0 / UPDATE 0 / DELETE 0。
+- 已知限制：名錄只有英文官方名稱；Trastuzumab 因大小寫不同有兩個成分代碼（同一 normalized name）→ runtime 同名多筆不猜（維持原行為）；鹽類 / 形式變體（Warfarin sodium、Levothyroxine sodium…）需人工審核才可對應。

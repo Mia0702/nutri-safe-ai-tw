@@ -338,10 +338,12 @@ def test_primary_card_is_answer_first_and_evidence_is_behind_actions():
         assert leak not in text, leak
     # 渲染順序：標題（直接回答）在原因與限制之前
     assert text.index("目前不能直接判定是否適合一起使用") < text.index("資料顯示：") < text.index("需要確認實際劑量")
-    evidence = texts_of(s.action(rec, ResponseAction.INTERACTION_EVIDENCE))
-    assert "TEST_ONLY 來源 TE_1" in evidence and "證據方向：支持此交互作用紀錄" in evidence and "限制：" in evidence
+    evidence = texts_of(s.action(rec, ResponseAction.INTERACTION_EVIDENCE))  # 預設：簡短摘要
+    assert "TEST_ONLY 來源 TE_1" in evidence and "證據方向：支持此交互作用紀錄" in evidence
+    full = texts_of(s.action(rec, ResponseAction.INTERACTION_EVIDENCE_ALL))  # 完整明細（含限制）
+    assert "TEST_ONLY 來源 TE_1" in full and "限制：" in full
     why = texts_of(s.action(rec, ResponseAction.WHY))
-    assert "資料庫記載的影響：TEST_ONLY 效果" in why and "目前尚未評估，需另外確認適用條件" in why
+    assert "可能影響" in why and "TEST_ONLY 效果" in why and "目前尚未評估，需另外確認適用條件" in why
     assert "證據方向" not in why
 
 
@@ -465,7 +467,7 @@ def test_source_and_mapping_postbacks_are_owner_and_request_scoped():
     s = Service([(HF_ZINC, PRODUCT), ("Testdrug-A", DRUG)], repo=inheriting_repo())
     _, rec = s.send()
     own = s.action(rec, ResponseAction.INTERACTION_EVIDENCE)
-    assert "證據來源" in texts_of(own)
+    assert "證據摘要" in texts_of(own)
     assert EXPIRED_ACTION_TEXT in texts_of(s.action(rec, ResponseAction.INTERACTION_EVIDENCE, owner=OTHER_OWNER))   # 他人不能取
     unknown = build_postback_data(ResponseAction.INTERACTION_EVIDENCE, str(uuid.uuid4()))
     assert EXPIRED_ACTION_TEXT in texts_of(s.svc.handle_action(unknown, OWNER))

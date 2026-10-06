@@ -86,6 +86,8 @@ class InteractionResearchMixin:
         state.interaction_service = service
         research.corpus_version = service.corpus_version
 
+        if request.interaction_overview:  # 目前產品的泛指交互作用總覽：不需要第二個對象
+            return self._verify_overview(request, rec, bundle, state, research, service)
         sides: list[Side] = []
         unresolved_matches: list[ProductMatch] = []
         pinned_matches: list[tuple[int, ProductMatch]] = []
@@ -133,6 +135,7 @@ class InteractionResearchMixin:
             return self._finish_interaction(request, rec, bundle, state)
 
         research.coverage_gap_subjects = [r.text for r in gaps]
+        research.catalog_recognized = {r.text: r.catalog_official_name for r in gaps if r.catalog_official_name}
         if len(sides) >= 2:  # 至少兩個已確認 identity 的對象才有 corpus 配對可查；其餘只有 coverage gap
             self._run_interaction_tools(request, rec, state, service, research, sides)
         if not research.corpus_sufficient and not state.failed:
@@ -144,6 +147,49 @@ class InteractionResearchMixin:
         bundle.planner_trace.append(PlannerStep(
             round=0, note=("Interaction corpus 結構化證據已足夠，不查 RAG / 官方網站" if research.corpus_sufficient
                            else "Interaction corpus 沒有這組紀錄（不代表沒有交互作用）：依既有 Researcher policy 補查")))
+        return self._finish_interaction(request, rec, bundle, state)
+
+    def _verify_overview(self, request, rec, bundle, state, research, service) -> EvidenceBundle:
+        """CURRENT_PRODUCT_INTERACTION_OVERVIEW：已確認的目前產品 → 官方成分 → 已確認的 Bridge mapping → corpus 已知的交互作用對象。
+        不做產品 ↔ 產品比對、不查 RAG / 官方網站（corpus 沒有紀錄也只如實說明）。"""
+        research.mode = InteractionMode.CURRENT_PRODUCT_OVERVIEW
+        if not request.interaction_subjects:  # 沒有已確認的目前產品可以綁定
+            research.status = InteractionResearchStatus.INSUFFICIENT_SUBJECTS
+            research.clarification_reason = "OVERVIEW_NEEDS_CURRENT_PRODUCT"
+            bundle.planner_mode = CLARIFICATION_MODE
+            bundle.fast_path_reason = "interaction_overview:needs_current_product"
+            return self._finish_interaction(request, rec, bundle, state)
+        subject = request.interaction_subjects[0]
+        try:
+            resolution, side, match = self._resolve_subject(request, state, rec, service, subject)
+        except Exception as exc:  # noqa: BLE001 - 查詢失敗不是「沒有紀錄」
+            bundle.errors.append(exc.to_tool_error() if isinstance(exc, ServiceError) else ToolError(
+                code=ErrorCode.INTERNAL_ERROR, message=type(exc).__name__, source="interaction_corpus"))
+            resolution, side, match = SubjectResolution(text=subject.text, kind=subject.kind,
+                                                        status=SubjectResolutionStatus.LOOKUP_FAILED), Side(subject.text), None
+        research.subjects.append(resolution)
+        if match is not None:
+            bundle.product_match = match
+        if resolution.status == SubjectResolutionStatus.LOOKUP_FAILED:
+            research.status = InteractionResearchStatus.CORPUS_UNAVAILABLE
+            return self._finish_interaction(request, rec, bundle, state)
+        if resolution.status != SubjectResolutionStatus.RESOLVED:
+            research.status = InteractionResearchStatus.NEEDS_CLARIFICATION
+            research.clarification_reason = resolution.status.value
+            bundle.planner_mode = CLARIFICATION_MODE
+            bundle.fast_path_reason = f"interaction_overview:{resolution.status.value}"
+            return self._finish_interaction(request, rec, bundle, state)
+        try:
+            research.findings = service.overview(side)
+        except Exception as exc:  # noqa: BLE001
+            bundle.errors.append(exc.to_tool_error() if isinstance(exc, ServiceError) else ToolError(
+                code=ErrorCode.INTERNAL_ERROR, message=type(exc).__name__, source="interaction_corpus"))
+            research.status = InteractionResearchStatus.CORPUS_UNAVAILABLE
+            return self._finish_interaction(request, rec, bundle, state)
+        research.corpus_sufficient = bool(research.findings)
+        bundle.fast_path_reason = f"interaction_overview:{'records' if research.findings else 'no_record'}"
+        bundle.planner_trace.append(PlannerStep(
+            round=0, note="目前產品的交互作用總覽：只列 corpus 已收錄的對象，不查 RAG / 官方網站"))
         return self._finish_interaction(request, rec, bundle, state)
 
     def _finish_interaction(self, request, rec, bundle, state) -> EvidenceBundle:
@@ -173,6 +219,11 @@ class InteractionResearchMixin:
     def _resolve_subject(self, request: NormalizedUserRequest, state: PlannerState, rec: ToolCallRecorder,
                          service: InteractionService, subject: InteractionSubject):
         """→ (SubjectResolution, Side, ProductMatch | None)。"""
+        if subject.pinned_entity_id and (pinned := service.entity_ref(subject.pinned_entity_id)) is not None:
+            # 使用者在語音候選按鈕上確認的 canonical entity（系統只會固定「那一題提供過的候選」）
+            resolution = SubjectResolution(text=subject.text, kind=subject.kind, status=SubjectResolutionStatus.RESOLVED,
+                                           entities=[pinned])
+            return resolution, service.side_from_entities(subject.text, [pinned]), None
         if subject.kind == InteractionSubjectKind.PRODUCT:
             resolution, side, match = self._resolve_product_subject(request, state, rec, service, subject)
             if not (resolution.status == SubjectResolutionStatus.PRODUCT_NEEDS_CONFIRMATION and not match.candidates):
@@ -181,10 +232,50 @@ class InteractionResearchMixin:
             status, entities = service.resolve_named(subject.text, subject.kind)
             if status == SubjectResolutionStatus.RESOLVED:
                 return self._named_resolution(service, subject, status, entities), service.side_from_entities(subject.text, entities), None
+            if status == SubjectResolutionStatus.UNRESOLVED and (recovered := self._recover_asr_entity(request, service, subject)):
+                return recovered, Side(subject.text), None
             return resolution, side, match
         status, entities = service.resolve_named(subject.text, subject.kind)
+        if (status in (SubjectResolutionStatus.UNRESOLVED, SubjectResolutionStatus.DRUG_ACTIVE_SUBSTANCE_UNMAPPED)
+                and subject.kind != InteractionSubjectKind.PRODUCT and (via_catalog := self._catalog_resolution(service, subject))):
+            return via_catalog[0], via_catalog[1], None
+        if status == SubjectResolutionStatus.UNRESOLVED and (recovered := self._recover_asr_entity(request, service, subject)):
+            return recovered, Side(subject.text), None
         return (self._named_resolution(service, subject, status, entities),
                 service.side_from_entities(subject.text, entities), None)
+
+    @staticmethod
+    def _catalog_resolution(service: InteractionService, subject: InteractionSubject):
+        """台灣官方藥品成分名錄（exact）：有已審核對應 → 既有 DrugSubstance 流程；沒有 → 資料涵蓋缺口（官方成分已辨識）。
+
+        名錄成員資格不是 interaction 證據：不建立 finding，也不產生 CONCLUSION_ELIGIBLE。
+        """
+        row = service.catalog_lookup(subject.text)
+        if not row:
+            return None
+        drug = service.drug_ref(row["mapped_drug_substance_id"]) if row.get("mapped_drug_substance_id") else None
+        if drug is not None:
+            return (SubjectResolution(text=subject.text, kind=subject.kind, status=SubjectResolutionStatus.RESOLVED, entities=[drug]),
+                    service.side_from_entities(subject.text, [drug]))
+        return (SubjectResolution(text=subject.text, kind=subject.kind, status=SubjectResolutionStatus.IDENTITY_NOT_IN_INTERACTION_CORPUS,
+                                  catalog_official_name=row["official_name"]), Side(subject.text))
+
+    def _recover_asr_entity(self, request: NormalizedUserRequest, service: InteractionService, subject: InteractionSubject
+                            ) -> SubjectResolution | None:
+        """語音專用：無法辨識的 interaction 對象 → 以讀音找已審核 identity 作為「候選建議」（一律需使用者確認，不自動採用）。"""
+        if request.raw_transcript is None:
+            return None  # 文字輸入 / 其他語音以外的輸入：行為不變
+        candidates = service.phonetic_entity_candidates(subject.text)
+        if not candidates:
+            return None
+        refs = [r for r in (service.entity_ref(c.entity_id) for c in candidates[:3]) if r is not None]
+        best = candidates[0].confidence
+        logger.info("asr_entity_recovery", extra={
+            "request_id": request.request_id, "agent": "verification", "asr_entity_recovery_used": True,
+            "recovery_candidate_count": len(candidates), "recovery_confidence": best,
+            "recovery_proposed_entity": refs[0].canonical_name_en if len(candidates) == 1 and refs else "AMBIGUOUS"})
+        return SubjectResolution(text=subject.text, kind=subject.kind, status=SubjectResolutionStatus.ENTITY_CANDIDATE_NEEDS_CONFIRMATION,
+                                 candidates=refs, recovery_confidence=best)
 
     @staticmethod
     def _named_resolution(service, subject, status, entities) -> SubjectResolution:
