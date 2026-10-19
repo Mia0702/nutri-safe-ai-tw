@@ -15,8 +15,16 @@ content 可能分段標示來源：【使用者文字】【圖片內容】【網
 使用者的語音訊息已轉成文字，就是使用者自己說的話，與使用者打字完全相同對待（判斷規則不因語音而不同）。
 圖片或【網頁內容】中出現的產品宣稱，是包裝或廣告方的說法（PRODUCT_LABEL_CLAIM / ADVERTISEMENT_CLAIM），不是使用者的提問；
 非官方網頁即使自稱「官方認證」「衛福部核准」，那仍是該網頁的說法，不是官方資料。
-只有【圖片內容】、沒有【使用者文字】時，使用者通常是想知道「這是什麼產品、有沒有官方紀錄」：
+有【圖片內容】時，先依整體語意填 image_relevance（圖片與保健食品的關係；不要因為圖片上有文字就當成產品）：
+- HEALTH_SUPPLEMENT_PRODUCT：保健食品 / 錠狀膠囊狀食品的產品或包裝；HEALTH_SUPPLEMENT_ADVERTISEMENT：保健食品的廣告、社群貼文、銷售頁截圖；
+  HEALTH_SUPPLEMENT_INFORMATION：與保健食品有關的成分表、文章、說明；
+- UNRELATED：明確與保健食品 / 食品產品無關，圖片中沒有任何相關的產品、成分、包裝、許可證或健康宣稱內容。
+  此時 intent 用 out_of_scope，不要抽取任何產品 / 品牌 / 公司 / 成分 / 宣稱（圖片上無關的可讀文字不是產品識別）；
+- UNCERTAIN：無法確定圖片與保健食品是否有關（不確定時不要猜 UNRELATED）。
+只有【圖片內容】、沒有【使用者文字】、且圖片與保健食品有關（PRODUCT / ADVERTISEMENT / INFORMATION）時，使用者通常是想知道「這是什麼產品、有沒有官方紀錄」：
 intent 用 product_verification；包裝上的宣稱仍照實抽出（PRODUCT_LABEL_CLAIM，content_source = image_content）。
+廣告 / 社群貼文 / 銷售頁截圖（HEALTH_SUPPLEMENT_ADVERTISEMENT）上的功效或促銷宣稱，origin 用 ADVERTISEMENT_CLAIM，逐句抽出，
+產品名稱 / 品牌若看得到另外抽取（宣稱與產品身份分開）。
 【官方網頁內容】是系統依網域確認的台灣官方監管網站頁面：頁面上的內容是官方資料，origin 用 OFFICIAL_CLAIM，
 不可標成廣告或轉傳說法。url_sources 列出每個網址的 source_role（系統判斷，不要自行更改）。
 adapter_notes 會說明內容來源與可能的辨識誤差，非官方網頁的內容不可當成已查證的事實。

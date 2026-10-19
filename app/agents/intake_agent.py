@@ -23,6 +23,7 @@ from app.risk.claim_policy import is_asserted_disease_claim
 from app.normalization import extract_permit_code, locate_in_text, normalize_name
 from app.schemas.enums import (
     ClaimContentSource,
+    ImageRelevance,
     ClaimOrigin,
     ClaimSemanticCategory,
     ContextReference,
@@ -466,6 +467,7 @@ class IntakeAgent:
             interaction_overview=overview,
             interaction_mode=interaction_mode,
             interaction_question=ex.interaction_question if subjects else None,
+            image_relevance=ex.image_relevance if any(m.kind == "image" for m in raw.media) else ImageRelevance.NOT_APPLICABLE,
         )
 
 
@@ -677,8 +679,18 @@ def apply_image_routing(request: NormalizedUserRequest, *, has_image: bool, only
     """
     if not has_image:
         return
+    if only_image and request.image_relevance == ImageRelevance.UNRELATED:
+        _stop_unrelated_image(request)  # 明確與保健食品無關：不查產品、不查證據（只信 Controller 的語意判斷，不看任何關鍵字）
+        return
     image_claims = [c for c in request.claims if c.content_source == ClaimContentSource.IMAGE_CONTENT
                     or (only_image and c.origin not in _USER_ORIGINS)]
+    advertisement = request.image_relevance == ImageRelevance.HEALTH_SUPPLEMENT_ADVERTISEMENT
+    if advertisement and image_claims:
+        # 廣告截圖：圖片上的宣稱角色固定是 ADVERTISEMENT_CLAIM（與產品身份分開）；不降級成「只辨識產品」
+        retagged = {id(c): c.model_copy(update={"origin": ClaimOrigin.ADVERTISEMENT_CLAIM})
+                    for c in image_claims if c.origin not in _USER_ORIGINS}
+        request.claims = [retagged.get(id(c), c) for c in request.claims]
+        image_claims = [retagged.get(id(c), c) for c in image_claims]
     if not image_claims:
         if only_image and request.intent != Intent.OUT_OF_SCOPE:
             _route_to_identification(request)
@@ -687,6 +699,14 @@ def apply_image_routing(request: NormalizedUserRequest, *, has_image: bool, only
         request.claims_from_package = True  # A. 使用者明確要求查驗
         return
     image_ids = {id(c) for c in image_claims}
+    if advertisement:  # 廣告上的所有宣稱都保留為待評估的 claims（沿用既有 claim policy / claim analysis）
+        request.claims_from_package = True
+        if only_image:
+            request.intent = Intent.CLAIM_VERIFICATION
+        request.image_identification = False
+        request.needs_claim_check = True
+        request.needs_rag = any(c.semantic_category in _REGULATORY_CATEGORIES for c in request.claims)
+        return
     high_risk = [c for c in image_claims if is_asserted_medical_claim(c)]
     request.claims = [c for c in request.claims if id(c) not in image_ids] + high_risk
     request.observed_package_claims = [c for c in image_claims if not is_asserted_medical_claim(c)]
@@ -700,6 +720,24 @@ def apply_image_routing(request: NormalizedUserRequest, *, has_image: bool, only
     request.needs_rag = any(c.semantic_category in _REGULATORY_CATEGORIES for c in request.claims)
     if only_image and request.intent != Intent.OUT_OF_SCOPE:
         _route_to_identification(request)
+
+
+def _stop_unrelated_image(request: NormalizedUserRequest) -> None:
+    """圖片明確與保健食品無關：清掉所有查詢目標，Agent B 看到 image_unrelated 就不呼叫任何工具。
+    圖片上的可讀文字（OCR）本身不代表產品識別，所以一併丟棄。"""
+    request.intent = Intent.OUT_OF_SCOPE
+    request.image_unrelated = True
+    request.image_identification = False
+    request.product_candidates, request.corrected_product_candidates, request.product_mentions = [], [], []
+    request.brand_candidates, request.company_candidates = [], []
+    request.ingredient_candidates, request.permit_number_candidates = [], []
+    request.certification_marks, request.certification_mark_observations = [], []
+    request.claims, request.observed_package_claims = [], []
+    request.interaction_subjects, request.interaction_overview = [], False
+    request.refers_to_unspecified_product = False
+    request.product_reference_status = ProductReferenceStatus.NOT_NEEDED
+    request.needs_product_lookup = request.needs_claim_check = False
+    request.needs_graph_lookup = request.needs_rag = request.needs_official_web_search = False
 
 
 def _route_to_identification(request: NormalizedUserRequest) -> None:

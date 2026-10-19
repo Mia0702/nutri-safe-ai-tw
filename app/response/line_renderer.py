@@ -282,7 +282,8 @@ def _recognized_rows(payload: ResponsePayload) -> list[dict[str, Any]]:
 
 
 def _minimal_body(payload: ResponsePayload) -> list[dict[str, Any]]:
-    return [_text(payload.summary, "body")] + [_text(p, "note", color=COLOR_BODY) for p in payload.key_points[:1]]
+    limit = 2 if payload.response_type == ResponseType.OUT_OF_SCOPE else 1
+    return [_text(payload.summary, "body")] + [_text(p, "note", color=COLOR_BODY) for p in payload.key_points[:limit]]
 
 
 def _missing_info_body(payload: ResponsePayload) -> list[dict[str, Any]]:

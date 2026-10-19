@@ -59,7 +59,7 @@ from app.schemas.evidence import (
     SourceRef,
 )
 from app.schemas.response import CLAIM_RISK_LABEL, RISK_EMOJI, DetailPayload, ProductChoice, ResponsePayload
-from app.schemas.enums import SemanticTone
+from app.schemas.enums import ImageRelevance, SemanticTone
 from app.schemas.risk import RiskAssessment
 from app.schemas.user_request import NormalizedUserRequest
 from app.response.sources import display_source_url
@@ -87,6 +87,14 @@ INFERRED_LINK_NOTE = "註：品牌與公司之間的對應是系統依產品名�
 OFFICIAL_CONFIRMATION_RE = re.compile(r"(?<!非)(?<!不是)(?<!未經)官方(?:已)?(?:確認|證實|認定)")
 # 推測關聯也不得寫成「擁有 / 旗下 / 品牌屬於某公司」等擁有關係
 OWNERSHIP_CLAIM_RE = re.compile(r"旗下|(?<![不非沒])擁有[^，。；\n]{0,8}品牌|品牌(?:是|為)?(?:屬於|歸屬於?|為[^，。；\n]{0,10}所有)")
+IMAGE_UNRELATED_SUMMARY = "這張圖片看起來不是保健食品相關內容。"
+IMAGE_UNRELATED_POINTS = [
+    "目前我主要協助查詢：保健食品／錠狀膠囊狀食品、產品包裝與成分、廣告宣稱、成分與藥物交互作用。",
+    "如果想查產品，可以傳產品包裝照片、產品名稱、成分或相關廣告截圖給我。",
+]
+IMAGE_UNCERTAIN_SUMMARY = "我目前無法確定這張圖片是否是在查保健食品。"
+IMAGE_UNCERTAIN_POINT = "如果要查產品，可以再拍清楚產品名稱、成分表或包裝正面。"
+AD_IDENTITY_UNVERIFIED_NOTE = "目前沒有確認到對應的台灣官方產品紀錄，但圖片中的廣告宣稱仍可另外檢視。"
 OUT_OF_SCOPE_TEXT = "呷安心目前專門協助查證保健食品的資訊，例如產品是否有官方登記、廣告說法是否可信。"
 
 
@@ -245,6 +253,8 @@ class ReporterAgent:
     def report(
         self, request: NormalizedUserRequest, bundle: EvidenceBundle, risk: RiskAssessment
     ) -> ReporterOutput:
+        if request.image_unrelated:
+            return ReporterOutput(text="\n".join([IMAGE_UNRELATED_SUMMARY, *IMAGE_UNRELATED_POINTS]))
         if request.intent == Intent.OUT_OF_SCOPE and not request.claims and not request.has_product_identifiers:
             return ReporterOutput(text=OUT_OF_SCOPE_TEXT + "\n如果你有想查證的保健食品或廣告說法，可以直接傳給我。")
         if ir.is_interaction_request(request, bundle) and ir.interaction_response_type(bundle) == ResponseType.INTERACTION_RESULT:
@@ -1083,6 +1093,8 @@ def _summary_and_points(
         titles = [r.title for r in bundle.rag_evidence] + [w.title for w in bundle.official_web_evidence]
         return f"找到 {len(_dedupe(titles))} 份相關的官方資料。", _dedupe(titles)
     if rtype == ResponseType.OUT_OF_SCOPE:
+        if request.image_unrelated:
+            return IMAGE_UNRELATED_SUMMARY, list(IMAGE_UNRELATED_POINTS)
         return OUT_OF_SCOPE_TEXT, ["如果你有想查證的保健食品或廣告說法，可以直接傳給我。"]
     if request.identity_collision:
         return COLLISION_SUMMARY, [COLLISION_ASK]
@@ -1099,6 +1111,8 @@ def _summary_and_points(
     if request.image_identification:
         if request.product_candidates or request.permit_number_candidates:
             return "圖片中的產品目前在官方資料中找不到對應的紀錄。", [NOT_FOUND_NOT_FAKE, ASK_IMAGE_MORE_INFO]
+        if request.image_relevance == ImageRelevance.UNCERTAIN:  # 不猜是無關圖片，也不假裝在查產品
+            return IMAGE_UNCERTAIN_SUMMARY, [IMAGE_UNCERTAIN_POINT]
         return "這張圖片中沒有辨識到產品名稱或許可證字號。", [ASK_IMAGE_MORE_INFO]
     if request.missing_product_context:
         return "目前不知道你指的是哪一項產品。", [ASK_MORE_INFO]
@@ -1195,6 +1209,9 @@ def compose_payload(request: NormalizedUserRequest, bundle: EvidenceBundle, risk
     note = user_confirmed_target_note(request) or image_text_difference_note(request, bundle)
     if note is not None:
         points = [note] + points
+    if (request.image_relevance == ImageRelevance.HEALTH_SUPPLEMENT_ADVERTISEMENT and request.claims
+            and bundle.product_match.status != ProductVerificationStatus.VERIFIED):
+        points = [AD_IDENTITY_UNVERIFIED_NOTE] + points  # 產品身份與廣告宣稱分開說明；宣稱風險不等於產品風險
     sources = [s for s in bundle.all_sources() if s.is_official]
     warnings = [] if rtype == ResponseType.OUT_OF_SCOPE else list(risk.required_disclaimers)
     if NOT_FOUND_NOT_FAKE_TEXT in points:  # 查無紀錄卡的內容已列出涵蓋類別與「不代表假貨」，不重複放在附註

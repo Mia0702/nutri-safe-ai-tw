@@ -14,6 +14,17 @@ class InputType(StrEnum):
     MIXED = "mixed"
 
 
+class ImageRelevance(StrEnum):
+    """圖片與保健食品領域的相關性（Controller 依 Vision 描述做語意判斷）；NOT_APPLICABLE＝沒有圖片。"""
+
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+    HEALTH_SUPPLEMENT_PRODUCT = "HEALTH_SUPPLEMENT_PRODUCT"  # 產品 / 包裝
+    HEALTH_SUPPLEMENT_ADVERTISEMENT = "HEALTH_SUPPLEMENT_ADVERTISEMENT"  # 廣告 / 社群貼文 / 銷售頁截圖
+    HEALTH_SUPPLEMENT_INFORMATION = "HEALTH_SUPPLEMENT_INFORMATION"  # 成分表、文章、說明文件等
+    UNRELATED = "UNRELATED"  # 明確與保健食品 / 食品產品無關，且沒有任何相關產品、成分、包裝或宣稱內容
+    UNCERTAIN = "UNCERTAIN"  # 無法確定
+
+
 class Intent(StrEnum):
     PRODUCT_VERIFICATION = "product_verification"  # 這個產品有沒有官方登記
     CLAIM_VERIFICATION = "claim_verification"  # 某個功效說法是真的嗎

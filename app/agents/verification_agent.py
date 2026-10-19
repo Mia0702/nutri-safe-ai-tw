@@ -223,6 +223,10 @@ class VerificationAgent(InteractionResearchMixin):
             request=request, bundle=bundle, repo=self._repo, graph=self._graph, rag=self._rag, llm=self._llm,
             rag_top_k=self._rag_top_k, rag_min_similarity=self._rag_min_similarity, claim_policy=self._claim_policy,
         )
+        if request.image_unrelated:  # 圖片明確與保健食品無關：不呼叫任何查詢工具（產品 / 公司 / 字號 / KG / RAG / 官方網站）
+            bundle.planner_mode = "image_unrelated_stop"
+            bundle.fast_path_reason = "image_unrelated"
+            return bundle
         if request.intent == Intent.INTERACTION_INQUIRY:  # Interaction Runtime：獨立研究路徑（其他 intent 流程不變）
             return self._verify_interaction(request, rec, bundle, state)
         # 前文已查證過的產品 ID 可直接使用

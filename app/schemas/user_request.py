@@ -14,6 +14,7 @@ from app.schemas.enums import (
     ClaimOrigin,
     ClaimSemanticCategory,
     EntityType,
+    ImageRelevance,
     EvidenceScope,
     InputType,
     Intent,
@@ -280,6 +281,14 @@ class IntakeExtraction(BaseModel):
         description="pairwise：問兩個以上對象能不能一起吃 / 有沒有衝突；duplicate_comparison：問兩個產品是否都含有同一成分 / 是否重複；"
                     "不是 interaction 問題時給 null",
     )
+    image_relevance: ImageRelevance = Field(
+        default=ImageRelevance.NOT_APPLICABLE,
+        description="只有【圖片內容】時依整體語意判斷這張圖片與保健食品的關係：HEALTH_SUPPLEMENT_PRODUCT＝保健食品 / 錠狀膠囊狀食品的"
+                    "產品或包裝；HEALTH_SUPPLEMENT_ADVERTISEMENT＝保健食品的廣告、社群貼文、銷售頁截圖（含促銷或功效話術）；"
+                    "HEALTH_SUPPLEMENT_INFORMATION＝與保健食品有關的成分表、文章、說明；UNRELATED＝明確與保健食品 / 食品產品無關"
+                    "（沒有任何相關的產品、成分、包裝、許可證或健康宣稱內容；圖片上有可讀文字也不改變這一點）；"
+                    "UNCERTAIN＝無法確定。沒有圖片時給 NOT_APPLICABLE。不要因為圖片有文字就當成產品",
+    )
     context_reference: ContextReference = Field(
         default=ContextReference.NONE,
         description="這句話指的是前文的哪一種對象：CURRENT_PRODUCT＝前文已確認的產品（問它的官方資料，例如成分、登記、功效）；"
@@ -380,6 +389,8 @@ class NormalizedUserRequest(BaseModel):
     interaction_overview: bool = False
     # 文字追問指向前文的哪一種對象（見 ContextReference）；PREVIOUS_IMAGE 時 visual_request_id 是被指的圖片 request
     context_reference: ContextReference = ContextReference.NONE
+    image_relevance: ImageRelevance = ImageRelevance.NOT_APPLICABLE  # Controller 的圖片相關性（語意判斷）
+    image_unrelated: bool = False  # 圖片明確與保健食品無關：在 Researcher / 任何查詢之前停止（deterministic gate 設定）
     visual_request_id: str | None = None
     # 語音輸入：轉錄原文與字形正規化（簡體 → 繁體）後的逐字稿；Controller 與使用者介面使用 normalized_transcript
     raw_transcript: str | None = None
