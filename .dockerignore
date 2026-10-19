@@ -1,0 +1,31 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# VCS / IDE / venv
+.git
+.github
+.vscode
+.venv
+venv
+
+# 測試與暫存
+.pytest_*
+.pytest_cache
+__pycache__
+*.py[cod]
+tests
+logs
+*.log
+
+# 文件與開發用檔案（runtime 不需要）
+docs
+PROMPTS
+migrations
+scripts
+*.ps1
+README*.md
+CLAUDE.md
+Dockerfile
+.dockerignore
