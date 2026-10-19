@@ -1,0 +1,86 @@
+{
+  "version": "1.0",
+  "note": "全部為虛構 SYNTHETIC 資料。期望值取自 docs/FROZEN_CONTRACTS.md FC-C1~FC-C4；不含任何真實產品或廣告。",
+  "cases": [
+    {
+      "id": "ad_copies_approved_text",
+      "group": "approved_match",
+      "product_status": "VERIFIED",
+      "approved_claims": [{"function_name": "測試功效甲", "claim_text": "有助於維持測試機能甲"}],
+      "claim": {"text": "有助於維持測試機能甲", "origin": "ADVERTISEMENT_CLAIM", "category": "health_function", "medical_assertion": "none"},
+      "expected": {"policy_result": "APPROVED_MATCH", "status": "CONSISTENT_WITH_OFFICIAL", "claim_risk": "LOW", "claim_role": "ADVERTISEMENT_CLAIM", "risk_level": "LOW"}
+    },
+    {
+      "id": "label_copies_approved_text",
+      "group": "approved_match",
+      "product_status": "VERIFIED",
+      "approved_claims": [{"function_name": "測試功效甲", "claim_text": "有助於維持測試機能甲"}],
+      "claim": {"text": "有助於維持測試機能甲", "origin": "PRODUCT_LABEL_CLAIM", "category": "health_function", "medical_assertion": "none"},
+      "expected": {"policy_result": "APPROVED_MATCH", "claim_risk": "LOW", "claim_role": "PRODUCT_LABEL_CLAIM", "risk_level_not": "HIGH"}
+    },
+    {
+      "id": "ad_treats_disease_on_verified_product",
+      "group": "medical_claim",
+      "product_status": "VERIFIED",
+      "approved_claims": [{"function_name": "測試功效甲", "claim_text": "有助於維持測試機能甲"}],
+      "claim": {"text": "可以治療測試疾病乙", "origin": "ADVERTISEMENT_CLAIM", "category": "medical_efficacy", "target_condition": "測試疾病乙", "medical_assertion": "treats_or_cures_disease"},
+      "expected": {"policy_result": "MEDICAL_TREATMENT_CLAIM", "status": "MEDICAL_TREATMENT_CLAIM", "claim_risk": "HIGH", "claim_role": "ADVERTISEMENT_CLAIM", "risk_level": "HIGH"}
+    },
+    {
+      "id": "ad_replaces_medication",
+      "group": "medical_claim",
+      "product_status": "VERIFIED",
+      "approved_claims": [{"function_name": "測試功效甲", "claim_text": "有助於維持測試機能甲"}],
+      "claim": {"text": "吃了可以不用吃測試藥物", "origin": "ADVERTISEMENT_CLAIM", "category": "medical_efficacy", "medical_assertion": "replaces_medical_care"},
+      "expected": {"policy_result": "MEDICAL_TREATMENT_CLAIM", "claim_risk": "HIGH", "risk_level": "HIGH"}
+    },
+    {
+      "id": "circulating_claim_treats_disease",
+      "group": "medical_claim",
+      "product_status": "VERIFIED",
+      "approved_claims": [{"function_name": "測試功效甲", "claim_text": "有助於維持測試機能甲"}],
+      "claim": {"text": "聽說可以根治測試疾病乙", "origin": "THIRD_PARTY_CLAIM", "category": "medical_efficacy", "target_condition": "測試疾病乙", "medical_assertion": "treats_or_cures_disease"},
+      "expected": {"claim_role": "THIRD_PARTY_CLAIM", "claim_risk": "HIGH"}
+    },
+    {
+      "id": "user_question_about_disease_keeps_product_risk_not_high",
+      "group": "user_question",
+      "product_status": "VERIFIED",
+      "approved_claims": [{"function_name": "測試功效甲", "claim_text": "有助於維持測試機能甲"}],
+      "claim": {"text": "這個可以治療測試疾病乙嗎", "origin": "USER_QUESTION", "category": "medical_efficacy", "target_condition": "測試疾病乙", "medical_assertion": "treats_or_cures_disease"},
+      "expected": {"claim_role": "USER_QUESTION", "claim_risk": "HIGH", "risk_level_not": "HIGH"}
+    },
+    {
+      "id": "unresolved_product_non_medical_ad_is_insufficient_not_high",
+      "group": "unresolved_product",
+      "product_status": "PARTIAL_MATCH",
+      "approved_claims": [],
+      "claim": {"text": "有助於維持測試機能甲", "origin": "ADVERTISEMENT_CLAIM", "category": "health_function", "medical_assertion": "none"},
+      "expected": {"policy_result": "INSUFFICIENT_EVIDENCE", "claim_risk_not": "HIGH", "risk_level_not": "HIGH"}
+    },
+    {
+      "id": "unresolved_product_treats_disease_is_claim_level_high",
+      "group": "unresolved_product",
+      "product_status": "PARTIAL_MATCH",
+      "approved_claims": [],
+      "claim": {"text": "可以治癒測試疾病丙", "origin": "ADVERTISEMENT_CLAIM", "category": "medical_efficacy", "target_condition": "測試疾病丙", "medical_assertion": "treats_or_cures_disease"},
+      "expected": {"policy_result": "MEDICAL_TREATMENT_CLAIM", "claim_risk": "HIGH"}
+    },
+    {
+      "id": "verified_product_no_approved_claim_non_medical_ad",
+      "group": "unsupported",
+      "product_status": "VERIFIED",
+      "approved_claims": [],
+      "claim": {"text": "有助於維持測試機能丁", "origin": "ADVERTISEMENT_CLAIM", "category": "health_function", "medical_assertion": "none"},
+      "expected": {"claim_role": "ADVERTISEMENT_CLAIM", "risk_level_not": "HIGH"}
+    },
+    {
+      "id": "not_found_product_does_not_make_claim_medical",
+      "group": "unresolved_product",
+      "product_status": "NOT_FOUND",
+      "approved_claims": [],
+      "claim": {"text": "有助於維持測試機能甲", "origin": "ADVERTISEMENT_CLAIM", "category": "health_function", "medical_assertion": "none"},
+      "expected": {"policy_result_not": "MEDICAL_TREATMENT_CLAIM", "risk_level_not": "HIGH"}
+    }
+  ]
+}

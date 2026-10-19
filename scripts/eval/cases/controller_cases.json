@@ -1,0 +1,53 @@
+{
+  "version": "1.0",
+  "note": "全部為虛構 SYNTHETIC 資料。產品名稱必須逐字出現在 input_text（FC-B8 product mention provenance）。expected 只列要評分的欄位。",
+  "cases": [
+    {
+      "id": "c01_ingredient_question_with_product",
+      "input_text": "虛構測試牌甲膠囊有哪些成分？",
+      "expected": {"intent": "ingredient_inquiry", "product_candidates": ["虛構測試牌甲膠囊"], "claim_roles": []}
+    },
+    {
+      "id": "c02_efficacy_question",
+      "input_text": "虛構測試牌甲膠囊的核准功效是什麼？",
+      "expected": {"intent": "efficacy_inquiry", "product_candidates": ["虛構測試牌甲膠囊"], "claim_roles": []}
+    },
+    {
+      "id": "c03_registration_check",
+      "input_text": "虛構測試牌乙錠有沒有通過官方登記？",
+      "expected": {"intent": "product_verification", "product_candidates": ["虛構測試牌乙錠"], "claim_roles": []}
+    },
+    {
+      "id": "c04_user_question_disease_claim",
+      "input_text": "虛構測試牌甲膠囊可以治療測試疾病嗎？",
+      "expected": {"product_candidates": ["虛構測試牌甲膠囊"], "claim_roles": ["USER_QUESTION"]}
+    },
+    {
+      "id": "c05_advertisement_claim",
+      "input_text": "虛構測試牌乙錠的廣告說吃了可以根治測試疾病",
+      "expected": {"intent": "claim_verification", "product_candidates": ["虛構測試牌乙錠"], "claim_roles": ["ADVERTISEMENT_CLAIM"]}
+    },
+    {
+      "id": "c06_interaction_ingredients",
+      "input_text": "鋅和銅可以一起吃嗎？",
+      "expected": {"intent": "interaction_inquiry", "product_candidates": [], "claim_roles": []}
+    },
+    {
+      "id": "c07_out_of_scope",
+      "input_text": "今天台北天氣怎麼樣？",
+      "expected": {"intent": "out_of_scope", "product_candidates": [], "claim_roles": []}
+    },
+    {
+      "id": "c08_safety_question",
+      "input_text": "虛構測試牌甲膠囊有什麼注意事項？",
+      "expected": {"intent": "safety_inquiry", "product_candidates": ["虛構測試牌甲膠囊"], "claim_roles": []}
+    },
+    {
+      "id": "c09_image_package_relevance",
+      "requires_media": true,
+      "input_text": "",
+      "media_note": "schema 範例：需要合成包裝圖片，本階段不執行。",
+      "expected": {"intent": "product_verification", "image_relevance": "HEALTH_SUPPLEMENT_PRODUCT"}
+    }
+  ]
+}
