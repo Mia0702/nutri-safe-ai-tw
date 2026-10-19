@@ -1232,3 +1232,21 @@ phone smoke 通過；以下皆為 additive，未改 Risk Engine、claim eligibil
 - 社群網址（Facebook / Instagram / Threads）讀不到或無可分析內容：固定說明並建議截圖 / 貼文字 / 產品照片；一般網址失敗分四類文案（FC-I13）。
 - Brand-only 產品探索 guardrail：只有品牌且無公司 / 別名對應時走品名探索（FC-I14）。調查結論：資料與程式未變，原因是 Agent A 抽取欄位不同造成 NOT_FOUND。
 - 已知限制（未處理）：英文品牌（如 Blackmores）不比對中文品名，仍查不到。
+
+## Image relevance gate ＋ 來源按鈕網址（2026-10-06，Phase B.6；**尚待手機 smoke**）
+
+- 圖片相關性閘門（FC-I15；使用者核准）：Controller 新增結構化 `image_relevance`（`ImageRelevance`：NOT_APPLICABLE / HEALTH_SUPPLEMENT_PRODUCT /
+  _ADVERTISEMENT / _INFORMATION / UNRELATED / UNCERTAIN；`IntakeExtraction` 與 `NormalizedUserRequest`，只有有圖片時才採用）。
+  - UNRELATED（且只傳圖片）→ `apply_image_routing` 呼叫 `_stop_unrelated_image`：intent = OUT_OF_SCOPE、`image_unrelated = True`、清掉所有產品 / 品牌 / 公司 /
+    成分 / 字號 / 宣稱；Agent B 在任何工具之前停止（`planner_mode = image_unrelated_stop`）；Reporter 固定說明服務範圍（OUT_OF_SCOPE 卡可有 2 個重點）。
+  - ADVERTISEMENT → 圖片宣稱 origin 固定為 ADVERTISEMENT_CLAIM、保留在 claims（`claims_from_package = True`、需要時 intent = claim_verification），
+    走既有 claim policy；產品未 VERIFIED 時卡片加註明「未確認到對應的台灣官方產品紀錄，但廣告宣稱仍可另外檢視」。
+  - PRODUCT / INFORMATION → 既有行為不變（包裝宣稱 observation-only）。UNCERTAIN → 不猜、請使用者補更清楚的圖片。
+  - 影響檔案：`app/schemas/enums.py`、`app/schemas/user_request.py`、`app/agents/{prompts,intake_agent,verification_agent,reporter_agent}.py`、
+    `app/response/line_renderer.py`；tests：`tests/unit/test_image_relevance_gate.py`（9）。FROZEN_CONTRACTS：新增 FC-I15，FC-C5 補註 PRODUCT / ADVERTISEMENT 區別。
+  - **手機 smoke 尚未做**（未記錄於任何文件）：無關照片（UNRELATED）、廣告截圖（ADVERTISEMENT）、模糊圖片（UNCERTAIN）、一般產品包裝（行為不變）。
+- 來源按鈕網址（FC-I12 補充）：`display_source_url` 不為下列網址建立按鈕——raw 匯出（csv / json / zip / export）、**直接 .pdf 與常見文件檔、GetFile 類下載端點、
+  attachment / download 路徑或查詢參數**；優先序 reviewed `display_url` → 一般人類可讀 `source_url` → 無按鈕。`SourceRef.source_url` provenance 與來源名稱不變，
+  只是省略「開啟官方來源」。官方網域 http → https、路徑 `//` 合併只影響按鈕網址。tests：`tests/unit/test_source_button_uri.py`；
+  `test_url_access_and_sources.py` 中 `.pdf` 的 `is_raw_export_url` 期望由 False 改為 True（依本輪核准的需求）。
+

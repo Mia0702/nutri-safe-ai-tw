@@ -94,7 +94,7 @@ def test_missing_landing_url_omits_button_safely():
 @pytest.mark.parametrize("url,raw", [
     (RAW_CSV, True), (RAW_JSON, True), ("https://example.gov.tw/files/a.ZIP", True),
     ("https://example.gov.tw/dl?format=csv", True), ("https://example.gov.tw/download", True),
-    ("https://www.fda.gov.tw/TC/site.aspx?sid=1", False), ("https://example.gov.tw/a.pdf", False),
+    ("https://www.fda.gov.tw/TC/site.aspx?sid=1", False), ("https://example.gov.tw/a.pdf", True),
     ("https://example.gov.tw/exports-policy", False), (None, False),
 ])
 def test_is_raw_export_url(url, raw):

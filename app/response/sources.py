@@ -42,13 +42,21 @@ def safe_source_url(url: str | None) -> str | None:
     return url
 
 
-_RAW_FILE_SUFFIXES = (".csv", ".tsv", ".json", ".xml", ".zip", ".gz", ".xls", ".xlsx", ".ods", ".rar", ".7z")
+_RAW_FILE_SUFFIXES = (".csv", ".tsv", ".json", ".xml", ".zip", ".gz", ".xls", ".xlsx", ".ods", ".rar", ".7z",
+                      ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".odt")
 _RAW_FORMAT_NAMES = frozenset({"csv", "tsv", "json", "xml", "zip", "xls", "xlsx", "ods"})
 _RAW_EXPORT_PATH = re.compile(r"/(export|download|downloads)(/|$)")
+# 一般性的「下載 / 附件」端點辨識（只看路徑結構，不含任何網站或 ID）：
+# 檔名主體（去副檔名）是 GetFile / DownloadFile / Download / Attachment 之類，或路徑中有 download / attachment 區段
+_DOWNLOAD_ENDPOINT_STEMS = frozenset({"getfile", "getfiles", "downloadfile", "download", "filedownload", "getattachment",
+                                       "attachment", "attachments", "openfile", "showfile"})
+_DOWNLOAD_PATH_SEGMENTS = frozenset({"download", "downloads", "attachment", "attachments"})
+_DOWNLOAD_QUERY_KEYS = frozenset({"download", "attachment"})
 
 
 def is_raw_export_url(url: str | None) -> bool:
-    """機器可讀的匯出 / 下載網址（檔案副檔名、/export/…/csv、/download、format=csv 查詢參數）；一般網頁回傳 False。"""
+    """機器可讀的匯出 / 直接下載網址（檔案副檔名含 pdf / office 文件、/export/…/csv、/download、GetFile 類下載端點、
+    attachment 區段、format=csv / download= 查詢參數）；一般網頁回傳 False。這些網址不當作使用者按鈕（provenance 仍保留）。"""
     if not isinstance(url, str) or not url.strip():
         return False
     try:
@@ -60,16 +68,39 @@ def is_raw_export_url(url: str | None) -> bool:
         return True
     if _RAW_EXPORT_PATH.search(path + "/") and path.rsplit("/", 1)[-1] in _RAW_FORMAT_NAMES | {"export", "download"}:
         return True
+    segments = [seg for seg in path.split("/") if seg]
+    if segments and segments[-1].split(".")[0].replace("_", "").replace("-", "") in _DOWNLOAD_ENDPOINT_STEMS:
+        return True
+    if any(seg in _DOWNLOAD_PATH_SEGMENTS for seg in segments):
+        return True
     query = parsed.query.lower()
+    if any(part.split("=")[0] in _DOWNLOAD_QUERY_KEYS for part in query.split("&") if part):
+        return True
     return any(f"{key}={fmt}" in query for key in ("format", "type", "output", "filetype") for fmt in _RAW_FORMAT_NAMES)
 
 
+def _button_friendly(url: str) -> str:
+    """給手機按鈕用的一般性正規化（不改網站、路徑內容與查詢參數）：
+    * 官方網域（Phase 1 台灣官方網域清單）的 http 升級成 https（官方站都支援 https；手機瀏覽器對純 http 常擋 / 轉址失敗）；
+    * 路徑中連續的 // 合併成 /（官方資料裡常見 host//path，部分伺服器會 404）。"""
+    from app.tools.official_web_tools import TW_OFFICIAL_DOMAINS  # 延後匯入：避免 response ↔ tools 循環相依
+
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    scheme = parsed.scheme.lower()
+    if scheme == "http" and any(host == d or host.endswith("." + d) for d in TW_OFFICIAL_DOMAINS):
+        scheme = "https"
+    path = re.sub(r"/{2,}", "/", parsed.path)
+    return parsed._replace(scheme=scheme, path=path).geturl()
+
+
 def display_source_url(source_url: str | None, display_url: str | None = None) -> str | None:
-    """給使用者按的網址：優先已審核的人類可讀網址，其次非 raw 的 source_url；只有 raw 匯出時回傳 None。"""
+    """給使用者按的網址：優先已審核的人類可讀網址，其次非 raw 的 source_url；只有 raw 匯出時回傳 None。
+    回傳值一定是完整的 http(s) 絕對網址（沒有 scheme 的網域、相對路徑、含空白 / 控制字元的值都回傳 None → 不建立按鈕）。"""
     for candidate in (display_url, source_url):
         safe = safe_source_url(candidate)
         if safe is not None and not is_raw_export_url(safe):
-            return safe
+            return _button_friendly(safe)
     return None
 
 
