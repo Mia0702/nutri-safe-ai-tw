@@ -1250,3 +1250,33 @@ phone smoke 通過；以下皆為 additive，未改 Risk Engine、claim eligibil
   只是省略「開啟官方來源」。官方網域 http → https、路徑 `//` 合併只影響按鈕網址。tests：`tests/unit/test_source_button_uri.py`；
   `test_url_access_and_sources.py` 中 `.pdf` 的 `is_raw_export_url` 期望由 False 改為 True（依本輪核准的需求）。
 
+
+## LINE 持久化狀態接線（Post-demo hardening C2c-1 / C2c-2；預設仍為 memory，migration 0008 尚未套用 production）
+- 單一旗標 `LINE_STATE_BACKEND=memory|supabase`（預設 memory；supabase 需 `LINE_STATE_HMAC_SECRET` 與 Supabase 憑證）。RequestStore 與 ClaimStore 共用這個旗標。
+- **RequestStore（C2c-1）**：已接上旗標。`save` 失敗屬於優雅降級——已完成的回答仍會送出，但之後依賴該 request 的按鈕（詳情、來源、重新查詢…）可能取不回來，
+  此時回「暫時無法取得先前的查證資料」，不會誤報「已過期」。持久化紀錄不含原始圖片 / 語音 bytes（`media_omitted`）。
+- **Webhook 去重（C2c-2）**：`webhookEventId` 改用 ClaimStore（kind `webhook_event`，原子 claim）。儲存後端故障時 fail-open（照常處理、只記 warning），
+  不會把新事件誤判成重複；代價是故障期間 LINE 重送可能重複回答一次。HTTP 一律照舊回 200。
+- **ASR 一次性（C2c-2）**：確認 / 取消共用同一個 claim（kind `asr_card`，key = request_id）。claim 發生在擁有者、10 分鐘有效期、候選屬於該題等驗證之後，
+  所以錯的人、過期、不合法候選不會消耗這張卡。後端故障回「暫時無法取得先前的查證資料」，不會回「已失效」。
+- **TaskContext 持久化（C2d）**：`LINE_STATE_BACKEND=supabase` 時存 `line_task_contexts`（只存 HMAC owner_key；JSON 有 schema_version，未知版本 / 損毀 fail closed；不含原始 LINE user id 與媒體）。
+  `TaskContextStore` 仍擁有所有凍結語意：30 分鐘 TTL（每次有效寫入重新計算；reader 以 `expires_at > now` 判斷，過期等同沒有 context）、10 分鐘 pending clarification
+  （重啟不重置，過期不 resume）、session_id、5 題 / 10 實體 / 300 字上限；backend 只存取一列。
+  - Stale session / CAS：寫入用 `UPDATE ... WHERE version = :expected AND session_id = :session`（只比 version 會在 reset 後發生 ABA）；衝突時重新讀取、重新驗證 session，最多 4 次，
+    不無條件覆蓋；舊 session 晚到的結果一律丟棄。
+  - 故障：讀取（snapshot）失敗 → fail closed，回「暫時無法取得先前的查證資料」，不當成沒有 context / 過期 / 新 session；reset / close 失敗不假裝成功。
+    寫入（record / clear_pending）失敗 → 已完成的回答照常送出，但該 owner 被標記為「持久化內容可能過時」，下一次 snapshot 會先刪除那一列（刪不掉就仍 fail closed），所以過時的「它」或 pending 不會復活。
+  - 預設仍是 memory（行為不變）；`TEST_TASK_CONTEXT_BACKEND=supabase_dict` 可讓整個測試套件改走序列化的持久化路徑做回歸。
+- **仍為 process-local（未持久化）**：per-user FIFO、圖片蒐集 / 自動圖片 burst、`_delivered`（每個 request 只送一次）、故障時的「過時標記」。
+
+### Phase C 收尾（持久化狀態 freeze）
+- `LINE_STATE_BACKEND=supabase` 時**已持久化**：RequestStore、webhook 去重、ASR 一次性狀態、TaskContext / pending clarification。
+- **仍為 process-local**：per-user FIFO、圖片蒐集、自動圖片 burst（1.8s）、delivered-once 狀態、stale-owner 降級標記。
+- **明確限制**：多 instance 部署目前**不能安全支援**（FIFO 仍是 process-local，同一使用者的訊息可能在不同 instance 並行處理）；
+  **單一 instance 是唯一支援的持久化模式**。不宣稱完整的多 instance 持久性。
+- 預設仍為 `memory`；migration 0008 尚未套用 production，production 尚未啟用 supabase 後端。
+- 最終驗證（含 `--basetemp`）：tests/unit 1692 passed / 6 skipped；tests/db 136 passed；resolver（seed 20261019、100 樣本）與 claim（10 案）比較結果與 baseline-001
+  的 metrics / details 逐項相同（`eval_baselines/*-phase-c-final-compare.json`，baseline-001 未覆蓋）。
+- **啟用 production 前檢查表**：migration 0008 已套用 production；固定的 `LINE_STATE_HMAC_SECRET`（更換會讓既有 owner_key 全部失效）；Supabase URL / key 有效；
+  service_role 可存取 state tables；RLS 已啟用且 anon / authenticated 被擋；**僅單一 application instance**；回滾路徑已記錄。
+- **回滾**：把 `LINE_STATE_BACKEND` 改回 `memory` 並重啟即可；不需刪 schema（資料表保留，行為回到 in-memory，持久化資料僅閒置、依 TTL 失效）。

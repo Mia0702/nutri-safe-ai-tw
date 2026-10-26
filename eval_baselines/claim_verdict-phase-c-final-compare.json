@@ -1,0 +1,276 @@
+{
+  "created_at": "2026-10-26T14:28:07+00:00",
+  "dataset_versions": {
+    "claim_cases": {
+      "case_count": 10,
+      "sha256": "ba3f0015fa9df63af73f48b122143d47d991439939dc0bfc5d8178e5ad92227f",
+      "version": "1.0"
+    }
+  },
+  "details": {
+    "cases": [
+      {
+        "actual": {
+          "claim_risk": "LOW",
+          "claim_role": "ADVERTISEMENT_CLAIM",
+          "policy_result": "APPROVED_MATCH",
+          "risk_level": "LOW",
+          "rule_ids": [
+            "CLAIM_MATCHES_APPROVED",
+            "POLICY_APPROVED_EXACT_TEXT"
+          ],
+          "status": "CONSISTENT_WITH_OFFICIAL"
+        },
+        "expected": {
+          "claim_risk": "LOW",
+          "claim_role": "ADVERTISEMENT_CLAIM",
+          "policy_result": "APPROVED_MATCH",
+          "risk_level": "LOW",
+          "status": "CONSISTENT_WITH_OFFICIAL"
+        },
+        "group": "approved_match",
+        "id": "ad_copies_approved_text",
+        "mismatches": [],
+        "passed": true
+      },
+      {
+        "actual": {
+          "claim_risk": "LOW",
+          "claim_role": "PRODUCT_LABEL_CLAIM",
+          "policy_result": "APPROVED_MATCH",
+          "risk_level": "LOW",
+          "rule_ids": [
+            "CLAIM_MATCHES_APPROVED",
+            "POLICY_APPROVED_EXACT_TEXT"
+          ],
+          "status": "CONSISTENT_WITH_OFFICIAL"
+        },
+        "expected": {
+          "claim_risk": "LOW",
+          "claim_role": "PRODUCT_LABEL_CLAIM",
+          "policy_result": "APPROVED_MATCH",
+          "risk_level_not": "HIGH"
+        },
+        "group": "approved_match",
+        "id": "label_copies_approved_text",
+        "mismatches": [],
+        "passed": true
+      },
+      {
+        "actual": {
+          "claim_risk": "HIGH",
+          "claim_role": "ADVERTISEMENT_CLAIM",
+          "policy_result": "MEDICAL_TREATMENT_CLAIM",
+          "risk_level": "HIGH",
+          "rule_ids": [
+            "CLAIM_MEDICAL_EFFICACY_ASSERTED",
+            "POLICY_EXPLICIT_MEDICAL_EFFICACY"
+          ],
+          "status": "MEDICAL_TREATMENT_CLAIM"
+        },
+        "expected": {
+          "claim_risk": "HIGH",
+          "claim_role": "ADVERTISEMENT_CLAIM",
+          "policy_result": "MEDICAL_TREATMENT_CLAIM",
+          "risk_level": "HIGH",
+          "status": "MEDICAL_TREATMENT_CLAIM"
+        },
+        "group": "medical_claim",
+        "id": "ad_treats_disease_on_verified_product",
+        "mismatches": [],
+        "passed": true
+      },
+      {
+        "actual": {
+          "claim_risk": "HIGH",
+          "claim_role": "ADVERTISEMENT_CLAIM",
+          "policy_result": "MEDICAL_TREATMENT_CLAIM",
+          "risk_level": "HIGH",
+          "rule_ids": [
+            "CLAIM_MEDICAL_EFFICACY_ASSERTED",
+            "POLICY_EXPLICIT_MEDICAL_EFFICACY"
+          ],
+          "status": "MEDICAL_TREATMENT_CLAIM"
+        },
+        "expected": {
+          "claim_risk": "HIGH",
+          "policy_result": "MEDICAL_TREATMENT_CLAIM",
+          "risk_level": "HIGH"
+        },
+        "group": "medical_claim",
+        "id": "ad_replaces_medication",
+        "mismatches": [],
+        "passed": true
+      },
+      {
+        "actual": {
+          "claim_risk": "HIGH",
+          "claim_role": "THIRD_PARTY_CLAIM",
+          "policy_result": "MEDICAL_TREATMENT_CLAIM",
+          "risk_level": "MEDIUM",
+          "rule_ids": [
+            "CLAIM_MEDICAL_EFFICACY_ASSERTED",
+            "POLICY_EXPLICIT_MEDICAL_EFFICACY"
+          ],
+          "status": "MEDICAL_TREATMENT_CLAIM"
+        },
+        "expected": {
+          "claim_risk": "HIGH",
+          "claim_role": "THIRD_PARTY_CLAIM"
+        },
+        "group": "medical_claim",
+        "id": "circulating_claim_treats_disease",
+        "mismatches": [],
+        "passed": true
+      },
+      {
+        "actual": {
+          "claim_risk": "HIGH",
+          "claim_role": "USER_QUESTION",
+          "policy_result": "MEDICAL_TREATMENT_CLAIM",
+          "risk_level": "LOW",
+          "rule_ids": [
+            "QUESTION_PROPOSITION_MEDICAL_CLAIM",
+            "POLICY_EXPLICIT_MEDICAL_EFFICACY"
+          ],
+          "status": "MEDICAL_TREATMENT_CLAIM"
+        },
+        "expected": {
+          "claim_risk": "HIGH",
+          "claim_role": "USER_QUESTION",
+          "risk_level_not": "HIGH"
+        },
+        "group": "user_question",
+        "id": "user_question_about_disease_keeps_product_risk_not_high",
+        "mismatches": [],
+        "passed": true
+      },
+      {
+        "actual": {
+          "claim_risk": "MEDIUM",
+          "claim_role": "ADVERTISEMENT_CLAIM",
+          "policy_result": "INSUFFICIENT_EVIDENCE",
+          "risk_level": "MEDIUM",
+          "rule_ids": [
+            "CLAIM_INSUFFICIENT_EVIDENCE",
+            "POLICY_PRODUCT_UNRESOLVED"
+          ],
+          "status": "UNKNOWN"
+        },
+        "expected": {
+          "claim_risk_not": "HIGH",
+          "policy_result": "INSUFFICIENT_EVIDENCE",
+          "risk_level_not": "HIGH"
+        },
+        "group": "unresolved_product",
+        "id": "unresolved_product_non_medical_ad_is_insufficient_not_high",
+        "mismatches": [],
+        "passed": true
+      },
+      {
+        "actual": {
+          "claim_risk": "HIGH",
+          "claim_role": "ADVERTISEMENT_CLAIM",
+          "policy_result": "MEDICAL_TREATMENT_CLAIM",
+          "risk_level": "HIGH",
+          "rule_ids": [
+            "CLAIM_MEDICAL_EFFICACY_ASSERTED",
+            "POLICY_EXPLICIT_MEDICAL_EFFICACY"
+          ],
+          "status": "MEDICAL_TREATMENT_CLAIM"
+        },
+        "expected": {
+          "claim_risk": "HIGH",
+          "policy_result": "MEDICAL_TREATMENT_CLAIM"
+        },
+        "group": "unresolved_product",
+        "id": "unresolved_product_treats_disease_is_claim_level_high",
+        "mismatches": [],
+        "passed": true
+      },
+      {
+        "actual": {
+          "claim_risk": "MEDIUM",
+          "claim_role": "ADVERTISEMENT_CLAIM",
+          "policy_result": "UNSUPPORTED_CLAIM",
+          "risk_level": "MEDIUM",
+          "rule_ids": [
+            "CLAIM_NO_OFFICIAL_SUPPORT",
+            "POLICY_NO_OFFICIAL_SUPPORT"
+          ],
+          "status": "UNSUPPORTED"
+        },
+        "expected": {
+          "claim_role": "ADVERTISEMENT_CLAIM",
+          "risk_level_not": "HIGH"
+        },
+        "group": "unsupported",
+        "id": "verified_product_no_approved_claim_non_medical_ad",
+        "mismatches": [],
+        "passed": true
+      },
+      {
+        "actual": {
+          "claim_risk": "MEDIUM",
+          "claim_role": "ADVERTISEMENT_CLAIM",
+          "policy_result": "INSUFFICIENT_EVIDENCE",
+          "risk_level": "MEDIUM",
+          "rule_ids": [
+            "CLAIM_INSUFFICIENT_EVIDENCE",
+            "POLICY_PRODUCT_UNRESOLVED"
+          ],
+          "status": "UNKNOWN"
+        },
+        "expected": {
+          "policy_result_not": "MEDICAL_TREATMENT_CLAIM",
+          "risk_level_not": "HIGH"
+        },
+        "group": "unresolved_product",
+        "id": "not_found_product_does_not_make_claim_medical",
+        "mismatches": [],
+        "passed": true
+      }
+    ]
+  },
+  "evaluation": "claim_verdict",
+  "evaluation_version": "1.0",
+  "git_commit": "4e7c293760af824a7679163d13dc07f877bf2691",
+  "git_dirty": true,
+  "metrics": {
+    "failed": 0,
+    "failed_case_ids": [],
+    "field_accuracy": {
+      "claim_risk": {
+        "accuracy": 1.0,
+        "checked": 8,
+        "correct": 8
+      },
+      "claim_role": {
+        "accuracy": 1.0,
+        "checked": 6,
+        "correct": 6
+      },
+      "policy_result": {
+        "accuracy": 1.0,
+        "checked": 7,
+        "correct": 7
+      },
+      "risk_level": {
+        "accuracy": 1.0,
+        "checked": 8,
+        "correct": 8
+      },
+      "status": {
+        "accuracy": 1.0,
+        "checked": 2,
+        "correct": 2
+      }
+    },
+    "pass_rate": 1.0,
+    "passed": 10,
+    "total_cases": 10
+  },
+  "parameters": {
+    "stage": "assess_claim+RiskEngine(deterministic, offline)"
+  }
+}
