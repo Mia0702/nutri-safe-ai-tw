@@ -2,13 +2,17 @@
 
 * InMemoryConversationStore：debug API 用（conversation_id → 最近幾回合）。
 * TaskContextStore：LINE 用的任務型短期上下文（per user、TTL 30 分鐘、最近 5 題、可重設 / 結束）。
-皆為 in-memory（單一 process）；只保存解析指稱所需的最少資訊：使用者訊息文字與系統辨識出的實體。
+只保存解析指稱所需的最少資訊：使用者訊息文字與系統辨識出的實體。
+TaskContextStore 擁有所有凍結語意（TTL / session / pending / 截斷）；儲存位置由 TaskContextBackend 決定
+（預設 in-memory；LINE_STATE_BACKEND=supabase 時為 line_task_contexts，以 version 做 compare-and-set）。
 """
 
+import logging
 import uuid
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 from threading import Lock
+from typing import Callable
 
 from pydantic import BaseModel, Field
 
@@ -20,6 +24,12 @@ from app.schemas.user_request import (
     ConversationTurn,
     PendingClarification,
 )
+
+from app.state.context_backend import InMemoryTaskContextBackend, TaskContextBackend
+from app.state.context_serialization import deserialize_context, serialize_context
+from app.state.errors import StateStoreError, StateUnavailableError
+
+logger = logging.getLogger("nutri_safe_ai.context_store")
 
 MAX_TURNS = 5
 MAX_CONVERSATIONS = 1000
@@ -55,6 +65,7 @@ TASK_MAX_USER_TEXT_CHARS = 300
 TASK_MAX_USERS = 5000
 # 系統問「是不是這一項」後，使用者的「是 / 不是」只在這段時間內有效（且只對緊接的下一題有效）
 PENDING_CLARIFICATION_TTL = timedelta(minutes=10)
+MAX_CAS_ATTEMPTS = 4  # 版本衝突時重新讀取再試的上限
 
 
 class TaskContext(BaseModel):
@@ -94,39 +105,99 @@ class TaskContext(BaseModel):
 
 
 class TaskContextStore:
-    """per-user 任務型 context（in-memory、單一 process；prototype limitation，見 CURRENT_STATE）。"""
+    """per-user 任務型 context。語意（TTL、session、pending、截斷）都在這裡；backend 只負責存取一列與 CAS。
+
+    失敗語意（見 CURRENT_STATE）：
+    * 讀取失敗（snapshot）：丟出 StateStoreError——呼叫端必須 fail closed，不可當成「沒有 context / 過期 / 新 session」。
+    * 寫入失敗（record / clear_pending / reset / close）：該 owner 被標記為「持久化內容可能過時」；
+      下一次 snapshot 會先刪除那一列（成功才開新 session，失敗則仍 fail closed），所以過時的「它」或 pending 不會復活。
+    """
 
     def __init__(self, ttl: timedelta = TASK_CONTEXT_TTL, max_requests: int = TASK_MAX_REQUESTS,
                  max_users: int = TASK_MAX_USERS, clock=lambda: datetime.now(timezone.utc),
-                 pending_ttl: timedelta = PENDING_CLARIFICATION_TTL):
-        self._data: OrderedDict[str, TaskContext] = OrderedDict()
+                 pending_ttl: timedelta = PENDING_CLARIFICATION_TTL, backend: TaskContextBackend | None = None,
+                 owner_key: Callable[[str], str] | None = None):
+        self._backend = backend if backend is not None else InMemoryTaskContextBackend(max_users)
+        self._key = owner_key or (lambda user_id: user_id)  # supabase 時為 HMAC owner_key；memory 沿用原值
         self._ttl = ttl
         self._max_requests = max_requests
-        self._max_users = max_users
         self._clock = clock
         self._pending_ttl = pending_ttl
-        self._lock = Lock()
+        self._stale: set[str] = set()
+        self._stale_lock = Lock()
 
-    def _live(self, user_id: str) -> TaskContext | None:
-        ctx = self._data.get(user_id)
-        if ctx is not None and self._clock() - ctx.updated_at > self._ttl:
-            del self._data[user_id]
+    # ---- 內部：讀 / 寫
+
+    def _store(self, user_id: str, ctx: TaskContext) -> tuple[str, dict, datetime]:
+        return self._key(user_id), serialize_context(ctx), ctx.updated_at + self._ttl
+
+    def _live(self, user_id: str) -> tuple[TaskContext, int] | None:
+        """目前未過期的 context 與其 version；沒有或已過期（30 分鐘）回傳 None；過期的 pending 會被清掉（僅在複本上）。"""
+        now = self._clock()
+        stored = self._backend.load(self._key(user_id), now)
+        if stored is None:
             return None
-        pending = ctx.pending_clarification if ctx is not None else None
-        if pending is not None and self._clock() - pending.created_at > self._pending_ttl:
+        ctx = deserialize_context(stored.payload, TaskContext, user_id)
+        if now - ctx.updated_at > self._ttl:
+            return None
+        pending = ctx.pending_clarification
+        if pending is not None and now - pending.created_at > self._pending_ttl:
             ctx.pending_clarification = None
-        return ctx
+        return ctx, stored.version
+
+    def _heal_if_stale(self, user_id: str) -> None:
+        key = self._key(user_id)
+        with self._stale_lock:
+            stale = key in self._stale
+        if stale:
+            self._backend.delete(key)  # 失敗就丟出 StateUnavailableError：仍 fail closed
+            with self._stale_lock:
+                self._stale.discard(key)
+
+    def _mark_stale(self, user_id: str, operation: str, exc: Exception) -> None:
+        with self._stale_lock:
+            self._stale.add(self._key(user_id))
+        logger.warning("task_context_write_failed", extra={"stage": operation, "error_type": type(exc).__name__})
+
+    def _is_stale(self, user_id: str) -> bool:
+        with self._stale_lock:
+            return self._key(user_id) in self._stale
+
+    def _update(self, user_id: str, session_id: str, operation: str, apply: Callable[[TaskContext], None]) -> bool:
+        """load → 驗證 session → apply → compare-and-set；版本衝突就重新讀取（重新驗證 session）再試，次數有限。
+        回傳 False = session 已被重設 / 過期（或已被標記過時），本次寫入被丟棄。永遠不無條件覆蓋較新的內容。"""
+        if self._is_stale(user_id):
+            return False
+        try:
+            for _ in range(MAX_CAS_ATTEMPTS):
+                live = self._live(user_id)
+                if live is None or live[0].session_id != session_id:
+                    return False
+                ctx, version = live
+                apply(ctx)
+                ctx.updated_at = self._clock()
+                key, payload, expires_at = self._store(user_id, ctx)
+                if self._backend.compare_and_set(key, version, ctx.session_id, payload, ctx.updated_at, expires_at):
+                    return True
+            raise StateUnavailableError("task context 版本衝突次數過多")
+        except StateStoreError as exc:
+            self._mark_stale(user_id, operation, exc)
+            return False
+
+    # ---- 公開 API（語意不變）
 
     def snapshot(self, user_id: str) -> TaskContext:
-        """取得目前 task context 的複本；沒有或已過期就開一個新的乾淨 session。"""
-        with self._lock:
-            ctx = self._live(user_id)
-            if ctx is None:
-                ctx = TaskContext(user_id=user_id, updated_at=self._clock())
-                self._data[user_id] = ctx
-                while len(self._data) > self._max_users:
-                    self._data.popitem(last=False)
-            return ctx.model_copy(deep=True)
+        """取得目前 task context 的複本；沒有或已過期就開一個新的乾淨 session。後端故障時丟出 StateStoreError。"""
+        self._heal_if_stale(user_id)
+        for _ in range(MAX_CAS_ATTEMPTS):
+            live = self._live(user_id)
+            if live is not None:
+                return live[0]
+            ctx = TaskContext(user_id=user_id, updated_at=self._clock())
+            key, payload, expires_at = self._store(user_id, ctx)
+            if self._backend.create(key, ctx.session_id, payload, ctx.updated_at, expires_at):
+                return ctx
+        raise StateUnavailableError("task context 建立衝突次數過多")
 
     def record(self, user_id: str, session_id: str, request_id: str, user_text: str,
                intent: Intent | None, entities: list[ContextEntity],
@@ -139,11 +210,10 @@ class TaskContextStore:
 
         confirmed：這一題確認的 canonical 產品（取代先前的）；clear_confirmed：使用者明確改問其他產品但未確認，
         舊的已確認產品不可再當成「它」。兩者皆無時保留原本的 confirmed product。
+
+        儲存後端故障不會丟出例外（已完成的回答照常送出），但該 owner 的 context 會被標記為過時，見類別說明。
         """
-        with self._lock:
-            ctx = self._live(user_id)
-            if ctx is None or ctx.session_id != session_id:
-                return False
+        def apply(ctx: TaskContext) -> None:
             n = self._max_requests
             ctx.turns = (ctx.turns + [ConversationTurn(user_text=user_text[:TASK_MAX_USER_TEXT_CHARS],
                                                        entities=entities)])[-n:]
@@ -173,26 +243,39 @@ class TaskContextStore:
                                          if pending is not None else None)
             if visual_request_id is not None:  # 這一題是圖片：之後的文字追問可以指回它
                 ctx.last_visual_request_id = visual_request_id
-            ctx.updated_at = self._clock()
-            self._data.move_to_end(user_id)
-            return True
+
+        return self._update(user_id, session_id, "record", apply)
 
     def clear_pending(self, user_id: str, session_id: str) -> None:
         """使用者否定候選 / 改問新產品：清掉 pending clarification（其餘 context 不變）。"""
-        with self._lock:
-            ctx = self._live(user_id)
-            if ctx is not None and ctx.session_id == session_id:
-                ctx.pending_clarification = None
-                ctx.updated_at = self._clock()
+        def apply(ctx: TaskContext) -> None:
+            ctx.pending_clarification = None
+
+        self._update(user_id, session_id, "clear_pending", apply)
 
     def reset(self, user_id: str) -> TaskContext:
-        """開始新問題：清除目前 task context，建立新的乾淨 session。"""
-        with self._lock:
-            ctx = TaskContext(user_id=user_id, updated_at=self._clock())
-            self._data[user_id] = ctx
-            return ctx.model_copy(deep=True)
+        """開始新問題：清除目前 task context，建立新的乾淨 session（後端故障時丟出 StateStoreError）。"""
+        try:
+            for _ in range(MAX_CAS_ATTEMPTS):
+                ctx = TaskContext(user_id=user_id, updated_at=self._clock())
+                key, payload, expires_at = self._store(user_id, ctx)
+                self._backend.delete(key)  # 新 session 一定取代舊的（包含舊的 pending）
+                if self._backend.create(key, ctx.session_id, payload, ctx.updated_at, expires_at):
+                    with self._stale_lock:
+                        self._stale.discard(key)
+                    return ctx
+            raise StateUnavailableError("task context 重設衝突次數過多")
+        except StateStoreError as exc:
+            self._mark_stale(user_id, "reset", exc)
+            raise
 
     def close(self, user_id: str) -> None:
-        """結束本次查證：關閉 session 並清除暫存 context。"""
-        with self._lock:
-            self._data.pop(user_id, None)
+        """結束本次查證：關閉 session 並清除暫存 context（後端故障時丟出 StateStoreError）。"""
+        try:
+            key = self._key(user_id)
+            self._backend.delete(key)
+            with self._stale_lock:
+                self._stale.discard(key)
+        except StateStoreError as exc:
+            self._mark_stale(user_id, "close", exc)
+            raise

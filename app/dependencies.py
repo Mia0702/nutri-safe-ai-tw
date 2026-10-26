@@ -93,23 +93,68 @@ def get_pipeline() -> AnalysisPipeline:
     return build_pipeline(get_settings())
 
 
-@lru_cache
-def get_task_context_store():
+def build_task_context_store(settings):
+    """依 LINE_STATE_BACKEND 選擇 TaskContext 的儲存位置（與 RequestStore / ClaimStore 同一個旗標、同一個 HMAC secret）。"""
     from app.services.context_store import TaskContextStore
 
-    return TaskContextStore()
+    if settings.line_state_backend != "supabase":
+        return TaskContextStore()
+    from app.state.backend import SupabaseStateBackend
+    from app.state.context_backend import SupabaseTaskContextBackend
+    from app.state.owner_key import build_owner_key_hasher
+
+    return TaskContextStore(backend=SupabaseTaskContextBackend(SupabaseStateBackend(settings)),
+                            owner_key=build_owner_key_hasher(settings))
+
+
+@lru_cache
+def get_task_context_store():
+    return build_task_context_store(get_settings())
+
+
+def build_request_store(settings):
+    """依 LINE_STATE_BACKEND 選擇 RequestStore；預設 memory，只有明確設為 supabase 才建立持久化 store。"""
+    from app.response.store import InMemoryRequestStore
+
+    if settings.line_state_backend != "supabase":
+        return InMemoryRequestStore()
+    from app.state.backend import SupabaseStateBackend
+    from app.state.owner_key import build_owner_key_hasher
+    from app.state.request_store import SupabaseRequestStore
+
+    return SupabaseRequestStore(SupabaseStateBackend(settings), build_owner_key_hasher(settings))
+
+
+def build_claim_store(settings):
+    """依 LINE_STATE_BACKEND 選擇 ClaimStore（與 RequestStore 同一個旗標）；預設 memory。"""
+    from app.state.claims import InMemoryClaimStore, SupabaseClaimStore
+
+    if settings.line_state_backend != "supabase":
+        return InMemoryClaimStore()
+    from app.state.backend import SupabaseStateBackend
+
+    return SupabaseClaimStore(SupabaseStateBackend(settings))
+
+
+@lru_cache
+def get_claim_store():
+    return build_claim_store(get_settings())
+
+
+@lru_cache
+def get_request_store():
+    return build_request_store(get_settings())
 
 
 @lru_cache
 def get_response_service():
     """LINE webhook 使用：一則 primary Flex + request-scoped 按鈕 + 任務型短期上下文。"""
     from app.response.service import AdaptiveResponseService
-    from app.response.store import InMemoryRequestStore
 
     pipeline = get_pipeline()
-    return AdaptiveResponseService(pipeline, pipeline.reporter, InMemoryRequestStore(),
+    return AdaptiveResponseService(pipeline, pipeline.reporter, get_request_store(),
                                    timeout_seconds=get_settings().response_timeout_seconds,
-                                   context_store=get_task_context_store())
+                                   context_store=get_task_context_store(), claim_store=get_claim_store())
 
 
 @lru_cache
@@ -127,4 +172,4 @@ def get_line_handler():
     job_timeout = CONTENT_DEADLINE_SECONDS + settings.response_timeout_seconds + LINE_DELIVERY_MARGIN_SECONDS
     return LineWebhookHandler(get_response_service(), LineMessagingClient(settings.line_channel_access_token),
                               get_task_context_store(), queue=PerUserRequestQueue(job_timeout_seconds=job_timeout),
-                              image_burst_window_ms=settings.auto_image_burst_window_ms)
+                              image_burst_window_ms=settings.auto_image_burst_window_ms, claim_store=get_claim_store())

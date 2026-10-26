@@ -32,6 +32,9 @@ class RequestRecord(BaseModel):
     query_label: str | None = None
     received_at: datetime | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    # 只有從持久化 store 讀回的紀錄才會是 True：原始圖片 / 語音 bytes 不會被持久化，raw_input.media 因此為空，
+    # 「重新查詢」這類需要原始媒體的動作不得把它當成完整輸入重跑。
+    media_omitted: bool = False
 
     @property
     def has_evidence(self) -> bool:
@@ -42,6 +45,9 @@ class RequestStore(Protocol):
     def save(self, record: RequestRecord) -> None: ...
 
     def get(self, request_id: str) -> RequestRecord | None: ...
+
+    def owner_ref(self, owner_id: str | None) -> str | None:
+        """把呼叫者的 owner id 轉成 store 內 record.owner_id 使用的表示（in-memory 為原值；持久化為 HMAC owner_key）。"""
 
 
 class InMemoryRequestStore:
@@ -58,6 +64,9 @@ class InMemoryRequestStore:
             self._data[record.request_id] = record
             while len(self._data) > self._max:
                 self._data.popitem(last=False)
+
+    def owner_ref(self, owner_id: str | None) -> str | None:
+        return owner_id
 
     def get(self, request_id: str) -> RequestRecord | None:
         with self._lock:

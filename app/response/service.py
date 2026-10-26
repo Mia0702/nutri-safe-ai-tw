@@ -18,7 +18,6 @@
 import logging
 import time
 import uuid
-from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 from concurrent.futures import Future, ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
@@ -64,6 +63,8 @@ from app.services.clarification import (
 )
 from app.services.context_binding import is_bound_from_context
 from app.services.context_store import TaskContext, TaskContextStore
+from app.state.claims import ClaimStore, InMemoryClaimStore
+from app.state.errors import StateStoreError, StateUnavailableError
 
 logger = logging.getLogger("nutri_safe_ai.response")
 
@@ -72,6 +73,10 @@ TIMEOUT_SUMMARY = "這次查詢花太久時間，系統先停止了。請按「�
 INVALID_ACTION_TEXT = "無法辨識這個按鈕，請重新傳送你的問題。"
 EXPIRED_ACTION_TEXT = "這個查詢已經過期或找不到了，請重新傳送你的問題。"
 UNAVAILABLE_ACTION_TEXT = "這一題沒有這項內容。"
+# 持久化 store 暫時不可用（與「過期 / 找不到」是兩件事）：中性訊息，不透露後端細節
+STATE_UNAVAILABLE_TEXT = "目前暫時無法取得先前的查證資料，請稍後再試或重新提出問題。"
+# 從持久化 store 讀回的紀錄沒有原始圖片 / 語音 bytes：「重新查詢」不得以空媒體重跑
+MEDIA_UNAVAILABLE_TEXT = "先前的圖片或語音內容已無法重新取得，請重新傳送圖片或語音後再查詢。"
 DETAIL_FAILED_TEXT = "這項內容暫時無法產生，請稍後再按一次。"
 INVALID_CHOICE_TEXT = "這個選項不屬於那一題的候選產品，請重新傳送你的問題。"
 CHOICE_NOT_CONFIRMED_TEXT = "所選產品這次無法確認，請改傳完整品名或許可證字號。"
@@ -109,7 +114,7 @@ ASR_CONFIRM_TTL = timedelta(minutes=10)  # 語音候選確認的有效時間（�
 ASR_EXPIRED_TEXT = "這個確認已經失效了，請再說一次你的問題，或改用文字輸入。"
 ASR_REJECTED_TEXT = "好的，請直接輸入，或重新說一次你的問題。"
 ASR_INVALID_TEXT = "這個選項不屬於這個問題，請重新輸入或再說一次。"
-MAX_DISMISSED_ASR = 1000
+ASR_CLAIM_KIND = "asr_card"  # 同一張語音候選卡：確認或取消，二擇一、只能一次
 
 PREVIOUS_IMAGE_MISSING_TEXT = "找不到上一張圖片的辨識內容（可能已過期），請重新傳送圖片。"
 FOCUS_NAMES = {ObservationFocus.INGREDIENTS: "成分", ObservationFocus.CLAIMS: "宣稱", ObservationFocus.WARNINGS: "警語",
@@ -129,6 +134,7 @@ class AdaptiveResponseService:
         timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
         executor: ThreadPoolExecutor | None = None,
         context_store: TaskContextStore | None = None,
+        claim_store: ClaimStore | None = None,
     ):
         self._pipeline = pipeline
         self._reporter = reporter
@@ -137,12 +143,22 @@ class AdaptiveResponseService:
         self._timeout = timeout_seconds
         self._executor = executor or ThreadPoolExecutor(max_workers=8, thread_name_prefix="analysis")
         self._contexts = context_store
-        self._asr_used: OrderedDict[str, None] = OrderedDict()  # 已確認 / 已取消的語音候選卡（每張只能處理一次）
+        self._claims = claim_store if claim_store is not None else InMemoryClaimStore()  # 語音候選卡的一次性 claim
 
-    def _mark_asr_used(self, request_id: str) -> None:
-        self._asr_used[request_id] = None
-        while len(self._asr_used) > MAX_DISMISSED_ASR:
-            self._asr_used.popitem(last=False)
+    def _is_owner(self, record: RequestRecord, owner_id: str | None) -> bool:
+        """record 是否屬於這位使用者。一律經 store.owner_ref 轉換（in-memory 為原值；持久化為 HMAC owner_key）。"""
+        return record.owner_id == self._store.owner_ref(owner_id)
+
+    def _save(self, record: RequestRecord) -> None:
+        """保存 request record；持久化 store 暫時不可用時不丟掉已完成的回答（只是之後的按鈕可能取不回來）。"""
+        try:
+            self._store.save(record)
+        except StateUnavailableError:
+            logger.warning("request_record_save_failed", extra={"request_id": record.request_id})
+
+    def _claim_asr_card(self, request_id: str) -> bool:
+        """原子取得這張語音候選卡的唯一使用權（True = 第一個）；儲存失敗時丟出 StateUnavailableError，不當成「已使用」。"""
+        return self._claims.claim(ASR_CLAIM_KIND, request_id)
 
     def _await(self, future: Future, request_id: str, stage: str):
         try:
@@ -165,7 +181,11 @@ class AdaptiveResponseService:
         image = is_image_input(raw)
         session_id = None
         if self._contexts is not None and owner_id:
-            task = self._contexts.snapshot(owner_id)
+            try:
+                task = self._contexts.snapshot(owner_id)
+            except StateStoreError:  # fail closed：不把故障當成「沒有 context / 新 session」，也不憑空決定產品身分
+                logger.warning("task_context_unavailable", extra={"request_id": request_id})
+                return self._renderer.render_notice(STATE_UNAVAILABLE_TEXT)
             session_id = task.session_id
             if task.pending_clarification is not None and not keep_raw_context and is_plain_text(raw):
                 handled = self._answer_pending(task, raw, owner_id, channel, request_id, received_at)
@@ -173,7 +193,8 @@ class AdaptiveResponseService:
                     return handled
             if not keep_raw_context:  # 「重新查詢」沿用那一題當時的 context
                 context = task.conversation_context()
-                if context.last_visual_request_id and self._visual_observation(context.last_visual_request_id, owner_id) is None:
+                if context.last_visual_request_id and self._visual_observation_or_none(
+                        context.last_visual_request_id, owner_id) is None:
                     context = context.model_copy(update={"last_visual_request_id": None})  # 過期 / 沒有觀察：不當成可用的參照
                 raw = raw.model_copy(update={"context": context})
             conversation_id = None  # context 由 task store 管理，pipeline 不再自行讀寫
@@ -218,16 +239,24 @@ class AdaptiveResponseService:
                                       pending=pending_clarification_for(result, request_id),
                                       clear_products=clear_products,
                                       visual_request_id=visual_id)
-        self._store.save(record)
+        self._save(record)
         return self._renderer.render_primary(payload, query_label=label)
 
     def _visual_observation(self, visual_request_id: str | None, owner_id: str | None):
         """前一張圖片的結構化觀察：必須是同一位使用者、未過期、而且有可呈現的內容（回傳 (record, observation) 或 None）。"""
         previous = self._store.get(visual_request_id) if visual_request_id else None
-        if previous is None or previous.owner_id != owner_id or previous.normalized_request is None:
+        if previous is None or not self._is_owner(previous, owner_id) or previous.normalized_request is None:
             return None
         observation = build_package_observation(previous.normalized_request)
         return None if observation.is_empty else (previous, observation)
+
+    def _visual_observation_or_none(self, visual_request_id: str | None, owner_id: str | None):
+        """同 _visual_observation，但 store 暫時不可用時視為取不到（只用於判斷參照是否可用，不回覆使用者）。"""
+        try:
+            return self._visual_observation(visual_request_id, owner_id)
+        except StateUnavailableError:
+            logger.warning("visual_observation_state_unavailable")
+            return None
 
     def _answer_previous_image(self, result, raw: RawUserInput, owner_id: str | None, request_id: str,
                                received_at: datetime, session_id: str | None) -> dict[str, Any]:
@@ -236,12 +265,16 @@ class AdaptiveResponseService:
         依既有 intent 只顯示相關區塊（成分 / 宣稱 / 警語 / 全部）；明示這是「照片上辨識到的內容」，不是官方資料。
         照片沒有相關內容 → 如實說明並請使用者補充，不搜尋網路。"""
         req = result.normalized_request
-        found = self._visual_observation(req.visual_request_id, owner_id)
+        try:
+            found = self._visual_observation(req.visual_request_id, owner_id)
+        except StateUnavailableError:
+            logger.warning("visual_observation_state_unavailable", extra={"request_id": request_id})
+            return self._renderer.render_notice(STATE_UNAVAILABLE_TEXT)
         focus = focus_for_intent(req.intent)
         content = focus_items(found[1], focus) if found else []
         logger.info("line_stage", extra={"request_id": request_id, "stage": "previous_image_followup",
                                          "found": bool(content), "focus": focus.value})
-        self._store.save(RequestRecord(request_id=request_id, owner_id=owner_id, raw_input=raw, response=result.response,
+        self._save(RequestRecord(request_id=request_id, owner_id=owner_id, raw_input=raw, response=result.response,
                                        normalized_request=req, received_at=received_at))
         if session_id is not None:  # 只記一個回合：不改變目前產品 / 圖片參照
             self._contexts.record(owner_id, session_id, request_id, req.normalized_text or raw.text, req.intent, [])
@@ -284,8 +317,12 @@ class AdaptiveResponseService:
     def _resume_confirmed_target(self, pending: PendingClarification, session_id: str, owner_id: str, channel: str,
                                  request_id: str) -> dict[str, Any] | None:
         """CONFIRM：以上一題保存的候選與已理解的問題繼續（Agent B → Risk → Agent C），不重跑 Agent A。"""
-        record = self._store.get(pending.previous_request_id)
-        if record is None or record.owner_id != owner_id or record.normalized_request is None or record.evidence is None:
+        try:
+            record = self._store.get(pending.previous_request_id)
+        except StateUnavailableError:
+            logger.warning("pending_state_unavailable", extra={"request_id": request_id})
+            return self._renderer.render_notice(STATE_UNAVAILABLE_TEXT)
+        if record is None or not self._is_owner(record, owner_id) or record.normalized_request is None or record.evidence is None:
             return None
         match = record.evidence.product_match
         products = {c.product.product_id: c.product
@@ -304,11 +341,11 @@ class AdaptiveResponseService:
             "duration_ms": int((time.monotonic() - started) * 1000)})
         if result is None:
             payload = error_payload(request_id, TIMEOUT_SUMMARY).model_copy(update={"available_actions": []})
-            self._store.save(RequestRecord(request_id=request_id, owner_id=owner_id, raw_input=record.raw_input,
+            self._save(RequestRecord(request_id=request_id, owner_id=owner_id, raw_input=record.raw_input,
                                            response=payload, query_label=record.query_label,
                                            received_at=record.received_at))
             return self._renderer.render_primary(payload, query_label=record.query_label)
-        self._store.save(RequestRecord(
+        self._save(RequestRecord(
             request_id=request_id, owner_id=owner_id, raw_input=record.raw_input, response=result.response,
             normalized_request=result.normalized_request, evidence=result.evidence, risk=result.risk,
             query_label=record.query_label, received_at=record.received_at,  # 沿用上一題（原圖片）的 context
@@ -337,7 +374,11 @@ class AdaptiveResponseService:
             return self._renderer.render_notice(INVALID_CHOICE_TEXT, query_label=record.query_label)
         request_id = request_id or str(uuid.uuid4())
         request = request_for_selected_product(record.normalized_request, product, request_id)
-        session_id = self._contexts.snapshot(owner_id).session_id if self._contexts is not None and owner_id else None
+        try:
+            session_id = self._contexts.snapshot(owner_id).session_id if self._contexts is not None and owner_id else None
+        except StateStoreError:
+            logger.warning("task_context_unavailable", extra={"request_id": request_id})
+            return self._renderer.render_notice(STATE_UNAVAILABLE_TEXT, query_label=record.query_label)
         started = time.monotonic()
         future = self._executor.submit(self._pipeline.resume_with_request, request, channel, record.raw_input.input_type.value)
         result = self._await(future, request_id, "select_product")
@@ -346,7 +387,7 @@ class AdaptiveResponseService:
             "duration_ms": int((time.monotonic() - started) * 1000)})
         if result is None:
             payload = error_payload(request_id, TIMEOUT_SUMMARY).model_copy(update={"available_actions": []})
-            self._store.save(RequestRecord(request_id=request_id, owner_id=owner_id, raw_input=record.raw_input,
+            self._save(RequestRecord(request_id=request_id, owner_id=owner_id, raw_input=record.raw_input,
                                            response=payload, query_label=record.query_label,
                                            received_at=record.received_at))
             return self._renderer.render_primary(payload, query_label=record.query_label)
@@ -355,7 +396,7 @@ class AdaptiveResponseService:
                 or match.best_match.product.product_id != candidate_id):
             # 解析結果不是使用者選的那一項：不回答別的產品
             return self._renderer.render_notice(CHOICE_NOT_CONFIRMED_TEXT, query_label=record.query_label)
-        self._store.save(RequestRecord(
+        self._save(RequestRecord(
             request_id=request_id, owner_id=owner_id, raw_input=record.raw_input, response=result.response,
             normalized_request=result.normalized_request, evidence=result.evidence, risk=result.risk,
             query_label=record.query_label, received_at=record.received_at,  # 沿用原題（原圖片）的 context
@@ -372,7 +413,7 @@ class AdaptiveResponseService:
         """語音候選按鈕：驗證（同一位使用者、原題仍在、未過期、候選確實是那一題提供的）→ 以原題的結構化 request 繼續，
         把「那一個」無法辨識的對象固定成所選 canonical entity（不重跑 Controller、不把按鈕文字當新問題、不寫任何資料 / alias）。"""
         research = record.evidence.interaction_research if record.evidence is not None else None
-        if (record.request_id in self._asr_used or record.normalized_request is None or research is None
+        if (record.normalized_request is None or research is None
                 or datetime.now(timezone.utc) - record.created_at > ASR_CONFIRM_TTL):
             logger.info("line_stage", extra={"request_id": record.request_id, "stage": "select_asr_entity_rejected"})
             return self._renderer.render_notice(ASR_EXPIRED_TEXT, query_label=record.query_label)
@@ -380,10 +421,22 @@ class AdaptiveResponseService:
                         if s.status == SubjectResolutionStatus.ENTITY_CANDIDATE_NEEDS_CONFIRMATION), None)
         if subject is None or candidate_id not in {c.entity_id for c in subject.candidates}:
             return self._renderer.render_notice(ASR_INVALID_TEXT, query_label=record.query_label)
-        self._mark_asr_used(record.request_id)
+        # 驗證（擁有者、有效期、候選屬於這一題）全部通過後才 claim：錯的人 / 過期 / 不合法的候選不會消耗這張卡
+        try:  # context 讀取失敗也不消耗這張卡
+            session_id = self._contexts.snapshot(owner_id).session_id if self._contexts is not None and owner_id else None
+        except StateStoreError:
+            logger.warning("task_context_unavailable", extra={"request_id": record.request_id})
+            return self._renderer.render_notice(STATE_UNAVAILABLE_TEXT, query_label=record.query_label)
+        try:
+            first = self._claim_asr_card(record.request_id)
+        except StateUnavailableError:
+            logger.warning("asr_claim_unavailable", extra={"request_id": record.request_id})
+            return self._renderer.render_notice(STATE_UNAVAILABLE_TEXT, query_label=record.query_label)
+        if not first:  # 這張卡已確認 / 取消過
+            logger.info("line_stage", extra={"request_id": record.request_id, "stage": "select_asr_entity_rejected"})
+            return self._renderer.render_notice(ASR_EXPIRED_TEXT, query_label=record.query_label)
         request_id = request_id or str(uuid.uuid4())
         request = request_for_selected_asr_entity(record.normalized_request, subject.text, candidate_id, request_id)
-        session_id = self._contexts.snapshot(owner_id).session_id if self._contexts is not None and owner_id else None
         started = time.monotonic()
         future = self._executor.submit(self._pipeline.resume_with_request, request, channel, record.raw_input.input_type.value)
         result = self._await(future, request_id, "select_asr_entity")
@@ -392,10 +445,10 @@ class AdaptiveResponseService:
             "duration_ms": int((time.monotonic() - started) * 1000)})
         if result is None:
             payload = error_payload(request_id, TIMEOUT_SUMMARY).model_copy(update={"available_actions": []})
-            self._store.save(RequestRecord(request_id=request_id, owner_id=owner_id, raw_input=record.raw_input, response=payload,
+            self._save(RequestRecord(request_id=request_id, owner_id=owner_id, raw_input=record.raw_input, response=payload,
                                            query_label=record.query_label, received_at=record.received_at))
             return self._renderer.render_primary(payload, query_label=record.query_label)
-        self._store.save(RequestRecord(
+        self._save(RequestRecord(
             request_id=request_id, owner_id=owner_id, raw_input=record.raw_input, response=result.response,
             normalized_request=result.normalized_request, evidence=result.evidence, risk=result.risk,
             query_label=record.query_label, received_at=record.received_at))
@@ -407,7 +460,11 @@ class AdaptiveResponseService:
 
     def reject_asr_entity(self, record: RequestRecord) -> dict[str, Any]:
         """「不是，重新輸入」：取消這一題的語音候選（之後不能再用這張卡確認）。"""
-        self._mark_asr_used(record.request_id)
+        try:
+            self._claim_asr_card(record.request_id)  # 已被使用過也一樣回「已取消」（與原行為相同）
+        except StateUnavailableError:
+            logger.warning("asr_claim_unavailable", extra={"request_id": record.request_id})
+            return self._renderer.render_notice(STATE_UNAVAILABLE_TEXT, query_label=record.query_label)
         return self._renderer.render_notice(ASR_REJECTED_TEXT, query_label=record.query_label)
 
     def check_package_claims(self, record: RequestRecord, owner_id: str | None, channel: str = "line",
@@ -429,8 +486,12 @@ class AdaptiveResponseService:
         act = parse_postback_data(postback_data)
         if act is None:
             return self._renderer.render_notice(INVALID_ACTION_TEXT)
-        record = self._store.get(act.request_id)
-        if record is None or record.owner_id != owner_id:  # 不洩漏他人的查詢，也不猜是哪一題
+        try:
+            record = self._store.get(act.request_id)
+        except StateUnavailableError:
+            logger.warning("action_state_unavailable", extra={"request_id": act.request_id})
+            return self._renderer.render_notice(STATE_UNAVAILABLE_TEXT)
+        if record is None or not self._is_owner(record, owner_id):  # 不洩漏他人的查詢，也不猜是哪一題
             return self._renderer.render_notice(EXPIRED_ACTION_TEXT)
         if act.action == ResponseAction.SELECT_ASR_ENTITY:
             return self.select_asr_entity(record, act.candidate_id, owner_id, channel=channel, request_id=request_id)
@@ -439,6 +500,8 @@ class AdaptiveResponseService:
         if act.action == ResponseAction.SELECT_PRODUCT:
             return self.select_product(record, act.candidate_id, owner_id, channel=channel, request_id=request_id)
         if act.action == ResponseAction.RETRY:  # 同一張圖片：沿用原本的收到時間
+            if record.media_omitted:  # 持久化紀錄沒有原始媒體 bytes：不以空媒體重跑
+                return self._renderer.render_notice(MEDIA_UNAVAILABLE_TEXT, query_label=record.query_label)
             return self.respond(record.raw_input, owner_id, channel=channel, keep_raw_context=True,
                                 received_at=record.received_at)
         if act.action not in reachable_actions(record.response.available_actions) or not record.has_evidence:

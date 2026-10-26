@@ -7,6 +7,8 @@
 import re
 from functools import lru_cache
 
+from typing import Literal
+
 from pydantic import Field, PrivateAttr, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -44,6 +46,11 @@ class Settings(BaseSettings):
     response_timeout_seconds: float = Field(default=120.0, gt=0, le=300)
     # Automatic Image Burst Gate：LINE 相簿一次選多張照片時，連續到達的圖片在這個 window（毫秒）內合成一組；0 = 停用
     auto_image_burst_window_ms: int = Field(default=1800, ge=0, le=10000)
+
+    # LINE 持久化狀態（request records / claims / task context）：預設 memory；必須明確設為 supabase 才會啟用
+    line_state_backend: Literal["memory", "supabase"] = "memory"
+    # owner_key（LINE user id 的 HMAC）專用 secret；不得重用 LINE channel secret / Supabase key / OpenAI key
+    line_state_hmac_secret: SecretStr | None = None
 
     supabase_url: str | None = None
     # 後端專用 Supabase secret key（sb_secret_...）；不得回傳給 client
@@ -94,6 +101,15 @@ class Settings(BaseSettings):
                 "不可使用 publishable key 或 legacy service_role JWT"
             )
         return value
+
+    @model_validator(mode="after")
+    def _persistent_state_requires_secret(self):
+        if self.line_state_backend == "supabase":
+            if not (self.line_state_hmac_secret and self.line_state_hmac_secret.get_secret_value()):
+                raise ValueError("LINE_STATE_BACKEND=supabase 需要設定 LINE_STATE_HMAC_SECRET")
+            if not self.supabase_configured:
+                raise ValueError("LINE_STATE_BACKEND=supabase 需要設定 SUPABASE_URL / SUPABASE_SECRET_KEY")
+        return self
 
     @model_validator(mode="after")
     def _discard_legacy_supabase_key(self):

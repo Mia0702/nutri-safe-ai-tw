@@ -36,10 +36,12 @@ from app.response.actions import parse_postback_data
 from app.response.line_renderer import AdaptiveLineRenderer
 from app.response.query_context import image_query_label
 from app.agents.reporter_agent import ERROR_SUMMARY, error_payload
-from app.response.service import TIMEOUT_SUMMARY, AdaptiveResponseService
+from app.response.service import STATE_UNAVAILABLE_TEXT, TIMEOUT_SUMMARY, AdaptiveResponseService
 from app.schemas.enums import InputType
 from app.schemas.user_request import MediaInput, RawUserInput
 from app.services.context_store import TaskContextStore
+from app.state.claims import ClaimStore, InMemoryClaimStore
+from app.state.errors import StateStoreError, StateUnavailableError
 from app.services.image_collection import (
     MAX_COLLECTED_IMAGES,
     MIN_COLLECTED_IMAGES,
@@ -54,6 +56,7 @@ logger = logging.getLogger("nutri_safe_ai.line.handler")
 REPLY_TOKEN_MAX_AGE_SECONDS = 50.0
 MAX_TEXT_CHARS = 6000
 MAX_SEEN_EVENTS = 2000
+WEBHOOK_CLAIM_KIND = "webhook_event"
 
 SESSION_NEW = "new"
 SESSION_END = "end"
@@ -173,6 +176,7 @@ class LineWebhookHandler:
         collections: ImageCollectionStore | None = None,
         image_burst_window_ms: int = 0,
         burst_timer_factory: Callable[..., Any] | None = None,
+        claim_store: ClaimStore | None = None,
     ):
         """image_burst_window_ms：Automatic Image Burst Gate 的 debounce window（毫秒）；0 = 停用（圖片立即處理）。
         正式環境由設定提供（預設 AUTO_IMAGE_BURST_WINDOW_MS）。"""
@@ -186,7 +190,7 @@ class LineWebhookHandler:
         self._renderer = renderer or AdaptiveLineRenderer()
         self._reply_max_age = reply_token_max_age
         self._clock = clock
-        self._seen: OrderedDict[str, None] = OrderedDict()
+        self._claims = claim_store if claim_store is not None else InMemoryClaimStore()
         self._delivered: OrderedDict[str, None] = OrderedDict()
         self._seen_lock = Lock()
 
@@ -195,15 +199,17 @@ class LineWebhookHandler:
         return self._queue
 
     def _already_seen(self, event: LineEvent) -> bool:
-        """LINE 重送（redelivery）同一個 webhookEventId 時不重複回答。"""
+        """LINE 重送（redelivery）同一個 webhookEventId 時不重複回答（原子 claim；第一個 claim 成功者處理）。
+
+        儲存後端故障時 fail-open：視為「第一次看到」並照常處理（寧可偶爾重複回答，也不能把新訊息當成重複而靜默丟掉）；
+        只記 warning，不重試、不排隊。
+        """
         if not event.webhook_event_id:
             return False
-        with self._seen_lock:
-            if event.webhook_event_id in self._seen:
-                return True
-            self._seen[event.webhook_event_id] = None
-            while len(self._seen) > MAX_SEEN_EVENTS:
-                self._seen.popitem(last=False)
+        try:
+            return not self._claims.claim(WEBHOOK_CLAIM_KIND, event.webhook_event_id)
+        except StateUnavailableError:
+            logger.warning("webhook_dedup_unavailable", extra={"stage": "webhook_dedup_fail_open"})
             return False
 
     @property
@@ -377,11 +383,19 @@ class LineWebhookHandler:
         if event.event_type == "postback":
             session = parse_session_postback(event.postback_data)
             if session == SESSION_NEW:
-                self._contexts.reset(user_id)
+                try:
+                    self._contexts.reset(user_id)
+                except StateStoreError:  # 沒有確實開新 session：不假裝已重設
+                    logger.warning("task_context_unavailable", extra={"request_id": request_id, "stage": "session_new"})
+                    return self._renderer.render_notice(STATE_UNAVAILABLE_TEXT)
                 self._collections.clear(user_id)
                 return with_session_controls(self._renderer.render_notice(SESSION_NEW_TEXT), multi_entry=True)
             if session == SESSION_END:
-                self._contexts.close(user_id)
+                try:
+                    self._contexts.close(user_id)
+                except StateStoreError:
+                    logger.warning("task_context_unavailable", extra={"request_id": request_id, "stage": "session_end"})
+                    return self._renderer.render_notice(STATE_UNAVAILABLE_TEXT)
                 self._collections.clear(user_id)
                 return self._renderer.render_notice(SESSION_END_TEXT)
             if (help_key := parse_help_postback(event.postback_data)) is not None:
