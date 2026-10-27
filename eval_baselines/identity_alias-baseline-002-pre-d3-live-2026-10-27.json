@@ -1,0 +1,110 @@
+{
+  "created_at": "2026-10-27T11:31:34+00:00",
+  "dataset_versions": {
+    "gold_set_cases_sha256": "b6fbd1dd78abb90ed974ed26dd3286f6637f48e3a42ccd8685ea98960e10a658"
+  },
+  "details": {
+    "violation_examples": []
+  },
+  "evaluation": "identity_alias_pre_d3_behavior",
+  "evaluation_version": "1.0",
+  "git_commit": "f63601d5fda24bdb688c1b3b73f10dae04f517f7",
+  "git_dirty": true,
+  "metrics": {
+    "SAFETY_VIOLATIONS": 0,
+    "WRONG_AUTO_CONFIRM_RATE": 0.0,
+    "by_group": {
+      "BRAND_EN_ONLY": {
+        "cases": 40,
+        "desired": "NO_AUTO_CONFIRM",
+        "outcomes": {
+          "AUTO_CONFIRM": 0,
+          "CLARIFY": 17,
+          "CONFLICT": 0,
+          "NOT_FOUND": 23,
+          "OTHER": 0
+        },
+        "safety_violations": 0,
+        "target_met": 40,
+        "target_met_rate": 1.0
+      },
+      "COLLIDING_EN_EXACT": {
+        "cases": 100,
+        "desired": "CLARIFY_WITH_GROUP_CANDIDATES（不得自動確認）",
+        "outcomes": {
+          "AUTO_CONFIRM": 0,
+          "CLARIFY": 4,
+          "CONFLICT": 0,
+          "NOT_FOUND": 96,
+          "OTHER": 0
+        },
+        "safety_violations": 0,
+        "target_met": 2,
+        "target_met_rate": 0.02
+      },
+      "GENERIC_EN_TOKEN": {
+        "cases": 40,
+        "desired": "NO_AUTO_CONFIRM",
+        "outcomes": {
+          "AUTO_CONFIRM": 0,
+          "CLARIFY": 18,
+          "CONFLICT": 0,
+          "NOT_FOUND": 22,
+          "OTHER": 0
+        },
+        "safety_violations": 0,
+        "target_met": 40,
+        "target_met_rate": 1.0
+      },
+      "PERMIT_CONTROL": {
+        "cases": 100,
+        "desired": "NO_REGRESSION（確認正確產品，或同字號多筆時候選含正確產品）",
+        "outcomes": {
+          "AUTO_CONFIRM": 100,
+          "CLARIFY": 0,
+          "CONFLICT": 0,
+          "NOT_FOUND": 0,
+          "OTHER": 0
+        },
+        "safety_violations": 0,
+        "target_met": 100,
+        "target_met_rate": 1.0
+      },
+      "UNIQUE_EN_EXACT": {
+        "cases": 100,
+        "desired": "AUTO_CONFIRM_CORRECT_PRODUCT（需已審核 exact alias）",
+        "outcomes": {
+          "AUTO_CONFIRM": 0,
+          "CLARIFY": 3,
+          "CONFLICT": 0,
+          "NOT_FOUND": 97,
+          "OTHER": 0
+        },
+        "safety_violations": 0,
+        "target_met": 0,
+        "target_met_rate": 0.0
+      },
+      "ZH_NAME_CONTROL": {
+        "cases": 100,
+        "desired": "NO_REGRESSION（確認正確產品，或同名時候選含正確產品）",
+        "outcomes": {
+          "AUTO_CONFIRM": 93,
+          "CLARIFY": 7,
+          "CONFLICT": 0,
+          "NOT_FOUND": 0,
+          "OTHER": 0
+        },
+        "safety_violations": 0,
+        "target_met": 100,
+        "target_met_rate": 1.0
+      }
+    },
+    "total_cases": 480,
+    "wrong_auto_confirm_count": 0
+  },
+  "parameters": {
+    "note": "目前（D3 之前）runtime 行為；未修改任何 runtime",
+    "repository": "production Supabase（唯讀 RPC）",
+    "seed": 20261019
+  }
+}

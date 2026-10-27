@@ -1,0 +1,4378 @@
+{
+  "created_at": "2026-10-27T11:29:01+00:00",
+  "dataset_versions": {
+    "overlay": {
+      "brand_candidates_sha256": "5e70acb1f8d597628b5052a5a950ff92e6357660950502d3fdff00043f14b5ad",
+      "candidates_sha256": "a235c026e9d4150a1cd2e6d38affdac2e2ea0f30bdd941b290720753a7cad846",
+      "overlay_version": "1.0"
+    },
+    "snapshot": {
+      "dir": "data\\tfda_product_coverage\\2026-10-04",
+      "product_count": 9112,
+      "scope": "TFDA 國產＋輸入錠狀膠囊類（9,112）；不含健康食品 565"
+    }
+  },
+  "details": {
+    "cases": [
+      {
+        "case_id": "UNIQUE_EN_EXACT:00dd3cf6-aada-5abb-afb8-97fbdf5c6899",
+        "expected_ids": [
+          "00dd3cf6-aada-5abb-afb8-97fbdf5c6899"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "BITARICH EX PLUS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:01ea5efd-b31a-57c5-951b-c7ee8015e529",
+        "expected_ids": [
+          "01ea5efd-b31a-57c5-951b-c7ee8015e529"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "NOEVIR SALMON OVARY MEMBRANE-CONTAINING TABLET"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:022409b9-1a94-5aca-a93d-1216f6fe9784",
+        "expected_ids": [
+          "022409b9-1a94-5aca-a93d-1216f6fe9784"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "DOUBLELINE ALGAE DHA"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:02c0a769-7926-5d69-9e1c-ec5f4f65e41d",
+        "expected_ids": [
+          "02c0a769-7926-5d69-9e1c-ec5f4f65e41d"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "NUTRITION LIFE SHEA BUTTER SOFTGEL"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:04796ddd-cf6a-5df1-b16d-2aa4db46e699",
+        "expected_ids": [
+          "04796ddd-cf6a-5df1-b16d-2aa4db46e699"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "BLACKMORES ODOURLESS FISH OIL 1000"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:07d0e2e4-ba56-5cd0-87f4-15135d219c9a",
+        "expected_ids": [
+          "07d0e2e4-ba56-5cd0-87f4-15135d219c9a"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "Ascorbic Acid Chewable Tablets 50mg “Jen Sheng”"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:097e2c09-a855-5560-9510-b18a204e67fe",
+        "expected_ids": [
+          "097e2c09-a855-5560-9510-b18a204e67fe"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "Vitamin C pellet capsule"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:0a87cb66-e3b0-52c0-9092-00823ae95ebb",
+        "expected_ids": [
+          "0a87cb66-e3b0-52c0-9092-00823ae95ebb"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "Super Multi-Vit B50 II Tablet"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:10d81b8e-a65d-5b40-aaca-676861108c41",
+        "expected_ids": [
+          "10d81b8e-a65d-5b40-aaca-676861108c41"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ILIVCOZILY TABLETS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:1104a02e-ca92-59cd-ab00-358555fd7d27",
+        "expected_ids": [
+          "1104a02e-ca92-59cd-ab00-358555fd7d27"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "DHC MORI POWER"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:1150d483-b2ca-528b-9cf0-23fb1de1be39",
+        "expected_ids": [
+          "1150d483-b2ca-528b-9cf0-23fb1de1be39"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ECHINACEA TABLETS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:1154e169-6938-5ae7-a74c-a4234b0276ef",
+        "expected_ids": [
+          "1154e169-6938-5ae7-a74c-a4234b0276ef"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ROYAL JELLY WITH VITAMIN CAPSULE"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:183ebb99-af37-598b-ac24-6ce11b8b5b6f",
+        "expected_ids": [
+          "183ebb99-af37-598b-ac24-6ce11b8b5b6f"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "OSTEO COMPLEX"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:18afb383-10d7-588d-8921-5b99590ccde2",
+        "expected_ids": [
+          "18afb383-10d7-588d-8921-5b99590ccde2"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SANMAO NUTRIENT B12 TABLETS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:1fc36e95-84a2-53e9-893d-17c4d9b20916",
+        "expected_ids": [
+          "1fc36e95-84a2-53e9-893d-17c4d9b20916"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SIU GUAN TOTAL MACA SUPER CAPSULES"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:222c13dc-18ce-52c2-8581-8e6484e3162a",
+        "expected_ids": [
+          "222c13dc-18ce-52c2-8581-8e6484e3162a"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ROYAL QUEEN EXP"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:265d6386-d0ab-5425-b3fd-3f4d74ef86fb",
+        "expected_ids": [
+          "265d6386-d0ab-5425-b3fd-3f4d74ef86fb"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "QUICK-WAY SOFTGELS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:266379b8-26e7-5974-976b-c24884906883",
+        "expected_ids": [
+          "266379b8-26e7-5974-976b-c24884906883"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "DANIEL VITAMIN E 400 I.U CAPSULES"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:271845ad-e89c-5773-bef7-4be73e73b816",
+        "expected_ids": [
+          "271845ad-e89c-5773-bef7-4be73e73b816"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "BEQUIET SESAME CAPSULES"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:27d73a7a-9e9b-569b-9ba2-6374435492af",
+        "expected_ids": [
+          "27d73a7a-9e9b-569b-9ba2-6374435492af"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "HEPFNRECO GINSENG PLUS TABLETS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:28ddd59e-91b7-50d8-aeb9-b355f47a599c",
+        "expected_ids": [
+          "28ddd59e-91b7-50d8-aeb9-b355f47a599c"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SERAVIE LIFE TOP CALCIUM CITRATE TABLETS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:29700630-09a8-5fe6-85df-c87b31851b17",
+        "expected_ids": [
+          "29700630-09a8-5fe6-85df-c87b31851b17"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "Release Vitamin B Complex"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:2adfe73e-f5af-5cf8-883a-8b516dfae6f4",
+        "expected_ids": [
+          "2adfe73e-f5af-5cf8-883a-8b516dfae6f4"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ARTICHOKE-CHOLINE CAPSULES"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:2f90dc22-9b00-59ce-9fec-61e5001e98ca",
+        "expected_ids": [
+          "2f90dc22-9b00-59ce-9fec-61e5001e98ca"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "OKINAWA SHARK LIVER OIL SOFTGELS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:30873da8-1957-5652-b4ac-9479495056c9",
+        "expected_ids": [
+          "30873da8-1957-5652-b4ac-9479495056c9"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "FLAX OIL (CONTAINS LIGNAN) 1000MG (120 SOFTGELS)"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:3494a130-db28-5481-a7d0-115918bec636",
+        "expected_ids": [
+          "3494a130-db28-5481-a7d0-115918bec636"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SMARKLEAN PLUS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:356381ce-3416-5601-a8ad-458bd09bc556",
+        "expected_ids": [
+          "356381ce-3416-5601-a8ad-458bd09bc556"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "NUTRITION LIFE EASY BREATHING TABLETS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:3a635728-7077-5717-8d00-bc274e18d477",
+        "expected_ids": [
+          "3a635728-7077-5717-8d00-bc274e18d477"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "FM KELUNING PLUS TABLETS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:4191cf75-0097-58c7-960c-430255ae66f4",
+        "expected_ids": [
+          "4191cf75-0097-58c7-960c-430255ae66f4"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "LACTIC ACID BACTERIA GOLD CAPSULE"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:41c104ab-3915-523a-9985-eb705061b993",
+        "expected_ids": [
+          "41c104ab-3915-523a-9985-eb705061b993"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SOLVIA CHARM SOFTGELS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:451025a4-8175-5ff0-aa93-14611c2283f4",
+        "expected_ids": [
+          "451025a4-8175-5ff0-aa93-14611c2283f4"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "DHC BEER YEAST"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:4a25fbca-59be-5b15-8c56-4404e7e944c7",
+        "expected_ids": [
+          "4a25fbca-59be-5b15-8c56-4404e7e944c7"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SUPER-CAL CAPSULES"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:4f6a68c0-d979-5e6f-bc0a-0b258eee9592",
+        "expected_ids": [
+          "4f6a68c0-d979-5e6f-bc0a-0b258eee9592"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "IKOR GOKU BLACK DIET"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:513d3f02-7f4d-52a7-9f66-222cc2933108",
+        "expected_ids": [
+          "513d3f02-7f4d-52a7-9f66-222cc2933108"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "LIGWOR LIJA VITAMIN CAPSULES"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:52db3bf9-9e60-53e7-bece-2791f438e3cc",
+        "expected_ids": [
+          "52db3bf9-9e60-53e7-bece-2791f438e3cc"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "VITAMIN C 500 DEPOT"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:57dd262c-0cd3-55a9-9712-89fbeb576bd5",
+        "expected_ids": [
+          "57dd262c-0cd3-55a9-9712-89fbeb576bd5"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "DHC BLUEBERRY EXTRACT"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:5c0362f3-80c7-5df2-9779-13392d436dce",
+        "expected_ids": [
+          "5c0362f3-80c7-5df2-9779-13392d436dce"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "BALANCED B COMPLEX TABLETS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:5d26f6cc-bd57-50ee-8042-145861b393c4",
+        "expected_ids": [
+          "5d26f6cc-bd57-50ee-8042-145861b393c4"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "VILOWHEAF"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:604e58a4-5530-531b-af9b-3cfcbcc28b62",
+        "expected_ids": [
+          "604e58a4-5530-531b-af9b-3cfcbcc28b62"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SRAMIDEN SESAME EX CAPSULES"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:605c5d10-46a7-52f6-9d8f-adba566ab1cf",
+        "expected_ids": [
+          "605c5d10-46a7-52f6-9d8f-adba566ab1cf"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "DHC EPA"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:64618a1a-7574-5224-816f-5e063150cd16",
+        "expected_ids": [
+          "64618a1a-7574-5224-816f-5e063150cd16"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SUPERB B WITH C TABLETS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:68c0f5ef-1ca7-59c8-be14-1f0b4b38296c",
+        "expected_ids": [
+          "68c0f5ef-1ca7-59c8-be14-1f0b4b38296c"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "PROMENSIL"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:6bc15fd4-57ad-50ce-a0f9-4ec8b4d41069",
+        "expected_ids": [
+          "6bc15fd4-57ad-50ce-a0f9-4ec8b4d41069"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "CINAL EX PRO CHEWABLE TABLETS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:6df51936-2b89-54f1-94c2-4593da55414d",
+        "expected_ids": [
+          "6df51936-2b89-54f1-94c2-4593da55414d"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "DAMOKAMPO JOINTGUARD PLUS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:7176ecc5-fa02-574e-be6b-1e301872c3f6",
+        "expected_ids": [
+          "7176ecc5-fa02-574e-be6b-1e301872c3f6"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "MUSSEL 6000 CAPSULES"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:75369d32-ff92-5a5c-95aa-edc10e3e84fb",
+        "expected_ids": [
+          "75369d32-ff92-5a5c-95aa-edc10e3e84fb"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "PROLAFRESH INSTANT SOFTGEL"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:75c394c6-70c5-5942-93de-b792af3aad14",
+        "expected_ids": [
+          "75c394c6-70c5-5942-93de-b792af3aad14"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SWISSE BEAUTY GRAPE SEED TABLETS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:7673709c-d840-5f0a-9ba1-9f1ca898faea",
+        "expected_ids": [
+          "7673709c-d840-5f0a-9ba1-9f1ca898faea"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "COMBETASI SOFTGEL CAPSULES"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:768f600c-505f-51f8-9da1-cfdc9e95deae",
+        "expected_ids": [
+          "768f600c-505f-51f8-9da1-cfdc9e95deae"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "L.G BAI YO D3 SOFT CAPSULE"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:76979b61-35c1-568a-8732-798120151fc5",
+        "expected_ids": [
+          "76979b61-35c1-568a-8732-798120151fc5"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "OMEGA 7 SEA BUCKTHORN OIL CAPSULES"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:78f4d625-2305-5d4b-b43d-7138f4291fed",
+        "expected_ids": [
+          "78f4d625-2305-5d4b-b43d-7138f4291fed"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "Pureway-C capsule"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:7afa2552-475f-52bb-a69f-4f147fc13252",
+        "expected_ids": [
+          "7afa2552-475f-52bb-a69f-4f147fc13252"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "BEE POLLEN CAPS 500MG 100 CAPSULES"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:7b4c7eac-40f2-5901-bae1-cf38789e6ecc",
+        "expected_ids": [
+          "7b4c7eac-40f2-5901-bae1-cf38789e6ecc"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "PURE ANTARCTIC KRILL OIL CAPSULES"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:7ead0c39-dfd3-57c9-9142-240615b04344",
+        "expected_ids": [
+          "7ead0c39-dfd3-57c9-9142-240615b04344"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "WEIGRONERVIN EXTRA TABLETS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:821d5238-17b7-5771-b1a0-fcebe475d1f6",
+        "expected_ids": [
+          "821d5238-17b7-5771-b1a0-fcebe475d1f6"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "EXTRA GLUCOGEN GLUCOSAMINE"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:82679a82-7b9b-55be-a507-5d4f6c164292",
+        "expected_ids": [
+          "82679a82-7b9b-55be-a507-5d4f6c164292"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "VITALITY HEPATO SOFTGEL CAPSULES"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:84d24fa8-9e84-59cf-a7e0-c9ecdb32c1ae",
+        "expected_ids": [
+          "84d24fa8-9e84-59cf-a7e0-c9ecdb32c1ae"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "DW PRIME C-WELL TABLET"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:8708bc68-f9f1-5c8c-b519-72495e56e33b",
+        "expected_ids": [
+          "8708bc68-f9f1-5c8c-b519-72495e56e33b"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "CHONDFLEX II FORMULA TABLETS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:8d747b5b-cc4d-5d33-bbe0-03e0d2123dc9",
+        "expected_ids": [
+          "8d747b5b-cc4d-5d33-bbe0-03e0d2123dc9"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "FLAX OIL 1000MG (100 SOFTGELS)"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:91ba2ead-9baa-5b90-8241-76e2443f9fe1",
+        "expected_ids": [
+          "91ba2ead-9baa-5b90-8241-76e2443f9fe1"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SATO HIGHLY CONCENTRATED FISH OIL DHA & EPA"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:928697b9-f48b-52f5-b8e9-a911f30b32b9",
+        "expected_ids": [
+          "928697b9-f48b-52f5-b8e9-a911f30b32b9"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "PELI-ONE SOFTGEL CAPSULE"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:94037986-5f0e-5bb9-b8db-58e2f1e21e95",
+        "expected_ids": [
+          "94037986-5f0e-5bb9-b8db-58e2f1e21e95"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ROYAL JELLY WITH COQ10 SOFTGELS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:97910585-c12f-562a-b8d6-d54133fa0af6",
+        "expected_ids": [
+          "97910585-c12f-562a-b8d6-d54133fa0af6"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SALMON NASAL CARTILAGE EXTRACT COMPLEX CAPSULE"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:a191b367-8a03-52af-87c5-81b7ff0d9243",
+        "expected_ids": [
+          "a191b367-8a03-52af-87c5-81b7ff0d9243"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "GOOD-WELL TABLETS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:a88c3512-ba8c-5014-be3c-e23ea3236468",
+        "expected_ids": [
+          "a88c3512-ba8c-5014-be3c-e23ea3236468"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "CAN YOUNG NO.2 SOFTGELS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:a88dcbb5-c9be-5271-a5bc-f6727016fef3",
+        "expected_ids": [
+          "a88dcbb5-c9be-5271-a5bc-f6727016fef3"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "FRUIT AND VEGETABLE ESSENCE LOZENGES"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:b52823fe-aeec-5da6-8ba7-b3a553f806d5",
+        "expected_ids": [
+          "b52823fe-aeec-5da6-8ba7-b3a553f806d5"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "LACLIFE COMPLEX EX"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:b546c88b-336e-5379-a5c9-9b74e4bf84b4",
+        "expected_ids": [
+          "b546c88b-336e-5379-a5c9-9b74e4bf84b4"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "HEPA-FIT  TABLETS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:baaa1fab-101d-5bf1-8822-2e356fa22345",
+        "expected_ids": [
+          "baaa1fab-101d-5bf1-8822-2e356fa22345"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "MACA POWER 99 PLUS SOFTGELS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:baaea43e-9a37-57b9-81c4-2962029c8fdb",
+        "expected_ids": [
+          "baaea43e-9a37-57b9-81c4-2962029c8fdb"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "PureWay-C 500"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:bd710a7b-4c64-5aae-9e7c-e9afe2790fbb",
+        "expected_ids": [
+          "bd710a7b-4c64-5aae-9e7c-e9afe2790fbb"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "LAC GRAPE SEED 135MG"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:becf6f7e-e39c-59f7-99ac-c90d2cbff674",
+        "expected_ids": [
+          "becf6f7e-e39c-59f7-99ac-c90d2cbff674"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "Sinphar Men’s Multi-Vitamin Soft Capsules"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:c0032103-2a0a-586d-b86f-b3d06ae4324d",
+        "expected_ids": [
+          "c0032103-2a0a-586d-b86f-b3d06ae4324d"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "LAC L-LYSINE 800MG"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:c0aa19dd-86a5-504d-b408-5e3628bf0980",
+        "expected_ids": [
+          "c0aa19dd-86a5-504d-b408-5e3628bf0980"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "KLIMAKTERIN CAPSULES"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:c5a5f6b7-e270-5e80-b30c-5f0b0b81f6ce",
+        "expected_ids": [
+          "c5a5f6b7-e270-5e80-b30c-5f0b0b81f6ce"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "MULTIVITAMIN & MINERAL"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:c6ad2fab-2cc0-50b6-afc8-1d555f043480",
+        "expected_ids": [
+          "c6ad2fab-2cc0-50b6-afc8-1d555f043480"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "XIAO JING VEGECAL TABLETS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:c7a5c659-884b-52cd-9e86-26839dbb7813",
+        "expected_ids": [
+          "c7a5c659-884b-52cd-9e86-26839dbb7813"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "LAC BITTER MELON FORMULA"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:c8983f57-87ae-586a-8f87-3ed4c3a5adbe",
+        "expected_ids": [
+          "c8983f57-87ae-586a-8f87-3ed4c3a5adbe"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "NEW TOP FOCUS SOFT CAPSULES"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:ce022b25-76c1-5797-8455-14e8e0edded1",
+        "expected_ids": [
+          "ce022b25-76c1-5797-8455-14e8e0edded1"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "QUICK-RELEASE CAPSULE(PROPOLIS)"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:d2a33c9b-3fab-51c6-af34-e63bd8f9a7f4",
+        "expected_ids": [
+          "d2a33c9b-3fab-51c6-af34-e63bd8f9a7f4"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "MSM&GLUCOSAMINE"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:d650bb60-4467-59e7-910f-eaea01c80795",
+        "expected_ids": [
+          "d650bb60-4467-59e7-910f-eaea01c80795"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "YULICAL+D3 CAPSULES"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:da5a477e-6e2f-544e-b832-a05ca156c1f6",
+        "expected_ids": [
+          "da5a477e-6e2f-544e-b832-a05ca156c1f6"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "COQUINONE 30"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:da64d971-b309-5ad3-8171-929820ac0a81",
+        "expected_ids": [
+          "da64d971-b309-5ad3-8171-929820ac0a81"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "Carewell-Fursultiamine capsules"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:dc86fc5f-2cb6-5142-b26e-18d1b5d511e3",
+        "expected_ids": [
+          "dc86fc5f-2cb6-5142-b26e-18d1b5d511e3"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "OSTEOCARE FORMULA TABLETS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:dca40033-9f08-52c8-9285-c0c562c22599",
+        "expected_ids": [
+          "dca40033-9f08-52c8-9285-c0c562c22599"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "MORIMOTO PEARL EX CAPSULE"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:dd17563f-c618-559a-85cf-a7acb8670795",
+        "expected_ids": [
+          "dd17563f-c618-559a-85cf-a7acb8670795"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "CLEARSIGHT TABLETS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:e04ec4ae-09e3-5896-9bbd-74617dcc4d8d",
+        "expected_ids": [
+          "e04ec4ae-09e3-5896-9bbd-74617dcc4d8d"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "HOLY YOUNG YOU GU LIQUID SOFT CAPSULES"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:e18a98bd-5c43-576e-850f-66f3850472a0",
+        "expected_ids": [
+          "e18a98bd-5c43-576e-850f-66f3850472a0"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "Jubilant Capsules"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:e6a926b2-5a0a-559f-bdd9-a1e14528bd92",
+        "expected_ids": [
+          "e6a926b2-5a0a-559f-bdd9-a1e14528bd92"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "Fountain-5MTHF+Fe Capsules"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:eef8d33c-9d6c-58aa-a95d-bb69d1b38c69",
+        "expected_ids": [
+          "eef8d33c-9d6c-58aa-a95d-bb69d1b38c69"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "VEGETABLE OIL WITH OMEGA 3-6-9 (100 SOFTGELS)"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:f04f530a-3e62-526e-92cf-ee2bb81295e8",
+        "expected_ids": [
+          "f04f530a-3e62-526e-92cf-ee2bb81295e8"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "DHA70 + PS SOFTGEL"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:f414ec17-b015-5106-b55a-afc5ee534008",
+        "expected_ids": [
+          "f414ec17-b015-5106-b55a-afc5ee534008"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "GARLIC"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:f4971884-2327-5cbf-8f36-225418444531",
+        "expected_ids": [
+          "f4971884-2327-5cbf-8f36-225418444531"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "Puretol Tablet"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:f4e3e303-dfa5-5862-910d-71225a43f651",
+        "expected_ids": [
+          "f4e3e303-dfa5-5862-910d-71225a43f651"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "Watanabe Vitamin C Chewable Tablets"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:f59c2bdb-29d1-5ec3-b1a8-ffd9dfcbc29d",
+        "expected_ids": [
+          "f59c2bdb-29d1-5ec3-b1a8-ffd9dfcbc29d"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "MEGA VITA WOMAN TABLETS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:f610d375-80c1-5ffb-aee5-7f65b8fb2b2c",
+        "expected_ids": [
+          "f610d375-80c1-5ffb-aee5-7f65b8fb2b2c"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "TONCLEAR-S CAPSULES"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:f611b2ca-880b-527e-b7bb-804a370ff15d",
+        "expected_ids": [
+          "f611b2ca-880b-527e-b7bb-804a370ff15d"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ARASHI HALOBALL SOFTGELS"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:f7210791-52a0-5bba-9d63-c7dbcbe4b746",
+        "expected_ids": [
+          "f7210791-52a0-5bba-9d63-c7dbcbe4b746"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "Ferrous E B C Tablet"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:fb0bd5e3-d6b3-5047-9ab5-f9f1304dcb88",
+        "expected_ids": [
+          "fb0bd5e3-d6b3-5047-9ab5-f9f1304dcb88"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ORIHERB POLYSAC PLUS TABLET"
+      },
+      {
+        "case_id": "UNIQUE_EN_EXACT:fce0ae28-15b9-532b-ba2e-90d0429396c4",
+        "expected_ids": [
+          "fce0ae28-15b9-532b-ba2e-90d0429396c4"
+        ],
+        "group": "UNIQUE_EN_EXACT",
+        "is_permit_query": false,
+        "query": "NEW GAI GU GU TABLETS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_03e82d86e2bbd181",
+        "expected_ids": [
+          "99e956e4-571f-5376-8ff8-a0e13edd5ba2",
+          "cb8e16e8-bd9f-5cf3-a258-a0cadf5b0f42"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "LUTEIN 20 MG WITH MINERALS & VITAMINS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_040e2495fabe489c",
+        "expected_ids": [
+          "4e9aed83-bebe-5688-bd0a-d6f11dc3afdb",
+          "8de5865e-651f-52ff-b67d-2a4509d34422",
+          "e15e4f0a-74b0-52a4-a5a3-bddc29bdf13b"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "GLUCOSAMINE TABLET"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_08f851e901c86af5",
+        "expected_ids": [
+          "6a81e93d-fa97-5dc0-89f9-860c36862107",
+          "97f0fc2a-602b-5eb6-bfdb-7a2545fac10f"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "NEED SLEEP CAPSULES"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_0d666354190f83fa",
+        "expected_ids": [
+          "63ad6e9c-7bac-5529-ae5d-70ef7ec9e767",
+          "db0cb57d-aba1-53d8-9aa2-00f48677a799"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "TG90 MINI FISH OIL SOFTGEL"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_0e95c51519949625",
+        "expected_ids": [
+          "44d25705-5937-5d93-b68c-c4a9698d8ae5",
+          "e98b0482-ced3-5a04-967c-f44105e73757"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "KAPREX"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_0eee558e0208ecd8",
+        "expected_ids": [
+          "0289af70-2168-54df-b100-b22f51711c6a",
+          "9e1d7f20-9141-5c44-8bab-6c0e6ba5b30d"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "TRI-SHIELD"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_0fdea5abdc2e73dd",
+        "expected_ids": [
+          "0be72569-2d31-5cad-897b-142e91e4ba52",
+          "82924d6c-e635-5c27-80a1-ce15a0b14ab1"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "NUTRILITE NUTRISLIM POSTBIOTIC"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_1106420d7969b9b7",
+        "expected_ids": [
+          "6e8f09fe-7abf-51d0-8f71-afa598a05cb7",
+          "c1b7bb9c-abfa-56e8-82a3-e0c9bee6726e"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "NUTRILITE M-PLUS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_1384d3b0dd764ac5",
+        "expected_ids": [
+          "3f814936-f3be-5d52-909b-3c27bedfa32d",
+          "4ab8b974-8979-568c-85ea-9586aae3b5df"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "MAGNESIUM 250 MG TABLET"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_14a82729d6c1e586",
+        "expected_ids": [
+          "05761723-a44a-5171-896b-d3ac7408680e",
+          "b8ee7f57-7770-520b-977e-6d0e5acb3484"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "LUTEIN PLUS CAPSULES"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_14e2738a7ddc65f9",
+        "expected_ids": [
+          "428798d4-a764-58bc-ae27-1b2fd794fa6d",
+          "d742c133-e1e3-58f7-94ef-2a7746034ffd"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "JANIHAT HERBAL EXTRACT CAPSULE"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_17da6cf48f57d2e1",
+        "expected_ids": [
+          "1ce6dc68-4924-5879-9433-bbf2d2bd843e",
+          "684ba010-e53d-5ec3-a6dc-427b1fdc14b4"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SESAME EX SAKURA BEAUTY TABLETS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_1e10620d412cb204",
+        "expected_ids": [
+          "6efa18c8-9171-5408-8a85-b25460bf336f",
+          "a6997578-d6d7-53e1-bccd-2b7d96f5f6f7",
+          "f8df253f-6f83-5c56-bfcf-f334a751a2c4"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "PHYTOMULTI"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_1f6fcd773da7e395",
+        "expected_ids": [
+          "0c7c8ddd-fca4-5775-a624-5f3377df548b",
+          "34e10e1f-9575-50bb-8451-7ede7d4eade5"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "IMU PLUS BIOTIX DR CAPSULES"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_210fbf9b8ccd8e24",
+        "expected_ids": [
+          "7ac28888-cad1-5de5-be75-c3cb23ea9654",
+          "aff41b03-8303-52c4-a773-32eac01404d3"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "VITAMIN D3 800IU SOFTGEL"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_23308cfc773ba04a",
+        "expected_ids": [
+          "8074246a-370c-5510-b925-4a615224b01b",
+          "80b1f9a2-9463-533c-b7eb-647e8f9ef4a7"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SUNSPINA E TABLETS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_2a558187c000364e",
+        "expected_ids": [
+          "5cc47578-aabc-5a78-a917-5fb5edbc4975",
+          "d32633ac-ced4-5d11-b918-162a11f796dc"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "DEER VELVET CAPSULES"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_2a74711fe8e4a18c",
+        "expected_ids": [
+          "7b791f80-2b70-5d59-98c7-17bf87393387",
+          "ca2ba832-8e7a-5eca-99ef-c5bd8971ae93"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "GENTALIN CENDALIN-P CAPSULES"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_317138c2b094ed5f",
+        "expected_ids": [
+          "50c32445-b49a-5b34-8975-fbef4199c412",
+          "a8c42be3-5fd5-5573-b398-c60d12212d4c"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ALFALFA COMPLEX"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_3191b07f572bf96b",
+        "expected_ids": [
+          "8a5c3801-2355-5468-977a-934b8872a3e4",
+          "fa4ee60a-89df-53f3-a1b5-1508bf33dc57"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "AVANCE ONE PLUS A DAY"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_31cd20588fdea116",
+        "expected_ids": [
+          "9e779973-35cc-55a1-9b0a-1f437ae83051",
+          "a68aebec-8d90-58d3-89bb-12ae671c7933"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SPIRULINA 500MG (100 TABLETS)"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_353a26b02caf8af3",
+        "expected_ids": [
+          "5f470954-3694-57b3-8874-33e89f32088b",
+          "b0c0a912-8f6b-5f5f-a16e-048af6f67af0"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "FISH OIL CONCENTRATED"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_373fc26831e4708d",
+        "expected_ids": [
+          "a600793e-84a4-59b9-967a-332e8d3c55fa",
+          "a902f931-d887-556f-bb23-b810314d9550"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ESSENTIALZYMES-4"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_38d14d0cbc6f67cb",
+        "expected_ids": [
+          "2245d71b-2401-5e63-8722-2ed9e270e641",
+          "7d01f6f7-c9dc-5246-89f5-fb486b572650"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SOY LECITHIN SOFTGELS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_3a3c69ba48a834ff",
+        "expected_ids": [
+          "03bc7d1b-0922-529e-b9fc-3fea6f9312c7",
+          "ee10f9b3-a6b4-52fa-b885-0b5a1fc6918e",
+          "efdf521f-6c0d-56f3-8a39-780ca81f2dbc"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "LOUD SOFTGEL"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_3d3729c6c8097772",
+        "expected_ids": [
+          "0cbc229b-8aa8-5d7b-974d-eee2bba578ac",
+          "49da8a01-a208-5d82-b177-ec7189000b59"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "NEW COSADIN CAPSULES"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_4025899ae94ca4e2",
+        "expected_ids": [
+          "097a553f-f16b-52b5-b340-0586d465f857",
+          "bc9f799c-c598-554d-b221-9541902dd02b"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "LAC PROBIOTIC COMPLEX 100 BILLION CFUS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_41718feb97d62afd",
+        "expected_ids": [
+          "38335e5f-06e4-5194-bed4-ebb904985804",
+          "73c630f1-462d-5c03-ba13-464abe04b1de"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ESMOND ABC PLUS SENIOR MULTIVITAMIN TABLETS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_450be321443ed39b",
+        "expected_ids": [
+          "4081f343-8061-55df-ae47-dd1a252a624f",
+          "d3a514dd-03d2-55b6-89cc-cd7ad2600a9e"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "CRANBERRY SMOOTH SOFTGELS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_4973ff540082b089",
+        "expected_ids": [
+          "595f9f26-b6b7-52a4-9abf-ae74b2b580c5",
+          "5ee95c4a-070f-5921-b9ca-733f70c25f5c",
+          "ef959c29-4cad-5c65-87eb-6ade3cd4e8ae"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "PURE-HERBCAL TABLETS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_4bc65b1476239e01",
+        "expected_ids": [
+          "382862f4-56f3-579d-842f-94d6ded73169",
+          "515e1f24-9294-5dcb-a9b9-4a6da65961e9"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "OMEGA FISH OIL CAPSULES"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_4d34b060740a1834",
+        "expected_ids": [
+          "7683f561-b0e3-55fd-b9f5-4a1dd18126b3",
+          "85e71341-891a-5eec-b484-f0dba5cf5218",
+          "9c8de301-f94f-5739-8bdd-c4fc5165a847"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "BITTER MELON"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_4e58c9679139b512",
+        "expected_ids": [
+          "ae249479-684f-5aeb-9082-c1c9bb66d7a2",
+          "e0e99346-dbc2-59d9-897a-ac32b3d431ff"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "COOL FRESH TABLETS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_56efe495c436b9a6",
+        "expected_ids": [
+          "00fc8ce4-b9ce-5d27-b54d-f5271ba4a5a6",
+          "5e8100ba-5a35-50c1-9683-bf3e55dd27d7",
+          "694ad636-7e6e-5602-979d-2470fedb0088"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "GLUCOSAMINE & CHONDROITIN TABLETS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_572451e1d5098ffb",
+        "expected_ids": [
+          "250b4a5c-97f7-5de8-b4fa-ba04ef9ff08d",
+          "29dadefd-438d-5d18-bae6-b760c2e3f36f",
+          "63a2e91e-b187-511b-8669-175a0f233133"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ESMOND LIQUID CALCIUM +D3 SOFTGELS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_5be5e4794fad8f97",
+        "expected_ids": [
+          "5c3ae0a5-99a6-54c6-97fa-382147b04eb1",
+          "79e906d5-e762-5bd9-a505-983e5a3bb4b3"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SPORLIFE CAPSULES"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_5cf78c0ad1de3e9c",
+        "expected_ids": [
+          "256cb7c8-ad9a-59e6-9653-17b8efd14439",
+          "488922b2-fd26-55e1-af49-364d0d6d6220"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "DHC RAKU POWER 30 DAYS SUPPLY"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_5f89c59362dce29c",
+        "expected_ids": [
+          "36a694d3-38e4-5103-874e-1cc39ca3e286",
+          "5e2161a7-f8fa-51be-9d97-bf920cfdfd22"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ARERU CARE LACTOBACILLUS-CONTAINING TABLET"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_6093d32ee2fb3da5",
+        "expected_ids": [
+          "79405447-d456-507e-8337-9a484f3a9473",
+          "a5520c6e-b3f5-5305-bc1f-cffd50c037af",
+          "c59e76ba-8096-5fea-aed5-484f98259e17"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SQUALENE"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_616b0fa82fca249b",
+        "expected_ids": [
+          "00893e8b-06b6-5c21-aa40-7b72c4882f21",
+          "aee795c9-d3e0-5cbc-a5d2-0a92ee6a2ed9"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "Nutriplus Prenatal Multivitamin Tablets"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_681cf99caedfddd0",
+        "expected_ids": [
+          "0feebed4-79f2-52bc-8e90-c75c43176baf",
+          "11dd780f-1f9c-5e71-9956-ce38ebc2b498",
+          "d7ad1e65-2793-52ee-9368-c965c2dc02d2"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "HEMAGENICS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_6b261e81fc0a3d7b",
+        "expected_ids": [
+          "2b561bb1-fd3e-55bf-b53c-c75d973c85bd",
+          "7609bf1e-1764-5140-85b2-94e269f7cde1"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "COENZYME Q10 CAPSULE"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_6bec5648545c4080",
+        "expected_ids": [
+          "2ea88aab-06d5-530b-ba91-aecfea7b6714",
+          "97a92df8-f0be-5a84-8c27-7448c4b924fa"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "LAC PROBIOTIC COMPLEX 50 BILLION CFUS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_6d3d8d77ce3cf2b4",
+        "expected_ids": [
+          "7fdf7fdd-82fe-5e4c-8ca9-80fb31f0416b",
+          "a66bee5c-72cd-594d-83bd-cf48d8c95ec4"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "BIO CALCIUM EXP TABLETS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_6e28045080f82444",
+        "expected_ids": [
+          "0c6ff169-867d-5867-8062-edee7fd68cd8",
+          "88ec948b-f78f-556a-aed0-3f092db8af33",
+          "a95e9585-6013-52c2-acfd-4be1c0864f72"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SHUGO DENSETSU"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_713a7deafb278268",
+        "expected_ids": [
+          "a28a4bac-6b24-5fb2-b453-ed9f5edeba38",
+          "b843f09d-4018-556b-aae1-d95d0cc2ae22"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "MILK TABLET DURIAN FLAVOUR(Q-Q BRAND)"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_728c666b2d21b7a5",
+        "expected_ids": [
+          "90109e47-4cb4-59cd-ad7e-bdb2dd0cd9e8",
+          "fbf30adc-9e41-56e8-85c5-18b65f055cbc"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ARTICHOKE CAPSULES"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_749f3fd7a0fe9213",
+        "expected_ids": [
+          "4b8f4aaf-64e2-51b0-a33e-d3902bd07213",
+          "adb0bd81-16af-594b-9328-24e9a8770f4c",
+          "dc4a08e7-7c40-51ff-9a62-49fc9fef8508"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "TREASURE D3 800IU SOFT CAPSULES"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_791c35a0c83c30b3",
+        "expected_ids": [
+          "710a9802-6800-586d-82f1-b41aa130d3fc",
+          "ac24b01c-b41d-5c46-9f00-88f42298908e"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "KIRKLAND SIGNATURE SUPER B COMPLEX TABLETS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_7c27dc49756ecc0c",
+        "expected_ids": [
+          "880dd8e7-50b0-5851-ace4-6778e01acb40",
+          "a77ea57b-4bb7-5695-b169-cf9951bad3da"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ROYAL JELLY + SESAMIN E TABLET"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_7ff7805d49c6f0e4",
+        "expected_ids": [
+          "9011bf2e-3ac6-5dac-9374-049419877134",
+          "fa0c5a29-f0d9-5b94-a05b-621ed5344b1d"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ALTA ESPECIFICAO 85% OMEGA-3 FISH OIL"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_817b47f924fecf91",
+        "expected_ids": [
+          "69f3d9c6-3058-59c3-b2e4-b87a4b1592c1",
+          "886119b4-4f4e-5ba8-9134-36e928ad48f2"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "BOHAT HERBAL EXTRACT CAPSULE"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_83b6057b06c88142",
+        "expected_ids": [
+          "3298cf2d-60cb-541c-b80c-5ed4e2af0075",
+          "9db7d65b-0a16-5ffe-8759-6ceed526ea22"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "BODY-WELL TABLETS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_8585b534e04c60e4",
+        "expected_ids": [
+          "25589968-3073-57c6-9281-bfddf764f5ab",
+          "860c08ba-f85a-539d-97a5-4fef1ac08663"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "LIFE’S DHA? 200MG VEGETARIAN CAPSULES"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_88318e1f58318e3b",
+        "expected_ids": [
+          "09915783-0b48-5451-a2ac-84a4741504ac",
+          "2c220265-c4db-50fe-91b4-e29214762909",
+          "3675ff30-0591-50a2-88a2-d6a1a0830d3a",
+          "3b21691a-22a6-5166-a439-699719cccba9"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "PATZAOYEN Q&B-III CAPSULES"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_88fca70ab946fa98",
+        "expected_ids": [
+          "64457afa-873c-55ff-9037-faafb8d5466a",
+          "ad0d9875-912f-52d3-a9c9-c34c0949200a"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "NUTRILITE CHEWABLE FIBER BLEND"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_89d63cfd5801e831",
+        "expected_ids": [
+          "51452be6-881b-5627-85a3-11f380c411c3",
+          "a8d954e9-0f48-507a-9773-e65014ec6335"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ESMOND TIMED-RELEASE VITAMIN B TABLET"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_91449326fa3da03c",
+        "expected_ids": [
+          "565c9d7c-9d70-5555-be76-ea9241d5f61f",
+          "a3ed5a39-5a31-52f6-943c-cfe2295e88fa"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "GENSEY CAPSULES"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_927a6dc57d125359",
+        "expected_ids": [
+          "16441690-573c-57e0-b211-b00da14f1899",
+          "7ca823eb-b471-5e03-a466-4257a54326ab"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "NUTRILITE JOY & WELLBEING PROBIOTIC"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_92e567e9a5985bb4",
+        "expected_ids": [
+          "16b2aada-7872-5810-99a0-512d046bcaf3",
+          "4c2a5bb9-5345-58f3-a98c-adfcc067ac30"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ESMOND FISH OIL SOFTGELS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_93b6dbaac8166768",
+        "expected_ids": [
+          "50b2438a-dc70-559e-a92d-0f98785081df",
+          "a5680336-5749-56a1-ab5d-db0acf1148ab"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "Centrum Silver 50+ for Men Multivitamin Tablets"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_947860e52bc26a2e",
+        "expected_ids": [
+          "b0ee65b8-de58-5005-8944-758d377ba4ad",
+          "dcaee923-2b41-5395-946a-679c934af250"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ODORLESS GARLIC"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_956aa5af192ba3f0",
+        "expected_ids": [
+          "3aba3c0a-51cb-5597-9ac5-22b5a2b8d750",
+          "bfe0ba3f-2562-5ece-947f-cf2c2acaa7d6"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "CAPSULE FOR MOTHERS FISH OIL DHA"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_98c39126e25ec659",
+        "expected_ids": [
+          "4b3b2d77-e7ca-521c-9a37-8ef76f8c5fbc",
+          "56d087bf-ae56-5b90-adb3-8987c2499db8",
+          "b0325d05-283d-5063-9bba-3a76ff0c998e"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SUNFOLIC CAPSULES"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_9c6eb78b462edd3a",
+        "expected_ids": [
+          "311f5fcc-34c9-5c15-8e1b-1c6a43f3235e",
+          "365f7b52-a81c-531c-bd80-331576f5dbb7",
+          "b46f2fcb-aa19-550f-9928-c1ae9df73b02",
+          "dcf4fc45-fef8-56e8-bbe7-8eea4a1921fe"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "FITNESS-Ⅱ CAPSULES"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_9d4dacdf574f2ddd",
+        "expected_ids": [
+          "98213a73-9b4a-5bdf-ac10-6e87054f8fb6",
+          "a92065fd-c72a-52d2-80c5-668af487c6d0"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SHINSEI B MIX SUGAR TAB"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_9e8b9729695d7e99",
+        "expected_ids": [
+          "18ddba7d-87d8-58ed-ab37-2b5dbe98a823",
+          "26ec0007-448e-580f-a067-e1d01ea003af",
+          "40dd8c41-419c-550a-b9c9-edfb36cbdc97",
+          "e00b4a52-9568-55d8-9c95-af491f7d23fc"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "WISE KING DHA FISH OIL SOFTGEL CAPSULE"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_9efd3b0762a9c69d",
+        "expected_ids": [
+          "5e22166b-54c8-5d49-b147-423ea7057ffa",
+          "9fdaacb6-6822-5765-ba7d-3d177ed5b996"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ALGAL OMEGA-3 VEGAN CAPSULES"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_9f7c5b851fa90ae5",
+        "expected_ids": [
+          "370bd300-4678-5f34-81e9-9f3e9bc6de7d",
+          "e28699fb-e453-5539-a7a5-991ad4daa584"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SUHAT HERBAL EXTRACT CAPSULE"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_a3474ae813e9edcd",
+        "expected_ids": [
+          "2e5b779b-75d5-58f4-8512-a96441ea60b2",
+          "38f8c5a4-5c68-564c-ab08-6962056dde95"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SUPER LUTEIN MIRTOPLUS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_a5cf6e4e7012bdd7",
+        "expected_ids": [
+          "00561c27-04b3-5b88-9f05-fc3fe55fd7c8",
+          "c641a935-7fbc-5cb1-867e-7af9de4a3a10"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "USANA PROCOSA"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_a95761a60ee068bb",
+        "expected_ids": [
+          "8c74d853-55bf-5d52-8876-3f0cef55f04d",
+          "9be70c46-3a27-528e-8c3e-2a2ddf99e540"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "NHT GLOBAL ULTRA B-COMPLEX"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_af9d39312b8d1666",
+        "expected_ids": [
+          "3f246f6a-109c-5ce4-a2f7-eb5b568aff92",
+          "80607cb5-65a1-598c-8916-f38443e30ee4"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "NUTRILITE GREEN TEA PLUS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_b5a7d7059a88596f",
+        "expected_ids": [
+          "3448b2b2-72a8-584e-ac36-1d67be7cb79d",
+          "5c2bbfc3-d410-58a1-8768-b9a78c68086c"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "JOINOSTEO TABLETS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_b74e4c7c02839572",
+        "expected_ids": [
+          "06b77b53-a236-5c7b-9f17-e8a9f9efbd76",
+          "12cce1b0-9a3f-51dd-ba82-ff4179f67d25",
+          "1fca4b4f-9229-573d-9718-05184946d12e",
+          "96c088c4-a3b0-5226-8c15-b2ef032799f7",
+          "fbaaeba7-a833-5e52-abed-e85b84edf53e"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "GOLD STONE CAPSULES"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_be1809c8f9587dc0",
+        "expected_ids": [
+          "2a5f1de4-92d9-501e-a058-ba819cc27a37",
+          "46dfcfb6-91a2-5123-9a39-e327772e082f"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "RHODIOLA 500MG (60 VEG CAPSULES)"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_c05451e8f9233d8e",
+        "expected_ids": [
+          "22af9323-1f62-5d6d-b9fd-495f06af457f",
+          "433b873b-e3ea-53b0-bd00-639c6209ddc9"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "LAC BILBERRY 60MG"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_c45f7f2b8259598a",
+        "expected_ids": [
+          "ce11c0f4-580f-5e80-829b-74dc124e3e2f",
+          "fd0b0f82-d585-5255-9353-57713353a4d5"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "NUTRILITE BIO C PLUS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_c850ee3292a76638",
+        "expected_ids": [
+          "86fd8d87-a75f-5e3e-ba44-c88efa4f5ef6",
+          "a0184412-b2cd-50e3-b33e-d186aa14b9c8"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "GULEYONG SOFTGEL"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_c95fac9c4785d1ba",
+        "expected_ids": [
+          "21efe9ab-92a6-5d2c-99a4-a5f1a509b141",
+          "329a7c89-45ff-5e3e-872d-d1ea9d37e13b"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "BONERY SOFTGELS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_c9b62a16583be748",
+        "expected_ids": [
+          "083ecf71-4e6a-5e8a-972f-109460ed3b9e",
+          "56f7798a-b42c-5899-b5f8-5c6ea30a4583"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "LIANGDE VITAMIN D3 800 IU SOFTGELS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_cb7eb2cf113054de",
+        "expected_ids": [
+          "a068d532-98d4-56d8-b271-2a0a7ca02044",
+          "a86430b1-266c-53a9-81f3-b8c6e974e314"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "SINGCOLE HERBAL EXTRACT CAPSULE"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_ce26ab7d6b4ba6bd",
+        "expected_ids": [
+          "091c43e7-95d9-5185-a5c3-a277ec880948",
+          "ecb8ca4e-ab74-5c19-80ba-6a0c7d5a054b"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "Bromelain"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_cfe766410bee9890",
+        "expected_ids": [
+          "10d9bbd3-5b39-5ae2-8be2-376cd4ebc020",
+          "127aee74-65f3-5e0f-82c5-41b929cd237e"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "KIRKLAND SIGNATURE B12 TABLET"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_d32646ef1b5943ad",
+        "expected_ids": [
+          "3bddc12a-bbbf-583b-bff7-ca3d792e167c",
+          "c22791b2-8d1f-5fe4-824d-4a1683cfd72b"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "L-ARGININE 500 MG"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_d64c7a08709981b4",
+        "expected_ids": [
+          "620d4705-a1e1-515c-b0d0-5e806613d87a",
+          "d00423c3-9e57-5cb6-a8af-56bac05f8479"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ESMOND GARLIC OIL SOFTGELS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_d6f559747fff37d3",
+        "expected_ids": [
+          "0751bda3-8407-5362-aaba-75fdbaa65ea4",
+          "1012c0f4-4317-5f7f-a8e0-20230b5d3e42",
+          "63309a4a-d177-5161-abb6-0ae7adf7eeef",
+          "78692d69-37fb-5799-a2c3-87e070bf2b84",
+          "f2572ce3-fe8d-55d2-bc5b-ecdbb61b1503",
+          "f63f31ca-e556-55e2-8c20-c478205149fd"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "BIOTIN"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_daa2eff2b059bdc5",
+        "expected_ids": [
+          "44fbcd4a-f0ae-5765-844b-1a600f1a2bf8",
+          "4a35f8ca-d9ab-5f97-994e-ad7384ffeeab"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "GARDEN 7"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_dc081703b92fdb36",
+        "expected_ids": [
+          "ea3ee7b9-168c-55f0-85d6-a08158ba4654",
+          "ffdfb4aa-e7c0-5683-8beb-d5644703138b"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "FOLIC ACID 400 MCG TABLETS"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_dd523559ee358b99",
+        "expected_ids": [
+          "987a7086-1c1a-50bf-8427-32c083564de8",
+          "bbe0233c-87c1-591e-9301-7011e4d267f5"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "VENE-SINSTON-GPH CAPSULES"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_e13238b1d2f66881",
+        "expected_ids": [
+          "b2506d49-1b50-5ba8-a819-f7ed546f06c5",
+          "d9951ca1-7a2f-5b54-a590-00d617b52c92",
+          "ebc22ddb-b40c-547c-94c9-7941588b5bac"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "AMOSVITAL C DEPOT CAPSULES"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_e49a155ce79c3860",
+        "expected_ids": [
+          "1106988e-a381-50c4-8ec2-c1c3bd811111",
+          "47afae24-89a6-5be0-aa57-e502e7e39692",
+          "75826638-0977-5dc0-99d6-d317be1c273d"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "VITAKAHO EX TABLET"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_eab43e6a1853d431",
+        "expected_ids": [
+          "39271a67-c830-57d9-8162-7e81486981f9",
+          "b91a91b0-6bb8-5c8f-b86e-718862f3bb73"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "DEVITA A-Z PLUS Q10 DEPOT TABLET"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_ed9b232d04720a5c",
+        "expected_ids": [
+          "2fca0502-8b1b-59dd-8e70-93ca50ffe264",
+          "54e81ebf-1949-51bb-af24-0d0d062e91bd"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "KIRKLAND SIGNATURE VITAMIN C 500MG"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_ee70c8dee4188ae0",
+        "expected_ids": [
+          "5db5e396-11a2-5fb7-9de0-21f511b1866e",
+          "a0d95ca9-cfa7-53e0-a9a5-dddcdb9e64a1"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "RéPOV  Be Young"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_f31ffd7907f84fc3",
+        "expected_ids": [
+          "af7e1f76-1a7d-529e-956c-d59f1b7c8cd9",
+          "bc6ec80a-6460-5006-a2f6-cdff69b52534"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "AGELOC YOUTHSPAN"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_f57dbfb6b6cbab8a",
+        "expected_ids": [
+          "2008da16-74cb-5591-93ad-e04b743478d5",
+          "93830f7e-58d3-5bd9-9b58-faaed01f1cd6",
+          "93e0f472-b787-50a6-918a-51fe719a10bc",
+          "999ccc5d-c255-5bc5-a5e5-ad6f1eda444a"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "Total B Tablets"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_fa2a16ee72f74100",
+        "expected_ids": [
+          "0e1499f3-f350-56e8-b759-63691800ac12",
+          "fcab4603-af1c-5d62-b109-57e2a2dffdca"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "Folic acid Tablets"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_fbc4558ce1cf8a79",
+        "expected_ids": [
+          "6f78fc56-9d92-583c-b468-28ff7ea10920",
+          "bdb5964b-cd05-5f97-b263-a2b39c11cd8f"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ESMOND L-ARGININE PLUS MACA CAPSULES"
+      },
+      {
+        "case_id": "COLLIDING_EN_EXACT:PAR_fc38aa7da0d77906",
+        "expected_ids": [
+          "a45fbdd2-83d4-5864-9a2f-ada373f20824",
+          "a66ad810-8779-517a-a33a-61429c71e3f9"
+        ],
+        "group": "COLLIDING_EN_EXACT",
+        "is_permit_query": false,
+        "query": "ESMOND FISH OIL 1000 SOFTGELS"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_02db8354ee4bfa1d",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "WINNER"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_07213f449bd385fa",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "Stresstabs"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_07b8f12f64721121",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "B-Energetic"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_09bfb577b5bd4c11",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "SUNTORY"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_1111e06b0f59963c",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "HAC"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_373be433140eef9b",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "MKLAB"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_378c0763a89d6a3e",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "MEGARED"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_3918ac88230a91fe",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "MORIMOTO"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_3a066faa99346136",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "SIMPOR"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_3f907c06540dfd59",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "SANMAO"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_54b634775c75d8db",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "MENICON"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_5663cc8d473c13c2",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "USANA"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_5eda9e163cff4292",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "N’S"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_672f02bff82c8d58",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "C.C.Y"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_7746354405674a46",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "BNUTRA"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_8925fb90ce012ae6",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "Richvita"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_8e1cbb0742d6c363",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "SWISSE"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_a09d0ec41ffca7e2",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "FANCL"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_a3041884df8e5556",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "SAKUYO"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_a676a3966fb06eb2",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "DailyCare"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_a9035d06a68eef6b",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "BESTVITE"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_b21a0e75c8a02ba6",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "NUTRILITE"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_b299e074135966fe",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "GOTRIM"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_b2af17880b2c27a6",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "Watsons"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_c024fca57c6ca95f",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "ULTRAFLORA"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_c77630b18b493519",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "DHC"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_c89046defae23a87",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "COZMOMEGA"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_d4ce8a3bd7741137",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "BLACKMORES"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_d5743d81e41c5090",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "LAC"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_d9ee42e45b5eed71",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "PEAK"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_dc781e385ab3bbb5",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "DOPPELHERZ"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_ddcc70fdf8c9610b",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "IKOR"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_eaae7e640ea57c0b",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "KIZANDY"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_ef8227b021842a79",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "CHOCOLA"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_f40769e949d8820c",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "Sinphar"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_f54a5dc91cde955a",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "KIRKLAND"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_f60451bcb2253973",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "LIGWOR"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_f62864d6841feaf9",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "BESTER"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_f6b3887591ae2d3e",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "OMEGAGENICS"
+      },
+      {
+        "case_id": "BRAND_EN_ONLY:PAR_fdc7ff4df87fe8c2",
+        "expected_ids": [],
+        "group": "BRAND_EN_ONLY",
+        "is_permit_query": false,
+        "query": "GNC"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_0069b5badbcbaee7",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "LUTEIN"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_12aae1a68f4a3e2f",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "DAILY"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_173566943f541043",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "MR.Z 5000"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_2346d67d78ea7919",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "ULTRA"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_25e64257fdf2327d",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "SUPER"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_2ea03c4b9577fc50",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "GOLD"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_3ab16b60d432b45f",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "AB 21 D+"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_431ca67114bdb63f",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "KRILL"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_47eb6dc1508acd3c",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "MCO+"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_4e33703d47a01819",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "GREEN"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_501738b78e274caf",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "ZINC"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_512844ed245d03b9",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "P5P 50"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_56335c6abed658a8",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "FOLIC"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_58826bf1f0444429",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "CRANBERRY"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_6d690978a8144156",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "PROPOLIS"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_6df47ac8b0435aa2",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "OMEGA"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_6f6bd31591da7e5a",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "GOLDEN"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_710510d949a3e7e6",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "MAGNESIUM"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_748f82cf07d414f6",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "DRT30"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_77aae3cabdbdf126",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "COENZYME"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_7effac34706ce9bf",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "DHA 1000"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_80c91a324bf54f9b",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "COQ10"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_88326026ad3fe990",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "DFN"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_88c84ae95bbcf27d",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "BORAGE"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_9ba7915fe2372700",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "L-ARGININE"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_9d8d97d397c801f9",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "LB-P0.5"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_ae28475041548786",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "L-CARNITINE"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_af0241994c33719e",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "COQ10"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_b951e38c94372005",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "COQ10"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_bcfb932c7975d037",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "I 3.1"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_bef2b37bf7b5a07e",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "SA- β G"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_c876d457671d8598",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "NEW"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_d035890dbf8fc4c0",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "NATTO"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_d592691f96db0ab6",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "MULTIVITAMIN"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_d6acd5cd68811390",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "POWER"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_db27c6287cf84ac0",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "GARLIC"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_de88028624e4dde8",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "TURMERIC"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_e87ecb8ceaab8ca0",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "GLUCOSAMINE"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_ea7a46881d7d1f23",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "MR.Z  7700"
+      },
+      {
+        "case_id": "GENERIC_EN_TOKEN:PAR_f977c7de56821ea5",
+        "expected_ids": [],
+        "group": "GENERIC_EN_TOKEN",
+        "is_permit_query": false,
+        "query": "LB-P0.5"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:00395837-dbb7-5d02-a734-8792f49443f9",
+        "expected_ids": [
+          "00395837-dbb7-5d02-a734-8792f49443f9"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "和漢甘爽 薑黃肝精錠狀食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:01230d1b-724d-5ff4-aef4-3b2c6a0150be",
+        "expected_ids": [
+          "01230d1b-724d-5ff4-aef4-3b2c6a0150be"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "LOVITA 愛維他複方草本苦瓜素食膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:024595f8-2b28-53d1-bf2f-f6e39ff7643a",
+        "expected_ids": [
+          "024595f8-2b28-53d1-bf2f-f6e39ff7643a"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "美國GNC 超級光合藻 精華膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:0388d356-e2ed-5c4b-aba5-419b96a9fc78",
+        "expected_ids": [
+          "0388d356-e2ed-5c4b-aba5-419b96a9fc78"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "法兒貝 覺醒計劃 B群膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:06fa20ab-5ffc-552b-b983-db3ae8a008b7",
+        "expected_ids": [
+          "06fa20ab-5ffc-552b-b983-db3ae8a008b7"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "藻油軟膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:07fcea94-4e85-5eae-8759-e36d4ddcb947",
+        "expected_ids": [
+          "07fcea94-4e85-5eae-8759-e36d4ddcb947"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "新勇寶康 Ⅱ 膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:0be6d677-1a31-5410-aaaf-6aadf91ccc15",
+        "expected_ids": [
+          "0be6d677-1a31-5410-aaaf-6aadf91ccc15"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "特舒芙 F4 液態膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:11cff7b8-3fc2-5384-9cc6-a7da5c926be3",
+        "expected_ids": [
+          "11cff7b8-3fc2-5384-9cc6-a7da5c926be3"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "克里薩斯 PTGC UC-Ⅱ 伊霸 667 EX 軟膠囊食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:133b15bb-ac74-5925-a60b-1482b13ea5f7",
+        "expected_ids": [
+          "133b15bb-ac74-5925-a60b-1482b13ea5f7"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "極識金潤北歐藍莓膠囊食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:13919e6a-ec15-5480-a0e6-d63c0f5f51e0",
+        "expected_ids": [
+          "13919e6a-ec15-5480-a0e6-d63c0f5f51e0"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "營養生活乳酸菌膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:1637616b-3829-50a0-b021-ff87c1ff9cd3",
+        "expected_ids": [
+          "1637616b-3829-50a0-b021-ff87c1ff9cd3"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "Q10 養生 軟膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:17584ebb-19b2-5b30-9d5b-a90926457fa8",
+        "expected_ids": [
+          "17584ebb-19b2-5b30-9d5b-a90926457fa8",
+          "68d50dab-d40b-5903-9940-d712d9b285b2"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "愛司盟綜合酵素益菌錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:1af4f078-49ba-5579-9c85-1c85ca088c82",
+        "expected_ids": [
+          "1af4f078-49ba-5579-9c85-1c85ca088c82"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "氣樂每日錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:1cec3d23-f84f-55df-ac50-86636a8881b2",
+        "expected_ids": [
+          "1cec3d23-f84f-55df-ac50-86636a8881b2",
+          "7246e776-edc4-5ce7-a33c-0e55afdc38b3"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "自健納豆膠囊 DX"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:2121bd6c-18c3-55f0-abd7-931be9a6bb8d",
+        "expected_ids": [
+          "2121bd6c-18c3-55f0-abd7-931be9a6bb8d"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "銀杏王複方錠狀食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:2cda6bd8-c53c-5108-a640-49a6e9cf8eb3",
+        "expected_ids": [
+          "2cda6bd8-c53c-5108-a640-49a6e9cf8eb3"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "翔恩維他命 E 400IU"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:3037e46f-0960-52ee-8016-949fe40e3090",
+        "expected_ids": [
+          "3037e46f-0960-52ee-8016-949fe40e3090"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "易纖酵素膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:3770bfaf-411d-59cb-853f-448ba7be7df4",
+        "expected_ids": [
+          "3770bfaf-411d-59cb-853f-448ba7be7df4"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "靚漾B雙層錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:383c88f4-2186-559b-955b-36d81394dff1",
+        "expected_ids": [
+          "383c88f4-2186-559b-955b-36d81394dff1"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "亮晶晶膠囊食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:39920743-a4b7-5573-a1fe-9f87acbe9572",
+        "expected_ids": [
+          "39920743-a4b7-5573-a1fe-9f87acbe9572"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "舞燕皇膠囊食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:3ce58d31-553b-50f5-90c3-06e883ced7dd",
+        "expected_ids": [
+          "3ce58d31-553b-50f5-90c3-06e883ced7dd"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "多維而甘露錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:3f26d8a9-773e-5860-b880-3b5aec6fd0a6",
+        "expected_ids": [
+          "3f26d8a9-773e-5860-b880-3b5aec6fd0a6"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "百賀福膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:408479b3-19d0-5e25-9ed2-5a6d5676c875",
+        "expected_ids": [
+          "408479b3-19d0-5e25-9ed2-5a6d5676c875"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "紐崔萊蜂蜜卵磷脂嚼錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:44765a41-9f59-5b6c-8d05-f006c4c6d581",
+        "expected_ids": [
+          "44765a41-9f59-5b6c-8d05-f006c4c6d581"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "DHC 維他命B群‧錠狀食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:454384d2-b44a-5f58-95b3-72e461ad854f",
+        "expected_ids": [
+          "454384d2-b44a-5f58-95b3-72e461ad854f"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "益克綜膠囊食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:4689a26f-6fee-56f8-bfed-c76fa5849294",
+        "expected_ids": [
+          "4689a26f-6fee-56f8-bfed-c76fa5849294"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "兆宇生技好旺糖衣錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:4ad5be53-6271-5242-985f-eae4e5bd12b7",
+        "expected_ids": [
+          "4ad5be53-6271-5242-985f-eae4e5bd12b7"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "植物固醇 (60粒)"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:506e4a85-33a6-5397-aa04-2549de31342d",
+        "expected_ids": [
+          "506e4a85-33a6-5397-aa04-2549de31342d"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "善存 我的每日營養- 50+女性專屬隨身包"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:517df6f3-2a77-59be-858c-2e01c8d8f00b",
+        "expected_ids": [
+          "517df6f3-2a77-59be-858c-2e01c8d8f00b"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "克補+鋅加強錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:530f8595-b00e-5565-85da-f09ccbecb5d6",
+        "expected_ids": [
+          "530f8595-b00e-5565-85da-f09ccbecb5d6",
+          "c6ee2b5e-32c8-5f3c-ad56-1adbffd9ed90"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "維生素 B12 錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:534ea55d-43ab-558d-955e-e6809d08677e",
+        "expected_ids": [
+          "534ea55d-43ab-558d-955e-e6809d08677e"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "芝麻萃取物+γ-穀維素膠囊食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:56e70e83-0063-52ec-9d9d-8a0684d7b7b3",
+        "expected_ids": [
+          "56e70e83-0063-52ec-9d9d-8a0684d7b7b3"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "紫荷複方維生素C膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:575249c6-f56f-5b7a-af84-21229998642c",
+        "expected_ids": [
+          "575249c6-f56f-5b7a-af84-21229998642c"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "LAC 亞麻仁油膠囊食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:5e969be2-b467-5d99-a026-e68612001557",
+        "expected_ids": [
+          "5e969be2-b467-5d99-a026-e68612001557"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "益生菌+鋅複合膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:63aee482-1d30-53d1-834e-42a3bddbe6d2",
+        "expected_ids": [
+          "63aee482-1d30-53d1-834e-42a3bddbe6d2"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "高優純微脂體維生素D3"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:65ea62eb-fb03-5059-abf4-50f79dbfc3a8",
+        "expected_ids": [
+          "65ea62eb-fb03-5059-abf4-50f79dbfc3a8"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "喉嗓愛三草酷爽球膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:696b143f-90ff-5c40-ae7b-fec6f835a396",
+        "expected_ids": [
+          "696b143f-90ff-5c40-ae7b-fec6f835a396"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "立國R納豆紅麴素食膠囊食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:69fbf72c-14e3-5332-be68-b677093ee08d",
+        "expected_ids": [
+          "69fbf72c-14e3-5332-be68-b677093ee08d"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "LOVITA 愛維他山桑果膠囊 60MG(100倍濃縮)"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:6bb3a5ec-a4ed-5d0d-9233-490ea97f4252",
+        "expected_ids": [
+          "6bb3a5ec-a4ed-5d0d-9233-490ea97f4252",
+          "b6cfa920-4374-58a2-b51d-0e0d1f071a94"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "速補B康補錠食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:6d7319e5-edba-5094-96aa-45459b2341de",
+        "expected_ids": [
+          "6d7319e5-edba-5094-96aa-45459b2341de"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "金盞花萃取游離型葉黃素+黑豆種皮萃取物II軟膠囊食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:6f49b523-859e-5eb4-a891-a1137197c078",
+        "expected_ids": [
+          "6f49b523-859e-5eb4-a891-a1137197c078"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "飛燕明軟膠囊罐裝版"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:703e0bdc-049d-5d28-a2ef-884db62a0594",
+        "expected_ids": [
+          "703e0bdc-049d-5d28-a2ef-884db62a0594"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "華貿速麗纖錠狀食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:7056d3cd-23e2-5d3c-b28f-54b3fcd251f4",
+        "expected_ids": [
+          "7056d3cd-23e2-5d3c-b28f-54b3fcd251f4"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "威力蚵膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:749e3a06-778a-528f-aa31-0ed97ecd6c8c",
+        "expected_ids": [
+          "749e3a06-778a-528f-aa31-0ed97ecd6c8c"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "LAC DHA 魚油 250 膠囊食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:74d42542-c1f5-5866-8045-2004ce0e1670",
+        "expected_ids": [
+          "74d42542-c1f5-5866-8045-2004ce0e1670"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "優可達錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:7b7214d9-09b8-58c6-893b-e22387070673",
+        "expected_ids": [
+          "7b7214d9-09b8-58c6-893b-e22387070673"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "保佳兆-蜂膠膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:80dadb06-3aa7-522b-926e-b6bc634999a9",
+        "expected_ids": [
+          "80dadb06-3aa7-522b-926e-b6bc634999a9"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "生物素 5000mcg+鈣膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:81622558-f831-5ba1-97a1-ec418c98972c",
+        "expected_ids": [
+          "81622558-f831-5ba1-97a1-ec418c98972c"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "健美生淨美舒女性專用益生菌膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:8c190e80-190b-591f-aa70-756277fe0741",
+        "expected_ids": [
+          "8c190e80-190b-591f-aa70-756277fe0741"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "康世紀維他命C1000膜衣錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:8d7d7ba4-654c-5000-ae8c-d6c44c129312",
+        "expected_ids": [
+          "8d7d7ba4-654c-5000-ae8c-d6c44c129312"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "鐵 Plus 維生素 B 群軟膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:8e7cd3f0-1803-5873-8948-32b8c4f62d3e",
+        "expected_ids": [
+          "8e7cd3f0-1803-5873-8948-32b8c4f62d3e"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "錦麗妍錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:923642f0-deb3-5868-9b81-c28ef458cd54",
+        "expected_ids": [
+          "923642f0-deb3-5868-9b81-c28ef458cd54"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "精純 COQ10 膠囊食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:985611e7-afd0-5e1a-ba2b-211dffd81f74",
+        "expected_ids": [
+          "985611e7-afd0-5e1a-ba2b-211dffd81f74"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "海默克魚油膠囊狀食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:99e956e4-571f-5376-8ff8-a0e13edd5ba2",
+        "expected_ids": [
+          "99e956e4-571f-5376-8ff8-a0e13edd5ba2"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "葉黃素20毫克綜合軟膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:9b5eba25-5268-59a1-ad90-c991efcd4a67",
+        "expected_ids": [
+          "9b5eba25-5268-59a1-ad90-c991efcd4a67"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "科林頓活立捷錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:9d4ce646-6984-5aad-a4f7-a75a3d603a48",
+        "expected_ids": [
+          "9d4ce646-6984-5aad-a4f7-a75a3d603a48"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "B2B6 PLUS γ II 軟膠囊食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:9e7288f3-4f80-5843-9d78-ae4dd98a0c09",
+        "expected_ids": [
+          "9e7288f3-4f80-5843-9d78-ae4dd98a0c09"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "大地之焠 S203A 膠囊食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:9ec9233a-38ab-5e5a-95f0-4ca53c0eaa9a",
+        "expected_ids": [
+          "9ec9233a-38ab-5e5a-95f0-4ca53c0eaa9a"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "杏寶之寶頂級TG型魚油軟膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:a15f6a44-a10c-52c9-9495-86e9b60f8b31",
+        "expected_ids": [
+          "a15f6a44-a10c-52c9-9495-86e9b60f8b31"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "仙蔘精(膠囊食品)金裝"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:a2a359a0-2d8f-5e4f-82e2-1ed7b72e9294",
+        "expected_ids": [
+          "a2a359a0-2d8f-5e4f-82e2-1ed7b72e9294"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "鹽補給嚼錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:a3c61d8a-f4bd-5819-b8e2-977f36adb4c1",
+        "expected_ids": [
+          "a3c61d8a-f4bd-5819-b8e2-977f36adb4c1"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "全方位活力佳B2 EX GOLD膜衣錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:a66bee5c-72cd-594d-83bd-cf48d8c95ec4",
+        "expected_ids": [
+          "a66bee5c-72cd-594d-83bd-cf48d8c95ec4"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "舒樂胺鈣錠狀食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:a93a136c-63d9-5978-9719-3f3d761ccca3",
+        "expected_ids": [
+          "a93a136c-63d9-5978-9719-3f3d761ccca3"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "新萬倍能糖衣錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:aba10609-1787-5cc9-add3-57b65f607d96",
+        "expected_ids": [
+          "aba10609-1787-5cc9-add3-57b65f607d96"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "全新生活舒衡配方錠狀食品含南非醉茄根葉萃取物"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:af41c394-bee3-59b9-be92-54b911593fe1",
+        "expected_ids": [
+          "af41c394-bee3-59b9-be92-54b911593fe1"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "攝威能軟膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:b2818a54-acfc-553e-ac04-4882c62ad1ec",
+        "expected_ids": [
+          "b2818a54-acfc-553e-ac04-4882c62ad1ec"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "維生素B群"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:b2a42e7f-b14a-53fb-9ed2-e24b996ed3ac",
+        "expected_ids": [
+          "b2a42e7f-b14a-53fb-9ed2-e24b996ed3ac"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "愛生片"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:b34b77a8-2fa1-5e15-8012-49cb64cf2fec",
+        "expected_ids": [
+          "b34b77a8-2fa1-5e15-8012-49cb64cf2fec"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "使您維樂 膜衣錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:b710c37d-fd93-5a61-ba21-1ac70b892450",
+        "expected_ids": [
+          "b710c37d-fd93-5a61-ba21-1ac70b892450"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "富可寧膠囊PLUS"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:bdb43650-d770-5ab7-98fd-e726d5e76dae",
+        "expected_ids": [
+          "bdb43650-d770-5ab7-98fd-e726d5e76dae"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "優欣能錠狀食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:be3126a4-2fea-5b1a-ba15-ede06a6466c5",
+        "expected_ids": [
+          "be3126a4-2fea-5b1a-ba15-ede06a6466c5"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "醣必適元素錠 (食品)"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:c23f9a24-1b9a-5d54-af1b-00c96df69794",
+        "expected_ids": [
+          "c23f9a24-1b9a-5d54-af1b-00c96df69794"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "新勁捷能UCII軟膠囊食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:c5230de0-932f-5519-8797-59b4f2125a92",
+        "expected_ids": [
+          "c5230de0-932f-5519-8797-59b4f2125a92"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "益唐軟膠囊食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:c5256a1a-2f5d-57d6-857a-39591ff21e2b",
+        "expected_ids": [
+          "c5256a1a-2f5d-57d6-857a-39591ff21e2b"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "常得淨膠囊食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:c8dc81ab-9cfa-5b84-a1f8-ea3d5ef3938c",
+        "expected_ids": [
+          "15f2da97-6881-5730-b9d3-d71bb7c728c1",
+          "c8dc81ab-9cfa-5b84-a1f8-ea3d5ef3938c"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "新必維喜錠狀食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:cebe5cb1-0620-56e4-9da0-19a5b99924bc",
+        "expected_ids": [
+          "cebe5cb1-0620-56e4-9da0-19a5b99924bc"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "金盞花萃取物 (含葉黃素)"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:d348dad2-371d-5bdd-b4fb-beb6ae68762a",
+        "expected_ids": [
+          "d348dad2-371d-5bdd-b4fb-beb6ae68762a"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "貝斯特金活力寧膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:d4bd9b83-1274-5309-9c64-d7406f89bc7a",
+        "expected_ids": [
+          "d4bd9b83-1274-5309-9c64-d7406f89bc7a"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "貝瑪朗補血紅素複方軟膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:d670bcce-abe2-5575-9a20-43d14d555b69",
+        "expected_ids": [
+          "d670bcce-abe2-5575-9a20-43d14d555b69"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "金盞花萃取+紅藻萃取植物軟膠囊(食品)"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:d6ea5bb1-81f4-5858-9ae2-ff58d66b67ec",
+        "expected_ids": [
+          "25717847-93d9-557b-8e35-9a6b0483e6cc",
+          "45c8c4e2-c091-51d4-ae7d-460ec7db2db5",
+          "7d9dbe77-6f4f-5d75-a905-e80ae5745f34",
+          "c8dda171-073f-5fd3-b72a-c993da4ef064",
+          "d6ea5bb1-81f4-5858-9ae2-ff58d66b67ec",
+          "e6b6b677-e37d-5281-b4da-211fd8aaf82b",
+          "f35b906b-a75e-5b50-bb6f-de957200728f"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "魚油軟膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:d84839d4-86c5-5e6b-954f-364471e9b3d6",
+        "expected_ids": [
+          "d84839d4-86c5-5e6b-954f-364471e9b3d6"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "5-PRO 金盾益菌 膠囊食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:d8a2f933-2e35-5f66-8e2f-9515019d76ef",
+        "expected_ids": [
+          "d8a2f933-2e35-5f66-8e2f-9515019d76ef"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "接骨木莓維他命C口含錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:db4223a6-9936-5229-bcd6-bf89605fe331",
+        "expected_ids": [
+          "db4223a6-9936-5229-bcd6-bf89605fe331"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "萬泰螺旋藻錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:dbf0482f-2c0c-57c3-939f-cb99ac474053",
+        "expected_ids": [
+          "dbf0482f-2c0c-57c3-939f-cb99ac474053"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "娜娜??窈窕青春軟膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:debcb5e9-ebbb-5a22-b171-a376b3cc45db",
+        "expected_ids": [
+          "debcb5e9-ebbb-5a22-b171-a376b3cc45db"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "補益多血紅素軟膠囊 (食品)"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:df060232-f99e-5cfc-917f-15ab74c82182",
+        "expected_ids": [
+          "df060232-f99e-5cfc-917f-15ab74c82182"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "可舒聖錠食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:e4991ff0-2e2c-5d87-93c1-ac6e06e8204f",
+        "expected_ids": [
+          "e4991ff0-2e2c-5d87-93c1-ac6e06e8204f"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "超級魚油 EPA 500"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:e51d9be3-9a8a-546b-bed8-4939103f6566",
+        "expected_ids": [
+          "425009d9-5d6b-546d-b28c-ff1f2c9e1634",
+          "e51d9be3-9a8a-546b-bed8-4939103f6566"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "新金爍爍軟膠囊食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:e70a498b-80a4-51de-b9c8-c3df7108c6c4",
+        "expected_ids": [
+          "e70a498b-80a4-51de-b9c8-c3df7108c6c4"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "Comvita PFL15 蜂膠膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:e7a31157-0369-5c39-b3d5-367daec2b891",
+        "expected_ids": [
+          "e7a31157-0369-5c39-b3d5-367daec2b891"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "健安喜維生素K2膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:e87f09e7-4bcb-52a9-8906-35a4d970a191",
+        "expected_ids": [
+          "e87f09e7-4bcb-52a9-8906-35a4d970a191"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "明旻優-B Ⅱ 錠狀食品"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:e9f745aa-3953-5288-8b0d-045246bc99d0",
+        "expected_ids": [
+          "e9f745aa-3953-5288-8b0d-045246bc99d0"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "德國 SPOTLIGHT 慕光代謝膠囊"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:ea79b90f-fbd4-5a0f-a4f6-2e26e337a131",
+        "expected_ids": [
+          "ea79b90f-fbd4-5a0f-a4f6-2e26e337a131"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "固明朗錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:ee43c95e-3569-5f1b-9e63-71f3da007c8a",
+        "expected_ids": [
+          "ee43c95e-3569-5f1b-9e63-71f3da007c8a"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "速威B群糖衣錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:ef931b0d-ddf8-54d1-94a1-013250bd14a1",
+        "expected_ids": [
+          "ef931b0d-ddf8-54d1-94a1-013250bd14a1"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "樂維他B群複合錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:f19a1027-03df-587b-8bb4-0fb6fd54a82e",
+        "expected_ids": [
+          "f19a1027-03df-587b-8bb4-0fb6fd54a82e"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "活力康寧錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:f54d7ee4-d267-529c-bb70-0f9f601185ac",
+        "expected_ids": [
+          "f54d7ee4-d267-529c-bb70-0f9f601185ac"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "挪威北極熊兒童魚油"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:f74d2e4b-3406-5183-ab11-51a35c4d4281",
+        "expected_ids": [
+          "f74d2e4b-3406-5183-ab11-51a35c4d4281"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "䓢官樂活力錠"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:f8800ec7-e019-522e-a819-181dbe569dd7",
+        "expected_ids": [
+          "f8800ec7-e019-522e-a819-181dbe569dd7"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "純素鈣+鎂+D3複合片劑 (120錠)"
+      },
+      {
+        "case_id": "ZH_NAME_CONTROL:fc79f824-34a3-54b9-8c81-96d3a2641039",
+        "expected_ids": [
+          "fc79f824-34a3-54b9-8c81-96d3a2641039"
+        ],
+        "group": "ZH_NAME_CONTROL",
+        "is_permit_query": false,
+        "query": "必賜力鋅膠囊"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:04f36f53-fffb-5193-bf0a-89cef8418937",
+        "expected_ids": [
+          "04f36f53-fffb-5193-bf0a-89cef8418937"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1106002475"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:06030a94-3da6-5c8d-a120-8506f3974bba",
+        "expected_ids": [
+          "06030a94-3da6-5c8d-a120-8506f3974bba"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1106609046"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:062a9c09-f4d5-517a-8b1c-eb07904018fa",
+        "expected_ids": [
+          "062a9c09-f4d5-517a-8b1c-eb07904018fa"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1129012925"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:062dccc5-7bbe-5a47-92b0-a6e8248a8447",
+        "expected_ids": [
+          "062dccc5-7bbe-5a47-92b0-a6e8248a8447"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1110706161"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:06ccf741-a4f9-5e13-9d34-607c1d316e5a",
+        "expected_ids": [
+          "06ccf741-a4f9-5e13-9d34-607c1d316e5a"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1110608057"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:07f7f89d-64f6-5d8c-be8a-0804380a503f",
+        "expected_ids": [
+          "07f7f89d-64f6-5d8c-be8a-0804380a503f"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1110704016"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:0871eddc-a6c2-5bc8-a091-9894faeee73f",
+        "expected_ids": [
+          "0871eddc-a6c2-5bc8-a091-9894faeee73f"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1106601968"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:095cf1fc-4d02-595d-bc87-68b1632491d8",
+        "expected_ids": [
+          "095cf1fc-4d02-595d-bc87-68b1632491d8"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1110704538"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:0a056259-b7bc-590d-b0bc-df5bd0b1d41f",
+        "expected_ids": [
+          "0a056259-b7bc-590d-b0bc-df5bd0b1d41f"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1120602042"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:0acae693-ba2a-5d59-aa95-a3ecf934a92f",
+        "expected_ids": [
+          "0acae693-ba2a-5d59-aa95-a3ecf934a92f"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1129076959"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:0b423ab9-d9ff-56a9-9fb4-32dea82d6aa7",
+        "expected_ids": [
+          "0b423ab9-d9ff-56a9-9fb4-32dea82d6aa7"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1149051029"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:0c1f517e-e2de-51ed-9b72-b3bedb9bd9ad",
+        "expected_ids": [
+          "0c1f517e-e2de-51ed-9b72-b3bedb9bd9ad"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1026018999"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:0fd1fb0b-101e-5e0a-80c2-3ab81cbc48eb",
+        "expected_ids": [
+          "0fd1fb0b-101e-5e0a-80c2-3ab81cbc48eb"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1076613342"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:117554e5-2753-568b-9fee-2da1d2c35ef9",
+        "expected_ids": [
+          "117554e5-2753-568b-9fee-2da1d2c35ef9"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1046072150"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:1bd693de-1913-556f-ac04-8454376cbb3f",
+        "expected_ids": [
+          "1bd693de-1913-556f-ac04-8454376cbb3f"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1129008619"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:1c28bb03-c298-5b9c-bc41-336d3c97e12e",
+        "expected_ids": [
+          "1c28bb03-c298-5b9c-bc41-336d3c97e12e"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "0920403072"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:1d47bdb0-3caf-5d16-a372-dde53fe8357a",
+        "expected_ids": [
+          "1d47bdb0-3caf-5d16-a372-dde53fe8357a"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1110705442"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:1f45b039-68e1-51b7-9d5f-e255147d1a19",
+        "expected_ids": [
+          "1f45b039-68e1-51b7-9d5f-e255147d1a19"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1129047489"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:2149ec77-cdd9-5177-938b-976f4c960eef",
+        "expected_ids": [
+          "2149ec77-cdd9-5177-938b-976f4c960eef"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1149076731"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:2911eb9d-727a-5b75-a99b-8e892fe1c37e",
+        "expected_ids": [
+          "2911eb9d-727a-5b75-a99b-8e892fe1c37e"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1056065563"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:316e96ef-ee48-5182-9a7d-c693943a32ec",
+        "expected_ids": [
+          "316e96ef-ee48-5182-9a7d-c693943a32ec"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1159019517"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:325895d1-445f-56ff-8821-a555d2bda2d1",
+        "expected_ids": [
+          "325895d1-445f-56ff-8821-a555d2bda2d1"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1025004559"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:32d2f244-c4fb-58e7-9c0f-f911e83a3ea9",
+        "expected_ids": [
+          "32d2f244-c4fb-58e7-9c0f-f911e83a3ea9"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1119066746"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:3306d536-ad01-513e-9200-df6ad4378240",
+        "expected_ids": [
+          "3306d536-ad01-513e-9200-df6ad4378240"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1110602178"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:33b8bee9-9d18-5f08-a153-1bf8148b854f",
+        "expected_ids": [
+          "33b8bee9-9d18-5f08-a153-1bf8148b854f"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1139024045"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:34f476e2-f6c3-58e5-a7ad-2ea59ff58baa",
+        "expected_ids": [
+          "34f476e2-f6c3-58e5-a7ad-2ea59ff58baa"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1129071640"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:354a445a-ccc6-5dc1-994f-41d7d4060924",
+        "expected_ids": [
+          "354a445a-ccc6-5dc1-994f-41d7d4060924"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1120713447"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:356a8edf-8584-5f05-8e0c-32b1cfee23df",
+        "expected_ids": [
+          "356a8edf-8584-5f05-8e0c-32b1cfee23df"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1110713818"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:35b092f6-c01f-5bea-ab17-f5118abe876f",
+        "expected_ids": [
+          "35b092f6-c01f-5bea-ab17-f5118abe876f"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1129069017"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:382862f4-56f3-579d-842f-94d6ded73169",
+        "expected_ids": [
+          "382862f4-56f3-579d-842f-94d6ded73169"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1129032951"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:3f3a9a7c-34f9-5519-ae79-a78753b4957e",
+        "expected_ids": [
+          "3f3a9a7c-34f9-5519-ae79-a78753b4957e"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1119009352"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:412ff790-b9fb-5d77-a562-0ee7cd331d8f",
+        "expected_ids": [
+          "412ff790-b9fb-5d77-a562-0ee7cd331d8f"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1110712402"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:444f2711-b528-578d-ae93-97162b0c6f5e",
+        "expected_ids": [
+          "444f2711-b528-578d-ae93-97162b0c6f5e"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1096603571"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:44cdfb38-966d-5772-b756-b3e064869ab8",
+        "expected_ids": [
+          "44cdfb38-966d-5772-b756-b3e064869ab8"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1149022698"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:44ed070e-9232-54f4-8188-98f11eea4b2b",
+        "expected_ids": [
+          "44ed070e-9232-54f4-8188-98f11eea4b2b"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1096611832"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:4a637085-846d-5f85-b263-70a714e2c55a",
+        "expected_ids": [
+          "4a637085-846d-5f85-b263-70a714e2c55a"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1159024151"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:4dff985f-4ee8-584c-95b9-5e1f78bfc2a3",
+        "expected_ids": [
+          "4dff985f-4ee8-584c-95b9-5e1f78bfc2a3"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1149015090"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:4ed89a23-b864-5857-bd13-95d04d120112",
+        "expected_ids": [
+          "4ed89a23-b864-5857-bd13-95d04d120112"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1026001989"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:517513d0-a2b7-5efe-b1c7-f87e9530364c",
+        "expected_ids": [
+          "517513d0-a2b7-5efe-b1c7-f87e9530364c"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1005047334"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:572c19bc-eba0-5ab3-8c35-65477210f00c",
+        "expected_ids": [
+          "572c19bc-eba0-5ab3-8c35-65477210f00c"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1139012387"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:57b21ee8-e8ab-57ef-9623-fce4ad416b99",
+        "expected_ids": [
+          "57b21ee8-e8ab-57ef-9623-fce4ad416b99"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "0980405576"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:585a7534-1c21-5ba6-b27b-a302d50bd9b8",
+        "expected_ids": [
+          "585a7534-1c21-5ba6-b27b-a302d50bd9b8"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1015054130"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:5956cae2-f54c-5b4e-94f5-18583b9c1595",
+        "expected_ids": [
+          "5956cae2-f54c-5b4e-94f5-18583b9c1595"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1106614402"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:5b9c3707-4697-56cf-94d8-623c69424a4c",
+        "expected_ids": [
+          "5b9c3707-4697-56cf-94d8-623c69424a4c"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1106605711"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:5bdaad06-0df0-5b13-a8ca-ef4c2739c888",
+        "expected_ids": [
+          "5bdaad06-0df0-5b13-a8ca-ef4c2739c888"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1149060655"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:5be1f203-c548-543e-bc27-bbf1f993c7fc",
+        "expected_ids": [
+          "5be1f203-c548-543e-bc27-bbf1f993c7fc"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1076003727"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:5ce45f2f-5d9b-559c-87be-219ca50bbff1",
+        "expected_ids": [
+          "5ce45f2f-5d9b-559c-87be-219ca50bbff1"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1110702807"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:5d35888c-f382-5ab4-b8e4-d7fa4ca3afa8",
+        "expected_ids": [
+          "5d35888c-f382-5ab4-b8e4-d7fa4ca3afa8"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1149000892"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:64457afa-873c-55ff-9037-faafb8d5466a",
+        "expected_ids": [
+          "64457afa-873c-55ff-9037-faafb8d5466a"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "0970401221"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:697a019d-1b68-5201-a3e5-4b8044196bb3",
+        "expected_ids": [
+          "697a019d-1b68-5201-a3e5-4b8044196bb3"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1106028736"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:69edd61e-53ac-5945-8bab-a2b6b3103796",
+        "expected_ids": [
+          "69edd61e-53ac-5945-8bab-a2b6b3103796"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1106032918"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:6c4e2fda-2728-5f4c-a6a6-e877b4a27053",
+        "expected_ids": [
+          "6c4e2fda-2728-5f4c-a6a6-e877b4a27053"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1129024488"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:707d30a1-e2a3-57ab-9cd1-5bfe6a9bace5",
+        "expected_ids": [
+          "707d30a1-e2a3-57ab-9cd1-5bfe6a9bace5"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1139087013"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:737ac5b5-2e0c-518f-9fe3-56be3c79ae7c",
+        "expected_ids": [
+          "737ac5b5-2e0c-518f-9fe3-56be3c79ae7c"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1110601940"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:747f7a00-cba5-5780-af5a-f080b1d97ec7",
+        "expected_ids": [
+          "747f7a00-cba5-5780-af5a-f080b1d97ec7"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1106035094"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:74e935cb-b634-5dba-878f-47eed5a99a6f",
+        "expected_ids": [
+          "74e935cb-b634-5dba-878f-47eed5a99a6f"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1066030543"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:76eb2cfe-97e4-5a90-904d-d96f1bd6347d",
+        "expected_ids": [
+          "76eb2cfe-97e4-5a90-904d-d96f1bd6347d"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1139010910"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:7ad3e638-1806-5762-acef-32cecafc291e",
+        "expected_ids": [
+          "7ad3e638-1806-5762-acef-32cecafc291e"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1106613775"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:7c06dc94-d62f-5bd6-be5a-252441aa1880",
+        "expected_ids": [
+          "7c06dc94-d62f-5bd6-be5a-252441aa1880"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1119052836"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:7cde885f-edda-5a35-8502-47dfaf7f6f7b",
+        "expected_ids": [
+          "7cde885f-edda-5a35-8502-47dfaf7f6f7b"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1086027985"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:80b6093a-0d55-5ba3-9b41-59a5d0b21ac4",
+        "expected_ids": [
+          "80b6093a-0d55-5ba3-9b41-59a5d0b21ac4"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1026030820"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:82be5c75-a8a3-5a48-bf53-2ad406fbc91c",
+        "expected_ids": [
+          "82be5c75-a8a3-5a48-bf53-2ad406fbc91c"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1106614667"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:8a3a3e50-4b70-5c27-b056-d7529366af32",
+        "expected_ids": [
+          "8a3a3e50-4b70-5c27-b056-d7529366af32"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1086603910"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:91255355-40e1-5970-8583-fe699e04a8a5",
+        "expected_ids": [
+          "91255355-40e1-5970-8583-fe699e04a8a5"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1139069935"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:9594de41-09b1-55d0-8c04-c15eb4f95f77",
+        "expected_ids": [
+          "9594de41-09b1-55d0-8c04-c15eb4f95f77"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1110715403"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:98377fb4-6e3d-5039-8aaa-94c602fb7111",
+        "expected_ids": [
+          "98377fb4-6e3d-5039-8aaa-94c602fb7111"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1120604844"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:9860c7d7-e0c7-50b7-b34f-337022911b2a",
+        "expected_ids": [
+          "9860c7d7-e0c7-50b7-b34f-337022911b2a"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1110611011"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:98744e4d-992c-5163-9cdc-63dd13a95ebc",
+        "expected_ids": [
+          "98744e4d-992c-5163-9cdc-63dd13a95ebc"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1149056670"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:9a0984ac-9ab9-5df6-b75e-97540b58c63c",
+        "expected_ids": [
+          "9a0984ac-9ab9-5df6-b75e-97540b58c63c"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1149060639"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:9adc0b2a-26cf-540b-8057-f2e35538f7eb",
+        "expected_ids": [
+          "9adc0b2a-26cf-540b-8057-f2e35538f7eb"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1096016427"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:9cdbe1fe-2c76-5ba6-998e-01c2af78a82b",
+        "expected_ids": [
+          "9cdbe1fe-2c76-5ba6-998e-01c2af78a82b"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1149032161"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:9ce6a650-1ca4-545b-ac42-a4ec46b00a61",
+        "expected_ids": [
+          "9ce6a650-1ca4-545b-ac42-a4ec46b00a61"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1106017461"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:a3a0fa73-3ae9-59ca-a963-6fddab93035b",
+        "expected_ids": [
+          "a3a0fa73-3ae9-59ca-a963-6fddab93035b"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1149037877"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:a42a24d2-70c8-53f5-af0a-c47bcb117ee2",
+        "expected_ids": [
+          "a42a24d2-70c8-53f5-af0a-c47bcb117ee2"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1119068047"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:a66bee5c-72cd-594d-83bd-cf48d8c95ec4",
+        "expected_ids": [
+          "a66bee5c-72cd-594d-83bd-cf48d8c95ec4"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1129009952"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:a789f7a3-5daf-5099-905b-2171a3d8caf1",
+        "expected_ids": [
+          "a789f7a3-5daf-5099-905b-2171a3d8caf1"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1119068992"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:aa5f7ea6-9c77-53c9-8e2a-3fc237abbe9f",
+        "expected_ids": [
+          "aa5f7ea6-9c77-53c9-8e2a-3fc237abbe9f"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1129069015"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:aadcb301-bda8-5383-af7f-b96b0b497288",
+        "expected_ids": [
+          "aadcb301-bda8-5383-af7f-b96b0b497288"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1036030660"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:aaf47714-a2da-534a-bb75-8c046d270e73",
+        "expected_ids": [
+          "aaf47714-a2da-534a-bb75-8c046d270e73"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1149064383"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:abfb9648-0061-5f3f-ade1-c8cb7c25df54",
+        "expected_ids": [
+          "abfb9648-0061-5f3f-ade1-c8cb7c25df54"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1129013215"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:accedd57-1448-5298-b25a-4ff303153e9e",
+        "expected_ids": [
+          "accedd57-1448-5298-b25a-4ff303153e9e"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1076601180"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:ad4fe343-7676-561a-a64f-2f742a36a2a9",
+        "expected_ids": [
+          "ad4fe343-7676-561a-a64f-2f742a36a2a9"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1159029547"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:ad507a8c-9814-5e3b-add8-8b8538b403ff",
+        "expected_ids": [
+          "ad507a8c-9814-5e3b-add8-8b8538b403ff"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1129044822"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:afa97f77-1255-51f0-80d4-c91767a113ef",
+        "expected_ids": [
+          "afa97f77-1255-51f0-80d4-c91767a113ef"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1159011784"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:b00ecc57-7d53-5dbc-b551-53562a6cde18",
+        "expected_ids": [
+          "b00ecc57-7d53-5dbc-b551-53562a6cde18"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1159022072"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:b0b41d62-4fd0-5891-b297-4a6a368be1dd",
+        "expected_ids": [
+          "b0b41d62-4fd0-5891-b297-4a6a368be1dd"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1106612665"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:b145e80f-419a-5760-a172-fda930cec7dc",
+        "expected_ids": [
+          "b145e80f-419a-5760-a172-fda930cec7dc"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1106035819"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:bd800938-ce8d-5aaf-9d00-b520a1b0dac6",
+        "expected_ids": [
+          "bd800938-ce8d-5aaf-9d00-b520a1b0dac6"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1129029118"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:bf0588a3-2517-5281-95c3-e97bfd455e0b",
+        "expected_ids": [
+          "bf0588a3-2517-5281-95c3-e97bfd455e0b"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1110706160"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:c40ac509-6938-5842-8305-7859ec838af6",
+        "expected_ids": [
+          "c40ac509-6938-5842-8305-7859ec838af6"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1076604047"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:cb7ab838-a4c0-542a-b49c-ae66e3033dda",
+        "expected_ids": [
+          "cb7ab838-a4c0-542a-b49c-ae66e3033dda"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1106615396"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:ccad1624-e46f-5544-8a98-2f8d25f4d010",
+        "expected_ids": [
+          "ccad1624-e46f-5544-8a98-2f8d25f4d010"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1149071625"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:cec5a516-831b-5c18-82af-38886f1c7696",
+        "expected_ids": [
+          "cec5a516-831b-5c18-82af-38886f1c7696"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1149026988"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:d59751a1-842f-5cce-b2e2-74d9cbe78c2d",
+        "expected_ids": [
+          "d59751a1-842f-5cce-b2e2-74d9cbe78c2d"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1149031785"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:d7218313-61d8-5e53-afdd-46fdc80d3bba",
+        "expected_ids": [
+          "d7218313-61d8-5e53-afdd-46fdc80d3bba"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1139092696"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:e568f726-8a6b-5b0a-8fb4-22bef521006a",
+        "expected_ids": [
+          "e568f726-8a6b-5b0a-8fb4-22bef521006a"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1066019746"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:ed046408-0385-5e3c-80d8-9e7150074009",
+        "expected_ids": [
+          "ed046408-0385-5e3c-80d8-9e7150074009"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1129071462"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:f8c71a6d-5aee-5241-a6c9-885e6eca242d",
+        "expected_ids": [
+          "f8c71a6d-5aee-5241-a6c9-885e6eca242d"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1159029164"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:fc2abb05-440c-54a5-bd5c-618e99342ea9",
+        "expected_ids": [
+          "fc2abb05-440c-54a5-bd5c-618e99342ea9"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1110600423"
+      },
+      {
+        "case_id": "PERMIT_CONTROL:ff802587-831a-5994-9f6f-acff187a944d",
+        "expected_ids": [
+          "ff802587-831a-5994-9f6f-acff187a944d"
+        ],
+        "group": "PERMIT_CONTROL",
+        "is_permit_query": true,
+        "query": "1159035226"
+      }
+    ]
+  },
+  "evaluation": "identity_alias_gold_set",
+  "evaluation_version": "1.0",
+  "git_commit": "f63601d5fda24bdb688c1b3b73f10dae04f517f7",
+  "git_dirty": true,
+  "metrics": {
+    "cases_per_group": {
+      "BRAND_EN_ONLY": 40,
+      "COLLIDING_EN_EXACT": 100,
+      "GENERIC_EN_TOKEN": 40,
+      "PERMIT_CONTROL": 100,
+      "UNIQUE_EN_EXACT": 100,
+      "ZH_NAME_CONTROL": 100
+    },
+    "cases_sha256": "b6fbd1dd78abb90ed974ed26dd3286f6637f48e3a42ccd8685ea98960e10a658",
+    "total_cases": 480
+  },
+  "parameters": {
+    "d3_safety_gates": {
+      "baseline-001": {
+        "WRONG_AUTO_CONFIRM_RATE": "必須維持 0",
+        "exact_match_correctness": "必須維持 1.0"
+      },
+      "baseline-002": {
+        "BRAND_EN_ONLY": "品牌-only 永遠不得自動確認",
+        "COLLIDING_EN_EXACT": "碰撞英文名稱永遠不得自動確認",
+        "GENERIC_EN_TOKEN": "泛用詞永遠不得自動確認",
+        "SAFETY_VIOLATIONS": "全部 group 必須為 0",
+        "UNIQUE_EN_EXACT": "已審核的 unique 英文 exact 必須解析到正確產品"
+      },
+      "precondition": "沒有本評估集（含 pre-D3 行為紀錄），不得開始 D3 runtime 工作"
+    },
+    "desired_after_d3": {
+      "BRAND_EN_ONLY": "NO_AUTO_CONFIRM",
+      "COLLIDING_EN_EXACT": "CLARIFY_WITH_GROUP_CANDIDATES（不得自動確認）",
+      "GENERIC_EN_TOKEN": "NO_AUTO_CONFIRM",
+      "PERMIT_CONTROL": "NO_REGRESSION（確認正確產品，或同字號多筆時候選含正確產品）",
+      "UNIQUE_EN_EXACT": "AUTO_CONFIRM_CORRECT_PRODUCT（需已審核 exact alias）",
+      "ZH_NAME_CONTROL": "NO_REGRESSION（確認正確產品，或同名時候選含正確產品）"
+    },
+    "pool_sizes": {
+      "BRAND_EN_ONLY": 51,
+      "COLLIDING_EN_EXACT": 543,
+      "GENERIC_EN_TOKEN": 61,
+      "GENERIC_EXCLUDED_OWN_ZH_NAME_SEGMENT": 4,
+      "PERMIT_CONTROL": 9112,
+      "UNIQUE_EN_EXACT": 6792,
+      "ZH_NAME_CONTROL": 9112
+    },
+    "seed": 20261019,
+    "sizes": {
+      "BRAND_EN_ONLY": 40,
+      "COLLIDING_EN_EXACT": 100,
+      "GENERIC_EN_TOKEN": 40,
+      "PERMIT_CONTROL": 100,
+      "UNIQUE_EN_EXACT": 100,
+      "ZH_NAME_CONTROL": 100
+    }
+  }
+}

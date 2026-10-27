@@ -1,0 +1,92 @@
+{
+  "builder_version": "1.0",
+  "candidate_counts": {
+    "brand_rows": 245,
+    "product_rows": 8193,
+    "review_decisions": {
+      "ACCEPT": 0,
+      "NEEDS_REVIEW": 8438,
+      "REJECT": 0
+    }
+  },
+  "classification_counts": {
+    "COLLIDING_OFFICIAL_ENGLISH": {
+      "normalized_names": 543,
+      "products": 1225,
+      "rows": 1225
+    },
+    "INVALID_OR_GENERIC": {
+      "rows": 21
+    },
+    "UNIQUE_OFFICIAL_ENGLISH": {
+      "normalized_names": 6947,
+      "rows": 6947
+    },
+    "brand_candidates_passing_rule": 51,
+    "brand_candidates_total": 245,
+    "brand_passing_with_zh_prefix": 39,
+    "official_english_names_total": 8172,
+    "official_records": 9112,
+    "raw_english_first_tokens": 3603,
+    "records_without_english_name": 919,
+    "unique_normalized_english_names": 7490,
+    "unique_products_covered": 8172,
+    "unique_rows_with_runtime_key_collision": 155
+  },
+  "created_at": "2026-10-27T00:00:00+00:00",
+  "files": {
+    "brand_candidates.csv": {
+      "rows": 245,
+      "sha256": "5e70acb1f8d597628b5052a5a950ff92e6357660950502d3fdff00043f14b5ad"
+    },
+    "candidates.csv": {
+      "rows": 8193,
+      "sha256": "a235c026e9d4150a1cd2e6d38affdac2e2ea0f30bdd941b290720753a7cad846"
+    },
+    "reviewed_aliases.csv": {
+      "rows": 0,
+      "sha256": "facb16200e05aa7905a31c7e66bf3ada662fb822b3ec24adb9c10d00c1fbf071"
+    }
+  },
+  "notes": "",
+  "overlay_version": "1.0",
+  "policies": {
+    "BRAND": "CANDIDATE_ONLY",
+    "COLLIDING_OFFICIAL_ENGLISH": "CANDIDATE_ONLY",
+    "INVALID_OR_GENERIC": "NEVER_RUNTIME",
+    "UNIQUE_OFFICIAL_ENGLISH": "EXACT_REVIEW_REQUIRED（尚非 runtime-active）",
+    "brand_rule": ">= 5 筆官方紀錄、單一申請商、英文詞未被其他申請商的英文品名使用",
+    "normalization": "NFKC + casefold + trim + collapse whitespace（只用於碰撞偵測）",
+    "runtime_active_alias_file": "none（reviewed_aliases.csv 無已核准列）"
+  },
+  "scope": "Taiwan Phase 1 only（TW）；不含任何國際產品目錄",
+  "source_datasets": [
+    {
+      "dataset_title": "國產維生素類錠狀膠囊狀食品資料集",
+      "normalized_file": "03_tfda_domestic_vitamin_normalized.csv",
+      "normalized_sha256": "c1c2d7ccdf31ad3dccde9c0a84b3d7276de0b1853e4c40335b737757372dfafe",
+      "raw_file": "01_tfda_domestic_vitamin_raw.csv",
+      "raw_sha256": "bd4c9a7d235fd0e94fcdd86d57bb2091f1ce4032e836372b94c0872fe2eeda5b",
+      "retrieved_at": "2026-10-04T03:13:44.070804+00:00",
+      "rows": 1705,
+      "source_dataset_id": "9046",
+      "source_id": "SRC_DOMESTIC_CSV",
+      "source_info_id": "24",
+      "source_url": "https://data.fda.gov.tw/data/opendata/export/24/csv"
+    },
+    {
+      "dataset_title": "輸入錠狀膠囊狀食品查驗登記資料集",
+      "normalized_file": "04_tfda_imported_tablet_capsule_normalized.csv",
+      "normalized_sha256": "52c43fb1f27cfb66060cb189533057af4f613d21d63414e5d1542b95efc10ed8",
+      "raw_file": "02_tfda_imported_tablet_capsule_raw.csv",
+      "raw_sha256": "1e82a272ac87dfd4e6122a3989e8eace181aee591a064921d691f0fbe588a5be",
+      "retrieved_at": "2026-10-04T03:13:51.254225+00:00",
+      "rows": 7407,
+      "source_dataset_id": "9047",
+      "source_id": "SRC_IMPORTED_CSV",
+      "source_info_id": "23",
+      "source_url": "https://data.fda.gov.tw/data/opendata/export/23/csv"
+    }
+  ],
+  "validator_version": "1.0"
+}
