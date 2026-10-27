@@ -35,6 +35,7 @@ from app.risk.claim_policy import (
 )
 from app.schemas.evidence import (
     OFFICIAL_ALIAS_MATCHED_BY,
+    OFFICIAL_ENGLISH_SINGLE_TOKEN_MATCHED_BY,
     ApprovedClaimEvidence,
     ClaimAssessment,
     ClaimPolicyDecision,
@@ -364,6 +365,14 @@ def _resolve_product_match(
                           match_type=match_type, confidence=1.0)
         return result(ProductVerificationStatus.PARTIAL_MATCH, candidates=exact, match_type=match_type,
                       confidence=1.0, ambiguity=ProductAmbiguityReason.MULTIPLE_EXACT_NAMES)
+
+    # 2b. 唯一但單一詞的官方英文品名完全相同：可能同時是成分 / 類別 / 品牌用語 → 單一候選請使用者確認，不自動確認
+    single_token = [m for m in ranked
+                    if m.matched_by == OFFICIAL_ENGLISH_SINGLE_TOKEN_MATCHED_BY and normalize_name(m.query) in user_norms]
+    if len(single_token) == 1:
+        return result(ProductVerificationStatus.PARTIAL_MATCH, best=single_token[0], candidates=single_token,
+                      match_type=ProductMatchType.OFFICIAL_ENGLISH_NAME_NEEDS_CONFIRMATION, confidence=1.0,
+                      ambiguity=ProductAmbiguityReason.LOW_MATCH_CONFIDENCE, candidate_count=1)
 
     # 3. 基本品名相同（官方品名尾端帶規格 / 口味括號）
     variants = [m for m in ranked if normalize_name(base_product_name(m.product.product_name_zh)) in user_norms]

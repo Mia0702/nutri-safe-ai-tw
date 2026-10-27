@@ -1280,3 +1280,26 @@ phone smoke 通過；以下皆為 additive，未改 Risk Engine、claim eligibil
 - **啟用 production 前檢查表**：migration 0008 已套用 production；固定的 `LINE_STATE_HMAC_SECRET`（更換會讓既有 owner_key 全部失效）；Supabase URL / key 有效；
   service_role 可存取 state tables；RLS 已啟用且 anon / authenticated 被擋；**僅單一 application instance**；回滾路徑已記錄。
 - **回滾**：把 `LINE_STATE_BACKEND` 改回 `memory` 並重啟即可；不需刪 schema（資料表保留，行為回到 in-memory，持久化資料僅閒置、依 TTL 失效）。
+
+## Post-demo hardening D2：官方英文品名別名審核管線（2026-10-27；離線，runtime 未改）
+- 資料：`data/product_alias_overlay/2026-10-27/`（candidates.csv / brand_candidates.csv / reviewed_aliases.csv（僅表頭，無 runtime-active 別名）/ overlay_manifest.json / README.md）。
+  來源只用既有 TFDA 產品覆蓋快照（`data/tfda_product_coverage/2026-10-04`，sha256 驗證）內同一筆官方紀錄的中文品名 ↔ 英文品名；不翻譯。檔案型 overlay，未建立 migration 0009、未寫 Supabase / Neo4j。
+- 工具：`app/ingestion/product_alias_review.py`（共用審核 CSV 欄位、碰撞分類、品牌候選規則、validator、manifest）、`python -m scripts.build_product_alias_overlay build|validate`。
+- 分類：UNIQUE_OFFICIAL_ENGLISH → `EXACT_REVIEW_REQUIRED`（尚非 runtime-active）；COLLIDING → `CANDIDATE_ONLY`；品牌 → `CANDIDATE_ONLY`；INVALID_OR_GENERIC → `NEVER_RUNTIME`。所有列 `decision = NEEDS_REVIEW`。
+- baseline-002（`scripts/eval/identity_alias_eval.py`，`eval_baselines/identity_alias-baseline-002-*`）：480 案、6 組；記錄 pre-D3 行為（離線與唯讀 production 結果相同，SAFETY_VIOLATIONS 0）。baseline-001 未動。
+- D3（runtime 取回已審核別名）前置條件與安全閘門見 baseline-002 gold set 的 `parameters.d3_safety_gates`；需使用者另行同意，且會觸及 FC-B1（additive）。
+
+## Post-demo hardening D3：官方英文品名 exact 取回（2026-10-27；additive，無 migration / 無 production 寫入）
+- **來源**：既有欄位 `product_details.product_name_en`（TFDA 同一筆官方紀錄；production 9,677 筆中 8,193 筆有，皆在 imported / domestic 錠狀膠囊類，health_food 565 筆沒有）。不是別名、不建立別名列、不寫 Supabase、無 migration 0009。
+- **取回路徑**：`SupabaseOfficialDataRepository.search_products_by_english_name`（資料庫端只縮小範圍：ilike 子序列 ＋ 含非 ASCII 字元的列；身份判斷在 Python 端）＋ `app/english_name.py`（純函式）＋ `product_tools.lookup_official_english_name`（由 `lookup_product` 呼叫）。中文品名 / 字號 / 公司 / 既有別名路徑不變。
+- **比對**：只做 exact。conservative key（NFKC → casefold → trim / 空白折疊，與 D2 相同）；不做模糊、stemming、翻譯、標點移除、子字串自動確認。**沒有英文 fuzzy matching。**
+- **結果**（身份安全規則，不是所有官方英文名都會自動確認）：
+  - 多詞（conservative key 含空白）＋唯一＋無 conservative / runtime-key（`normalize_name`）碰撞＋官方來源 → 可自動確認（與「官方別名完全相同」同等級 exact）。
+  - **單一詞（無空白，標點不拆詞，如連字號相連者）＋唯一 → 只列為單一候選請使用者確認，不自動確認**（`ProductMatchType.OFFICIAL_ENGLISH_NAME_NEEDS_CONFIRMATION`，resolver 步驟 2b）：單詞英文名可能同時是成分 / 類別 / 品牌用語。規則只看結構，沒有詞表。
+  - 同名或 runtime-key 碰撞（含 D2 的 155 列）→ 全部列為候選請使用者選，不挑勝者。
+  - 品牌-only / 泛用詞 / 部分英文名 → 不自動確認（品牌不產生所有權，D3 沒有新增品牌取回）。
+  - 看不完所有碰撞對象（縮小結果 > 2,000 列）、查詢英文字母 < 4、命中列非官方來源、repo 不支援英文取回 → 不取回（行為同 D3 之前）。
+- **FC-F4 稽核**：單詞英文名不是 `OFFICIAL_ALIAS_MATCHED_BY`，不會觸發「整句等於官方產品名稱」的 identity_collision，也不會預先成為已確認產品；中文 bare-name 行為不變。多詞唯一官方英文名與中文官方品名一致，視為官方產品名稱。
+- **baseline-002（480 案，同一組 gold set，未改寫案例）**：safety violations 0（離線與唯讀 production 相同）。唯一英文名：多詞 96/96 正確自動確認；單詞 4/4 候選含正確產品、0 自動確認。碰撞 / 品牌-only / 泛用詞自動確認 0；中文 / 字號對照無退步。第一次實作（單詞也自動確認）的 4 個違規報告保留為 `...post-d3-attempt1-single-token-conflict-*`。
+- **baseline-001**：以原參數重跑（resolver seed 20261019 / 100 樣本 / 唯讀 live；claim 10 案）metrics / details / parameters / dataset_versions 與原檔逐項 0 差異；WRONG_AUTO_CONFIRM_RATE 0、exact_match_correctness 1.0。比較檔 `eval_baselines/*-d3-compare-2.json`，baseline-001 未覆蓋。
+- 驗證：tests/unit 1742 passed / 6 skipped（含 `test_official_english_name.py`）。

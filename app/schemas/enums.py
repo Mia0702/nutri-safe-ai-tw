@@ -202,6 +202,8 @@ class ProductMatchType(StrEnum):
     CANONICAL_EXACT = "CANONICAL_EXACT"  # 正規化後與官方品名完全相同
     OFFICIAL_ALIAS_EXACT = "OFFICIAL_ALIAS_EXACT"  # 與官方 / 人工審核的產品別名完全相同
     BASE_NAME_EXACT = "BASE_NAME_EXACT"  # 與官方品名去掉尾端括號規格（口味、包裝）後相同
+    # 與官方英文品名完全相同且唯一，但該英文品名只有一個詞（可能同時是成分 / 類別 / 品牌用語）：只是單一候選，需使用者確認
+    OFFICIAL_ENGLISH_NAME_NEEDS_CONFIRMATION = "OFFICIAL_ENGLISH_NAME_NEEDS_CONFIRMATION"
     # Agent A 的錯字 / 同音修正寫法與官方品名相同，且使用者原始寫法也唯一指向同一產品
     CORRECTED_NAME_CORROBORATED = "CORRECTED_NAME_CORROBORATED"
     # 名稱相似的候選中，只有一項同時對應到本次看到的申請商 / 品牌（兩個獨立訊號一致）

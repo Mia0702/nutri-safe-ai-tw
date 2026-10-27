@@ -109,8 +109,11 @@ class ProductRecord(BaseModel):
     expiry_date: str | None = None
 
 
-# lookup_product 以官方 / 人工審核的產品別名完全命中時的 matched_by（推測別名不會使用此值）
+# lookup_product 以官方 / 人工審核的產品別名完全命中時的 matched_by（推測別名不會使用此值）。
+# 官方英文品名（product_name_en，同一筆官方紀錄）exact 命中也使用此值：resolver 視為「官方別名完全相同」同等級的 exact 證據
 OFFICIAL_ALIAS_MATCHED_BY = "official_alias"
+# 官方英文品名唯一 exact 命中，但英文品名只有一個詞：只列為單一候選請使用者確認（resolver 不自動確認）
+OFFICIAL_ENGLISH_SINGLE_TOKEN_MATCHED_BY = "official_name_en_single_token"
 
 
 class ProductCandidateMatch(BaseModel):

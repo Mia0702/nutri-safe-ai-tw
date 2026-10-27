@@ -10,6 +10,7 @@ from typing import Any
 
 from app.config.project import PROJECT_ID
 from app.config.settings import Settings
+from app.english_name import NARROW_LIMIT, NON_ASCII_REGEX, match_english_name, narrowing_pattern
 from app.schemas.enums import ErrorCode
 from app.services.errors import ServiceError
 
@@ -126,6 +127,29 @@ class SupabaseOfficialDataRepository:
 
     def get_products_by_permit_code(self, permit_code: str) -> list[dict[str, Any]]:
         return self._db.select(self._db.table("product_details").select("*").eq("permit_code", permit_code))
+
+    def search_products_by_english_name(self, query: str) -> tuple[list[dict[str, Any]], bool]:
+        """以官方 product_name_en 精確取回產品（只讀 product_details，不需要 migration / 別名表）。
+
+        資料庫端只做「縮小範圍」（ilike 子序列 pattern ＋ 含非 ASCII 字元的列），身份判斷在 Python 端以
+        conservative key / runtime key 精確比對（見 app.english_name）。
+        回傳 (命中產品的完整列, complete)；complete=False（縮小結果超過上限 / 無法縮小）代表看不完所有可能的碰撞對象，
+        呼叫端不得據此確認任何產品。
+        """
+        pattern = narrowing_pattern(query)
+        if pattern is None:
+            return [], False
+        table = self._db.table("product_details")
+        narrow = self._db.select(
+            table.select("product_id,product_name_en")
+            .or_(f"product_name_en.ilike.{pattern},product_name_en.match.{NON_ASCII_REGEX}")
+            .order("product_id").limit(NARROW_LIMIT + 1))
+        if len(narrow) > NARROW_LIMIT:
+            return [], False
+        ids = list(match_english_name(query, narrow).collision_ids)
+        if not ids:
+            return [], True
+        return self._db.select(self._db.table("product_details").select("*").in_("product_id", ids)), True
 
     def search_ingredients(self, terms: list[str], limit: int) -> list[dict[str, Any]]:
         rows = self._db.rpc("search_ingredients", {"p_terms": terms, "p_limit": limit})

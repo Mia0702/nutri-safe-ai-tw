@@ -9,6 +9,7 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel
 
+from app.english_name import is_single_token, is_usable_english_name, match_english_name
 from app.normalization import extract_permit_code, name_match_score, normalize_name, search_terms
 from app.product_coverage import category_of
 from app.services.errors import ServiceError
@@ -16,6 +17,7 @@ from app.schemas.enums import EntityType, EvidenceScope, EvidenceStatus, Product
 from app.schemas.evidence import (
     CLAIM_KIND_UNCLASSIFIED,
     OFFICIAL_ALIAS_MATCHED_BY,
+    OFFICIAL_ENGLISH_SINGLE_TOKEN_MATCHED_BY,
     ApprovedClaimEvidence,
     EvidenceRelevance,
     IllegalAdEvidence,
@@ -149,8 +151,41 @@ def lookup_product(
             best[alias.entity_id] = best[alias.entity_id].model_copy(
                 update={"match_score": 1.0, "matched_by": OFFICIAL_ALIAS_MATCHED_BY, "query": alias.query}
             )
+    # 官方英文品名（product_name_en）完全相同：同一筆官方紀錄的品名欄位，不是別名；只做 exact（見 lookup_official_english_name）
+    for name in product_names:
+        for match in lookup_official_english_name(repo, name):
+            current = best.get(match.product.product_id)
+            if current is None or current.match_score < match.match_score:
+                best[match.product.product_id] = match
     ranked = sorted(best.values(), key=lambda m: m.match_score, reverse=True)
     return ProductLookupOutput(candidates=ranked[:limit])
+
+
+def lookup_official_english_name(repo: Any, name: str) -> list[ProductCandidateMatch]:
+    """以官方英文品名精確取回產品；回傳的每一筆都是 exact（score 1.0）。
+
+    * 只比對 conservative key（NFKC / casefold / 空白折疊）；沒有相似度、子字串、標點移除、翻譯。
+    * 碰撞：conservative key 或既有 runtime key（normalize_name，會移除標點 / 空白）對到 2 個以上產品 → 全部回傳，
+      resolver 會把它們視為同名多筆（MULTIPLE_EXACT_NAMES）請使用者選，不挑其中一個。
+    * 只有唯一、官方來源的列會是單一結果；resolver 對它的處理與官方品名 exact 相同。
+    * 看不完所有可能的碰撞對象（資料庫縮小範圍過大）、任一命中列不是官方來源、repo 不支援英文取回 → 不回傳（行為同沒有此路徑）。
+    """
+    search = getattr(repo, "search_products_by_english_name", None)
+    if search is None or not is_usable_english_name(name):
+        return []
+    rows, complete = search(name)
+    if not complete or not rows:
+        return []
+    matches = match_english_name(name, rows)
+    ids = set(matches.collision_ids)
+    hit_rows = [r for r in rows if str(r.get("product_id")) in ids]
+    if not matches.exact_ids or not hit_rows or any(not r.get("is_official") for r in hit_rows):
+        return []
+    # 唯一但單一詞的官方英文品名：標成「需確認」，resolver 只會給單一候選，不自動確認
+    matched_by = (OFFICIAL_ENGLISH_SINGLE_TOKEN_MATCHED_BY if len(hit_rows) == 1 and is_single_token(name)
+                  else OFFICIAL_ALIAS_MATCHED_BY)
+    return [ProductCandidateMatch(product=_product_from_row(r), match_score=1.0,
+                                  matched_by=matched_by, query=name) for r in hit_rows]
 
 
 # ---------------------------------------------------------------------------

@@ -23,12 +23,14 @@ from __future__ import annotations
 import argparse
 import json
 import random
+import re
 import sys
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from app.english_name import NARROW_LIMIT, NON_ASCII_REGEX, match_english_name, narrowing_pattern
 from app.normalization import extract_permit_code, normalize_name
 from app.risk.assessment_rules import resolve_product_match
 from app.schemas.enums import InputType, Intent, ProductVerificationStatus
@@ -76,11 +78,13 @@ class CatalogEntry:
     category: str
     company_name: str | None = None
     status: str | None = None
+    name_en: str | None = None  # 官方英文品名（離線 CatalogRepo 的英文取回用；不影響 catalog_digest）
 
     def to_row(self) -> dict[str, Any]:
         """OfficialDataRepository 回傳列的最小欄位（供離線 CatalogRepo 使用）。"""
         return {
-            "product_id": self.product_id, "product_name_zh": self.name, "permit_number": self.permit_number,
+            "product_id": self.product_id, "product_name_zh": self.name, "product_name_en": self.name_en,
+            "permit_number": self.permit_number,
             "permit_code": extract_permit_code(self.permit_number or ""), "product_category": self.category,
             "company_name": self.company_name, "status": self.status or "UNKNOWN", "country_code": "TW",
             "source_name": "EVAL_CATALOG", "is_official": True,
@@ -143,6 +147,7 @@ class CatalogRepo:
     """離線用 OfficialDataRepository：以詞片段命中數篩選（與 Supabase search_products 契約相近，非完全相同）。"""
 
     def __init__(self, catalog: list[CatalogEntry]):
+        self._entries = list(catalog)
         self._rows = [(e, normalize_name(e.name)) for e in catalog]
 
     def search_products(self, terms: list[str], limit: int) -> list[dict[str, Any]]:
@@ -159,6 +164,29 @@ class CatalogRepo:
 
     def get_identity_generic_terms(self) -> list[str]:
         return []
+
+    def search_products_by_english_name(self, query: str) -> tuple[list[dict[str, Any]], bool]:
+        """與 SupabaseOfficialDataRepository 相同的縮小範圍（ilike 子序列 ＋ 非 ASCII 列）與 key 比對。"""
+        pattern = narrowing_pattern(query)
+        if pattern is None:
+            return [], False
+        parts = pattern.strip("%").split("%")
+
+        def in_scope(name: str) -> bool:
+            text, pos = name.lower(), 0
+            for part in parts:
+                found = text.find(part, pos)
+                if found < 0:
+                    return bool(re.search(NON_ASCII_REGEX, name))
+                pos = found + len(part)
+            return True
+
+        narrow = [e for e in sorted(self._entries, key=lambda e: e.product_id) if e.name_en and in_scope(e.name_en)]
+        if len(narrow) > NARROW_LIMIT:
+            return [], False
+        ids = set(match_english_name(query, [{"product_id": e.product_id, "product_name_en": e.name_en}
+                                             for e in narrow]).collision_ids)
+        return [e.to_row() for e in narrow if e.product_id in ids], True
 
 
 # ---------------------------------------------------------------- 案例產生（deterministic）
