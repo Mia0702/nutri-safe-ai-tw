@@ -1,0 +1,4 @@
+# 資料集的 sha256（SHA256SUMS / overlay_manifest.json / *.json manifest）是對「檔案原樣位元組」計算的。
+# 這些檔案在 Windows 產生，換行是 CRLF 或混合；若讓 git 依 core.autocrlf 轉換成 LF，乾淨 checkout 的位元組就與雜湊不符。
+# -text：不做任何換行轉換，repo 內存放與雜湊一致的原始位元組，任何平台 checkout 都相同。
+data/** -text
