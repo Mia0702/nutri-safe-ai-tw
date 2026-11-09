@@ -36,6 +36,7 @@ from app.risk.claim_policy import (
 from app.schemas.evidence import (
     OFFICIAL_ALIAS_MATCHED_BY,
     OFFICIAL_ENGLISH_SINGLE_TOKEN_MATCHED_BY,
+    REVIEWED_BRAND_CANDIDATE_MATCHED_BY,
     ApprovedClaimEvidence,
     ClaimAssessment,
     ClaimPolicyDecision,
@@ -188,10 +189,45 @@ def resolve_product_match(
     inferred_links: list[InferredEntityLink] | None = None,
     generic_terms: Iterable[str] = (),
 ) -> ProductMatch:
-    """Deterministic product resolver＋Candidate Relevance Gate（見 apply_candidate_relevance_gate）。"""
-    match = _resolve_product_match(request, name_matches, permit_matches, company_names_found, queried_terms,
+    """Deterministic product resolver＋Candidate Relevance Gate（見 apply_candidate_relevance_gate）＋品牌候選（D5）。
+
+    已審核品牌縮小出的候選（matched_by = REVIEWED_BRAND_CANDIDATE_MATCHED_BY）不進入既有 resolver 的任何步驟
+    （既有判定的輸入與 D5 之前完全相同）；只有在既有結果「沒有產品身份」（NOT_FOUND / COMPANY_ONLY）時才補上，見
+    apply_reviewed_brand_candidates。
+    """
+    brand = [m for m in name_matches if m.reviewed_brand_candidate]
+    regular = [m for m in name_matches if m.matched_by != REVIEWED_BRAND_CANDIDATE_MATCHED_BY]
+    match = _resolve_product_match(request, regular, permit_matches, company_names_found, queried_terms,
                                    lookup_completed, inferred_links)
-    return apply_candidate_relevance_gate(request, match, company_names_found, inferred_links, generic_terms)
+    match = apply_candidate_relevance_gate(request, match, company_names_found, inferred_links, generic_terms)
+    return apply_reviewed_brand_candidates(match, brand)
+
+
+BRAND_CANDIDATE_NOTE = "名稱中的品牌詞對應到人工審核過的品牌別名，只用來縮小候選範圍；不代表品牌所有權，也不代表確認是哪一項產品"
+
+
+def apply_reviewed_brand_candidates(match: ProductMatch, brand: list[ProductCandidateMatch]) -> ProductMatch:
+    """D5：已審核品牌候選只在既有結果沒有任何產品身份時才補上，而且永遠是「請使用者確認」。
+
+    * 既有結果是 VERIFIED / CONFLICT / 任何有候選的 PARTIAL（精確、字號、名稱相似…）→ 原樣回傳，品牌不能改變它。
+    * 既有結果是 NOT_FOUND / COMPANY_ONLY 且有品牌候選：只有 1 項 → 單一候選請使用者確認（LOW_MATCH_CONFIDENCE）；
+      2 項以上 → 候選澄清（不設 best_match、不挑勝者）。沒有品牌候選 → 原樣回傳（不捏造候選）。
+    * 品牌不產生 VERIFIED、不提高身份信心（match_confidence 為 None）。
+    """
+    candidates = _unique_products(brand)
+    no_identity = (match.status == ProductVerificationStatus.NOT_FOUND
+                   or (match.status == ProductVerificationStatus.PARTIAL_MATCH
+                       and match.match_type == ProductMatchType.COMPANY_ONLY and not match.candidates))
+    if not candidates or not no_identity:
+        return match
+    single = len(candidates) == 1
+    return ProductMatch(
+        status=ProductVerificationStatus.PARTIAL_MATCH, best_match=candidates[0] if single else None,
+        candidates=candidates[:MAX_CANDIDATES], queried_terms=match.queried_terms, lookup_completed=match.lookup_completed,
+        notes=[BRAND_CANDIDATE_NOTE], match_type=ProductMatchType.BRAND_CANDIDATE_ONLY, match_confidence=None,
+        ambiguity_reason=(ProductAmbiguityReason.LOW_MATCH_CONFIDENCE if single
+                          else ProductAmbiguityReason.MULTIPLE_SIMILAR_NAMES),
+        candidate_count=len(candidates))
 
 
 GATED_MATCH_TYPES = (ProductMatchType.NAME_SIMILARITY, ProductMatchType.NAME_COMPANY_CORROBORATED)

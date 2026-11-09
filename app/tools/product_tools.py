@@ -4,11 +4,22 @@ Tool 只回傳結構化結果與比對分數；VERIFIED / PARTIAL_MATCH 等判�
 app.risk.assessment_rules.resolve_product_match 依固定規則決定。
 """
 
+import time
 from datetime import datetime
 from typing import Any, Protocol
 
 from pydantic import BaseModel
 
+from app.brand_assist import (
+    MAX_APPLICANT_ROWS,
+    MAX_BRAND_CANDIDATES,
+    MIN_REMAINDER_LEN,
+    BrandAssistReport,
+    ReviewedBrandOverlay,
+    configured_overlay,
+    is_brand_member,
+    supports_remainder,
+)
 from app.english_name import is_single_token, is_usable_english_name, match_english_name
 from app.normalization import extract_permit_code, name_match_score, normalize_name, search_terms
 from app.product_coverage import category_of
@@ -18,6 +29,7 @@ from app.schemas.evidence import (
     CLAIM_KIND_UNCLASSIFIED,
     OFFICIAL_ALIAS_MATCHED_BY,
     OFFICIAL_ENGLISH_SINGLE_TOKEN_MATCHED_BY,
+    REVIEWED_BRAND_CANDIDATE_MATCHED_BY,
     ApprovedClaimEvidence,
     EvidenceRelevance,
     IllegalAdEvidence,
@@ -116,11 +128,16 @@ class ProductLookupOutput(BaseModel):
         return len(self.candidates)
 
 
+_OVERLAY_FROM_SETTINGS: Any = object()  # sentinel：依設定（BRAND_ASSIST_OVERLAY_DIR）取得 overlay；測試 / eval 可明確傳入
+
+
 def lookup_product(
     repo: OfficialDataRepository,
     product_names: list[str],
     brand_names: list[str] | None = None,
     limit: int = 20,
+    brand_overlay: ReviewedBrandOverlay | None = _OVERLAY_FROM_SETTINGS,
+    brand_report: BrandAssistReport | None = None,
 ) -> ProductLookupOutput:
     """以產品名稱（可附品牌）查官方產品，回傳依分數排序的候選。"""
     queries: list[str] = []
@@ -157,8 +174,85 @@ def lookup_product(
             current = best.get(match.product.product_id)
             if current is None or current.match_score < match.match_score:
                 best[match.product.product_id] = match
+    # D5：已審核品牌只補「候選」標記：既有路徑已找到的產品保留原本的 matched_by / 分數（只多一個 reviewed_brand_candidate 標記，
+    # resolver 既有步驟不看它）；其餘產品以 matched_by = REVIEWED_BRAND_CANDIDATE_MATCHED_BY、分數 < 0.5 加入
+    for match in lookup_reviewed_brand_candidates(repo, product_names, brand_names or [], brand_overlay, brand_report):
+        current = best.get(match.product.product_id)
+        best[match.product.product_id] = (current.model_copy(update={"reviewed_brand_candidate": True})
+                                          if current is not None else match)
     ranked = sorted(best.values(), key=lambda m: m.match_score, reverse=True)
-    return ProductLookupOutput(candidates=ranked[:limit])
+    return ProductLookupOutput(candidates=_truncate_keeping_brand_candidates(ranked, limit))
+
+
+def _truncate_keeping_brand_candidates(ranked: list[ProductCandidateMatch], limit: int) -> list[ProductCandidateMatch]:
+    """最後截斷：一般結果與 D5 之前完全相同（只看非「僅品牌」的列，取前 limit 筆）；
+    被截掉的品牌輔助候選（最多 MAX_BRAND_CANDIDATES 筆）改標成「僅品牌候選」補在後面。
+
+    * 一般結果的集合、順序、分數完全不變 → 既有 resolver 步驟（含名稱相似）的輸入與 D5 之前相同。
+    * 補上的品牌候選：matched_by = REVIEWED_BRAND_CANDIDATE_MATCHED_BY、分數上限 0.49，resolver 的一般步驟不會看到它們，
+      只有在既有結果沒有產品身份時才會用來列候選（永遠需使用者確認）；不提高身份信心。
+    * 沒有品牌候選時結果與 ranked[:limit] 完全相同；總數 <= limit + MAX_BRAND_CANDIDATES，不重複。
+    """
+    regular = [m for m in ranked if m.matched_by != REVIEWED_BRAND_CANDIDATE_MATCHED_BY][:limit]
+    kept = {m.product.product_id for m in regular}
+    extras = [m.model_copy(update={"matched_by": REVIEWED_BRAND_CANDIDATE_MATCHED_BY,
+                                   "match_score": min(m.match_score, 0.49)})
+              for m in ranked if m.reviewed_brand_candidate and m.product.product_id not in kept]
+    # 一般列在 limit 內已保留的品牌候選不重複計入；其餘（含原本就是「僅品牌」的列）最多補 MAX_BRAND_CANDIDATES 筆
+    in_regular = sum(1 for m in regular if m.reviewed_brand_candidate)
+    extras = extras[:max(0, MAX_BRAND_CANDIDATES - in_regular)]
+    return sorted(regular + extras, key=lambda m: m.match_score, reverse=True) if extras else regular
+
+
+def lookup_reviewed_brand_candidates(
+    repo: Any, product_names: list[str], brand_names: list[str],
+    overlay: ReviewedBrandOverlay | None = _OVERLAY_FROM_SETTINGS, report: BrandAssistReport | None = None,
+) -> list[ProductCandidateMatch]:
+    """查詢文字中的「已審核品牌（人工 ACCEPT）」→ 同一申請商、品名屬於該品牌證據的官方產品候選。
+
+    * 品牌只縮小候選範圍：回傳的每一筆都標記 reviewed_brand_candidate、分數 < PARTIAL_MIN（0.5），
+      resolver 只會把它們列為候選請使用者確認，不會自動確認（沒有品牌所有權、沒有 OWNS_BRAND）。
+    * 品牌 + 產品文字：只留下品名（中文或英文）包含全部剩餘文字的成員；沒有任何成員支持 → 不回傳（維持既有行為）。
+    * overlay 停用 / repo 不支援 / 候選集合看不完 / 發生例外 → 空（fail closed，既有產品查證不受影響）。
+    """
+    started = time.perf_counter()
+    try:
+        active = configured_overlay() if overlay is _OVERLAY_FROM_SETTINGS else overlay
+        search = getattr(repo, "search_products_by_applicant", None)
+        if active is None or not active.active or search is None:
+            return []
+        texts = list(dict.fromkeys(
+            [n for n in product_names if n]
+            + [f"{b} {n}" for b in brand_names if b for n in product_names if n]
+            + ([b for b in brand_names if b] if not product_names else [])))
+        out: dict[str, ProductCandidateMatch] = {}
+        for text in texts:
+            mention = active.find_mention(text)
+            if mention is None or (not mention.brand_only and len(mention.remainder.replace(" ", "")) < MIN_REMAINDER_LEN):
+                continue
+            rows, complete = search(mention.brand.applicant, MAX_APPLICANT_ROWS)
+            if not complete:
+                continue
+            members = [r for r in rows if is_brand_member(mention.brand, r)]
+            if report is not None:
+                report.mentioned, report.brand_only, report.member_count = True, mention.brand_only, len(members)
+            for row in members:
+                if not mention.brand_only and not supports_remainder(mention.remainder, row):
+                    continue
+                product = _product_from_row(row)
+                rank = 0.0 if mention.brand_only else name_match_score(mention.remainder, product.product_name_zh)
+                out.setdefault(product.product_id, ProductCandidateMatch(
+                    product=product, match_score=round(0.1 + 0.3 * rank, 4),
+                    matched_by=REVIEWED_BRAND_CANDIDATE_MATCHED_BY, query=text, reviewed_brand_candidate=True))
+        ranked = sorted(out.values(), key=lambda m: (-m.match_score, m.product.product_name_zh, m.product.product_id))
+        if report is not None:
+            report.candidate_count = min(len(ranked), MAX_BRAND_CANDIDATES)
+        return ranked[:MAX_BRAND_CANDIDATES]
+    except Exception:  # noqa: BLE001 - 品牌輔助失敗不得影響既有查證
+        return []
+    finally:
+        if report is not None:
+            report.lookup_ms = round((time.perf_counter() - started) * 1000, 3)
 
 
 def lookup_official_english_name(repo: Any, name: str) -> list[ProductCandidateMatch]:

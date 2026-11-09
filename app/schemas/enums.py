@@ -209,6 +209,8 @@ class ProductMatchType(StrEnum):
     # 名稱相似的候選中，只有一項同時對應到本次看到的申請商 / 品牌（兩個獨立訊號一致）
     NAME_COMPANY_CORROBORATED = "NAME_COMPANY_CORROBORATED"
     NAME_SIMILARITY = "NAME_SIMILARITY"  # 只有名稱相似度
+    # D5：已審核品牌（人工 ACCEPT、CANDIDATE_ONLY）縮小出的候選；品牌不是所有權、不是產品身份，永遠需使用者確認
+    BRAND_CANDIDATE_ONLY = "BRAND_CANDIDATE_ONLY"
     COMPANY_ONLY = "COMPANY_ONLY"  # 只對應到申請商 / 推測品牌
 
 

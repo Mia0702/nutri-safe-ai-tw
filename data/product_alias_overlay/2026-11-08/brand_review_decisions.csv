@@ -1,0 +1,52 @@
+alias_text_normalized,decision,descriptor_flag,decision_reason
+lac,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 135 筆官方紀錄中文品名一律以 LAC 開頭且英文品名首詞相同；單一申請商；其他申請商的中文 / 英文品名都沒有使用 lac
+dhc,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 65 筆官方紀錄中文品名一律以 DHC 開頭且英文品名首詞相同；單一申請商；無其他申請商使用
+nutrilite,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 63 筆中 62 筆中文品名以「紐崔萊」開頭；單一申請商；無其他申請商使用英文詞或中文前綴
+bestvite,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 39 筆中 38 筆中文品名以「必賜力」開頭；單一申請商；無衝突
+blackmores,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 33 筆中 32 筆中文品名以「澳佳寶」開頭；單一申請商；無其他申請商使用
+c.c.y,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 27 筆中 26 筆中文品名以「康郁」開頭；單一申請商；無衝突
+kirkland,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 24 筆中文品名一律以「科克蘭」開頭；單一申請商；無其他申請商使用
+doppelherz,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 21 筆中文品名一律以「德之寶」開頭；單一申請商；無衝突
+mklab,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 17 筆官方紀錄中文品名一律以 MKLAB（大小寫不拘）開頭；單一申請商；無其他申請商使用
+fancl,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 15 筆官方紀錄中文品名一律以 FANCL 開頭；單一申請商；無其他申請商使用
+atomy,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 11 筆中文品名一律以「艾多美」開頭；單一申請商；無衝突（中文前綴同時是申請商名稱的一部分；此審核只代表英文詞與該申請商的品牌別名關係）
+dailycare,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 11 筆中文品名一律以「杏輝沛多」開頭；單一申請商；無其他申請商使用
+youbest,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 11 筆中文品名一律以「優倍多」開頭；單一申請商；無衝突
+sentosa,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 10 筆中文品名一律以「三多」開頭；單一申請商；無衝突（中文前綴同時是申請商名稱的一部分；此審核只代表英文詞與該申請商的品牌別名關係）
+watanabe,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 10 筆中文品名一律以「渡邊」開頭；單一申請商；無衝突
+sakuyo,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 8 筆官方紀錄中文品名一律以 SAKUYO 開頭；單一申請商；無其他申請商使用
+gotrim,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 7 筆中文品名一律以「全新生活」開頭；單一申請商；無其他申請商使用英文詞或中文前綴
+swisse,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 7 筆官方紀錄中文品名一律以 SWISSE 開頭；單一申請商；無其他申請商使用
+menicon,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 6 筆官方紀錄中文品名一律以 Menicon 開頭；單一申請商；無其他申請商使用
+saikai,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 6 筆中文品名一律以「帕護生」開頭；單一申請商；無衝突
+suntory,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 6 筆中文品名一律以「三得利」開頭；單一申請商；無衝突
+chocola,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 5 筆中文品名一律以「俏正美」開頭；單一申請商；無衝突（支撐筆數剛好達門檻）
+megared,ACCEPT,NONE,CONSISTENT_OFFICIAL_BRAND_PAIR: 5 筆官方紀錄中文品名一律以 MegaRed（大小寫不拘）開頭；單一申請商；無衝突（支撐筆數剛好達門檻）
+general,REJECT,GENERIC_ENGLISH_WORD,GENERIC_ENGLISH_WORD: GENERAL 是一般英文形容詞；官方英文品名實為「GENERAL BALANCE …」兩個字的系列名稱，單獨的 GENERAL 不能代表品牌
+peak,REJECT,GENERIC_ENGLISH_WORD,GENERIC_ENGLISH_WORD: PEAK 是一般英文單字；官方英文品名一律是「PEAK PERFORMANCE NUTRITION PACK …」產品系列用語，不是獨立品牌詞
+winner,REJECT,GENERIC_ENGLISH_WORD,GENERIC_ENGLISH_WORD: WINNER 是一般英文單字；5 筆官方中文品名彼此沒有共同品牌字樣，無法與任何中文品牌對應
+afc,NEEDS_REVIEW,NONE,TOKEN_USED_BY_MULTIPLE_APPLICANTS: 另一申請商（永信藥品）也有官方中文品名以 AFC 開頭；兩家的關係無法由官方紀錄判斷
+gnc,NEEDS_REVIEW,NONE,TOKEN_USED_BY_MULTIPLE_APPLICANTS: 另一申請商（寶及第）有 35 筆官方中文品名含「美國 GNC」；同一英文詞對應兩家申請商
+ikor,NEEDS_REVIEW,NONE,TOKEN_USED_BY_MULTIPLE_APPLICANTS: 另一申請商（台灣漢科生技）也有官方中文品名以 IKOR 開頭；且本申請商的中文品名沒有一致前綴
+onetime,NEEDS_REVIEW,NONE,ZH_PREFIX_SHARED_WITH_OTHER_APPLICANT: 中文前綴「萬泰」同時被另一申請商（萬泰藥品）使用；兩家的關係無法由官方紀錄判斷
+stresstabs,NEEDS_REVIEW,NONE,ZH_PREFIX_SHARED_WITH_OTHER_APPLICANT: 中文前綴「克補」同時被另一申請商（森威）使用；且有一筆官方產品的英文品名就是 Stresstabs（品牌查詢與產品名稱重疊）
+ultraflora,NEEDS_REVIEW,NONE,NOISY_CHINESE_PREFIX: 英文詞單一申請商但中文前綴只抽到泛用詞「活性」（另有 3 家申請商的品名也以此開頭）；官方紀錄沒有清楚的中文品牌
+n’s,NEEDS_REVIEW,NONE,INCONSISTENT_CHINESE_PAIR: 同一英文詞對應兩種中文寫法（納精選 / 納斯康各 14 筆）；英文第二詞也分成 SELECT / CHOICE，無法判定品牌或系列
+simpor,NEEDS_REVIEW,NONE,INCONSISTENT_CHINESE_PAIR: 19 筆中 17 筆為「杏寶」，另 2 筆為「聖保爾」；同一英文詞對應兩種中文品牌寫法
+sinphar,NEEDS_REVIEW,NONE,INCONSISTENT_CHINESE_PAIR: 中文前綴「杏輝」同時是申請商名稱的一部分，也是另一英文詞 DailyCare（杏輝沛多）中文品名的開頭；無法判斷是品牌還是公司簡稱
+morimoto,NEEDS_REVIEW,NONE,INCONSISTENT_CHINESE_PAIR: 11 筆中 9 筆為「緻麗美」，另 2 筆為「森本」；同一英文詞對應兩種中文品牌寫法
+omegagenics,NEEDS_REVIEW,NONE,INCONSISTENT_CHINESE_PAIR: 10 筆中只有 6 筆以「中華生醫」（申請商名稱）開頭，另有「優質魚油」等不同寫法；中文前綴是公司名而非明確品牌
+bester,NEEDS_REVIEW,NONE,INCONSISTENT_CHINESE_PAIR: 5 筆中文品名分成不同前綴（怡健 / 超頂 / 保關）；沒有一致的中文品牌
+cozmomega,NEEDS_REVIEW,NONE,INCONSISTENT_CHINESE_PAIR: 5 筆中文品名分成「菲復能」與「星銳力」兩種寫法；可能是產品系列而非品牌
+watsons,NEEDS_REVIEW,NONE,INCONSISTENT_CHINESE_PAIR: 5 筆中 3 筆中文品名用 WATSONS 開頭、2 筆用「屈臣氏」；兩種寫法各自證據太少且支撐筆數剛好達門檻
+kizandy,NEEDS_REVIEW,NONE,NOISY_CHINESE_PREFIX: 抽到的中文前綴含括號與品項字樣（香吻薄荷糖(）；9 筆官方品名都以「香吻」開頭，但機械抽取的前綴不是乾淨品牌，需人工重新確認
+richvita,NEEDS_REVIEW,NONE,NOISY_CHINESE_PREFIX: 抽到的中文前綴過長並含品類字樣（利捷維有酵維生素）；較短的「利捷」涵蓋較多筆，品牌邊界需人工確認
+siu,NEEDS_REVIEW,NONE,NOISY_CHINESE_PREFIX: 中文前綴含引號（“壽元”）；英文官方品名實為「SIU GUAN …」兩個字，單獨的 SIU 可能只是品牌的一部分
+hac,NEEDS_REVIEW,NONE,NOISY_CHINESE_PREFIX: 抽到的中文前綴帶連字號（哈克麗康-）；英文詞是縮寫且只有 5 筆支撐
+ligwor,NEEDS_REVIEW,NONE,NOISY_CHINESE_PREFIX: 抽到的中文前綴帶註冊商標殘留字母（立國R）；只有 5 筆支撐
+sanmao,NEEDS_REVIEW,NONE,NO_CLEAR_CHINESE_BRAND: 22 筆官方中文品名沒有共同品牌字樣（諾寶 / 善維 / 憲懋 各 2 筆）；英文詞單一申請商但沒有中文品牌佐證
+usana,NEEDS_REVIEW,NONE,NO_CLEAR_CHINESE_BRAND: 10 筆官方中文品名沒有共同品牌字樣；英文詞單一申請商但沒有中文品牌佐證
+noevir,NEEDS_REVIEW,NONE,NO_CLEAR_CHINESE_BRAND: 9 筆官方中文品名沒有共同品牌字樣；英文詞單一申請商但沒有中文品牌佐證
+bnutra,NEEDS_REVIEW,NONE,NO_CLEAR_CHINESE_BRAND: 8 筆官方中文品名沒有共同品牌字樣；英文詞單一申請商但沒有中文品牌佐證
+trunature,NEEDS_REVIEW,NONE,NO_CLEAR_CHINESE_BRAND: 6 筆官方中文品名沒有品牌字樣（只有品項名稱）；英文詞單一申請商但沒有中文品牌佐證
+b-energetic,NEEDS_REVIEW,FUNCTIONAL_DESCRIPTOR,AMBIGUOUS_TERM: 中文前綴「必安捷」乾淨且單一申請商，但英文詞 B-Energetic 同時像維生素 B 的功能描述與品牌；只有 5 筆支撐

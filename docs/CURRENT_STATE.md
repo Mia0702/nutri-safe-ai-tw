@@ -1303,3 +1303,27 @@ phone smoke 通過；以下皆為 additive，未改 Risk Engine、claim eligibil
 - **baseline-002（480 案，同一組 gold set，未改寫案例）**：safety violations 0（離線與唯讀 production 相同）。唯一英文名：多詞 96/96 正確自動確認；單詞 4/4 候選含正確產品、0 自動確認。碰撞 / 品牌-only / 泛用詞自動確認 0；中文 / 字號對照無退步。第一次實作（單詞也自動確認）的 4 個違規報告保留為 `...post-d3-attempt1-single-token-conflict-*`。
 - **baseline-001**：以原參數重跑（resolver seed 20261019 / 100 樣本 / 唯讀 live；claim 10 案）metrics / details / parameters / dataset_versions 與原檔逐項 0 差異；WRONG_AUTO_CONFIRM_RATE 0、exact_match_correctness 1.0。比較檔 `eval_baselines/*-d3-compare-2.json`，baseline-001 未覆蓋。
 - 驗證：tests/unit 1742 passed / 6 skipped（含 `test_official_english_name.py`）。
+
+## Post-demo hardening D4：品牌候選人工審核準備（2026-11-08；離線，runtime 未改）
+- 審核對象：D2 `brand_candidates.csv` 中通過機械規則的 **51** 筆品牌候選（其餘 194 筆未通過規則，不審核）。結果：**ACCEPT 23 / REJECT 3 / NEEDS_REVIEW 25**。
+- 中文品牌證據分類：CLEAN_BRAND_PAIR 29 / NOISY_PREFIX 6 / INCONSISTENT_PAIR 9 / NO_CLEAR_CHINESE_BRAND 7。
+- 資料：`data/product_alias_overlay/2026-11-08/`（`reviewed_brand_aliases.csv`、人工決定檔 `brand_review_decisions.csv`、`overlay_manifest.json`；D2 檔案未被改動，manifest 以 sha256 綁定）。
+  工具：`app/ingestion/brand_alias_review.py`、`python -m scripts.review_brand_candidates build|validate`；validator 新增品牌 ACCEPT 閘門
+  （CLEAN_BRAND_PAIR、`conflict_check = NONE`、單一申請商、support ≥ 5、非泛用詞，REJECT / ACCEPT 需 reviewer 與日期）。
+- **品牌仍是離線資料且 `CANDIDATE_ONLY`（ACCEPT 也是）**：不是品牌所有權（無 OWNS_BRAND）、不是產品身份、不得由品牌查詢自動確認產品。
+  **目前沒有 runtime 品牌取回**：沒有 runtime loader、沒有資料庫匯入、未動 lookup_product / search_products / resolver / 品牌-only 路由、無 migration 0009。
+
+## Post-demo hardening D5：已審核品牌輔助候選取回（2026-11-08；additive，預設關閉）
+- **已審核 ACCEPT 品牌 → 只輔助「產品候選」取回**：查詢中出現已審核品牌詞（詞邊界）→ 同一申請商、品名屬於該品牌證據的官方產品成為候選；品牌＋產品文字時，剩餘文字必須出現在候選品名（中 / 英，空白與標點不計）。
+  **品牌-only 永遠不自動確認產品**（只有一項也要使用者確認）；品牌不提高身份信心（不產生 VERIFIED、無 match_confidence）。
+- **REJECT / NEEDS_REVIEW / 未審核品牌 → runtime 不啟用**（與 D5 之前逐案相同）。**沒有 OWNS_BRAND**、不表達品牌所有權。
+- 位置：`app/brand_assist.py`（檔案型 overlay loader＋快取＋純函式）、`lookup_product` 尾端補候選標記（`reviewed_brand_candidate`）、resolver 在**既有結果為 NOT_FOUND / COMPANY_ONLY 時**才補候選（`ProductMatchType.BRAND_CANDIDATE_ONLY`）；既有 resolver 步驟的輸入不含品牌候選。
+  repo 新增唯讀 `search_products_by_applicant`（單一查詢，無 migration、無寫入）。FC-I14 guardrail 未改。
+- **開關**：`BRAND_ASSIST_OVERLAY_DIR`（預設空 = 關閉）。loader fail closed：manifest / 雜湊 / D4 列驗證 / `match_policy = CANDIDATE_ONLY` / reviewer 必須是真人（`CLAUDE_*`、AI、自動化帳號拒絕）/ reviewed_at / 來源欄位，任一失敗整份停用並回報 issues。
+- **目前狀態：D4 reviewer 仍是 `CLAUDE_D4_REVIEW`，真實 overlay 不會生效**。啟用需真人審核 ACCEPT 列後，以 `python -m scripts.review_brand_candidates build --reviewer <姓名> --reviewed-at <日期>` 輸出到新目錄（升版），再設定上述環境變數。
+- baseline-003（`scripts/eval/brand_assist_eval.py`，502 案，**以 `--simulate-d4-signoff` 模擬簽核、僅評估用**）：離線與唯讀 live 結果相同——WRONG_AUTO_CONFIRM_RATE 0、safety violations 0；品牌-only 46 案 0 自動確認、有候選 100%（D5 前 39%）；品牌＋產品 160 案正確產品在候選 98.1%（D5 前 15%）；REJECT / NEEDS_REVIEW / 泛用詞 / 英文 / 中文對照組與 D5 前逐案相同。
+- baseline-001（resolver 100 樣本 live、claim 10 案）與 baseline-002 post-D3 結果逐項 0 差異。
+- **D5.2 保留規則**：`lookup_product` 最後截斷時，一般結果與 D5 之前完全相同（前 20 筆、順序、分數不變）；被截掉的品牌輔助候選（最多 20 筆）標成「僅品牌候選」補在後面（分數 ≤ 0.49、仍需使用者確認、不提高身份信心）。
+  總數 ≤ limit + 20，不重複；沒有品牌候選時與原行為完全相同。baseline-003 品牌＋產品正確候選 159/160（原 157/160）。
+- **已知限制（有意）**：既有 resolver / 名稱相似邏輯已產生有效的非 NOT_FOUND 產品候選結果時，D5 **不**把已審核品牌候選併入該結果（保留既有 resolver 行為）；
+  此時使用者看到的是既有候選清單，品牌候選不會出現。baseline-003 剩 1 筆屬此情形。

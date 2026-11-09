@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     # owner_key（LINE user id 的 HMAC）專用 secret；不得重用 LINE channel secret / Supabase key / OpenAI key
     line_state_hmac_secret: SecretStr | None = None
 
+    # D5：已審核（人工 ACCEPT）品牌輔助候選取回的 overlay 目錄；未設定 = 關閉（行為同 D5 之前）。驗證失敗也會關閉（fail closed）
+    brand_assist_overlay_dir: str | None = None
+
     supabase_url: str | None = None
     # 後端專用 Supabase secret key（sb_secret_...）；不得回傳給 client
     supabase_secret_key: SecretStr | None = None

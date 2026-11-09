@@ -114,6 +114,8 @@ class ProductRecord(BaseModel):
 OFFICIAL_ALIAS_MATCHED_BY = "official_alias"
 # 官方英文品名唯一 exact 命中，但英文品名只有一個詞：只列為單一候選請使用者確認（resolver 不自動確認）
 OFFICIAL_ENGLISH_SINGLE_TOKEN_MATCHED_BY = "official_name_en_single_token"
+# D5：已審核品牌（候選用）縮小出的產品；只會成為候選，resolver 永遠不自動確認
+REVIEWED_BRAND_CANDIDATE_MATCHED_BY = "reviewed_brand_candidate"
 
 
 class ProductCandidateMatch(BaseModel):
@@ -121,6 +123,9 @@ class ProductCandidateMatch(BaseModel):
     match_score: float = Field(ge=0.0, le=1.0)
     matched_by: str  # permit_number | product_name | official_alias | company_name
     query: str
+    # D5：此產品屬於「已審核品牌（人工 ACCEPT）＋剩餘產品文字」縮小出的候選集合。只是候選標記：不影響 matched_by / 分數，
+    # 既有 resolver 步驟完全不看它；resolver 只在既有結果沒有任何產品身份時才用它補候選（永遠需使用者確認）
+    reviewed_brand_candidate: bool = False
 
 
 class ProductMatch(BaseModel):

@@ -1,0 +1,117 @@
+{
+  "created_at": "2026-11-08T08:32:02+00:00",
+  "dataset_versions": {
+    "product_catalog": {
+      "by_category": {
+        "domestic_vitamin_tablet_capsule": 1705,
+        "health_food": 565,
+        "imported_tablet_capsule": 7407
+      },
+      "product_count": 9677,
+      "sha256": "fd026a9b18098427d18f2a71e34c7f57363d644ef1bb5d97bb1b9037ad141a9b",
+      "source": "supabase:product_details(read-only)"
+    }
+  },
+  "details": {
+    "wrong_auto_confirm_examples": []
+  },
+  "evaluation": "resolver_identity_safety",
+  "evaluation_version": "1.0",
+  "git_commit": "545d6e619c833f91e328b17c1ef6d82bf1dd8f1d",
+  "git_dirty": true,
+  "metrics": {
+    "WRONG_AUTO_CONFIRM_RATE": 0.0,
+    "auto_confirm_count": 326,
+    "auto_confirm_precision": 1.0,
+    "by_variant": {
+      "EXACT_NAME": {
+        "auto_confirm": 95,
+        "cases": 100,
+        "clarify": 5,
+        "conflict": 0,
+        "not_found": 0,
+        "other": 0,
+        "wrong_auto_confirm": 0,
+        "wrong_auto_confirm_rate": 0.0
+      },
+      "OMIT_ONE_CHAR": {
+        "auto_confirm": 74,
+        "cases": 93,
+        "clarify": 19,
+        "conflict": 0,
+        "not_found": 0,
+        "other": 0,
+        "wrong_auto_confirm": 0,
+        "wrong_auto_confirm_rate": 0.0
+      },
+      "PERMIT_NUMBER": {
+        "auto_confirm": 100,
+        "cases": 100,
+        "clarify": 0,
+        "conflict": 0,
+        "not_found": 0,
+        "other": 0,
+        "wrong_auto_confirm": 0,
+        "wrong_auto_confirm_rate": 0.0
+      },
+      "SUBSTITUTE_ONE_CHAR": {
+        "auto_confirm": 0,
+        "cases": 93,
+        "clarify": 93,
+        "conflict": 0,
+        "not_found": 0,
+        "other": 0,
+        "wrong_auto_confirm": 0,
+        "wrong_auto_confirm_rate": 0.0
+      },
+      "TRUNCATE_TAIL": {
+        "auto_confirm": 57,
+        "cases": 90,
+        "clarify": 33,
+        "conflict": 0,
+        "not_found": 0,
+        "other": 0,
+        "wrong_auto_confirm": 0,
+        "wrong_auto_confirm_rate": 0.0
+      }
+    },
+    "clarification_candidate_recall": 0.993333,
+    "clarification_count": 150,
+    "clarification_rate": 0.315126,
+    "correct_auto_confirm_count": 326,
+    "exact_cases": 200,
+    "exact_match_correct_count": 200,
+    "exact_match_correctness": 1.0,
+    "not_found_count": 0,
+    "not_found_rate": 0.0,
+    "outcome_counts": {
+      "AUTO_CONFIRM": 326,
+      "CLARIFY": 150,
+      "CONFLICT": 0,
+      "NOT_FOUND": 0,
+      "OTHER": 0
+    },
+    "total_cases": 476,
+    "wrong_auto_confirm_count": 0,
+    "wrong_auto_confirm_rate_among_auto_confirms": 0.0
+  },
+  "parameters": {
+    "requested_sample_size": 100,
+    "sample_size": 100,
+    "seed": 20261019,
+    "skipped_cases": {
+      "OMIT_ONE_CHAR:not_applicable": 7,
+      "SUBSTITUTE_ONE_CHAR:not_applicable": 7,
+      "TRUNCATE_TAIL:equals_other_official_name": 3,
+      "TRUNCATE_TAIL:not_applicable": 7
+    },
+    "stage": "deterministic_resolver_only",
+    "variants": [
+      "EXACT_NAME",
+      "PERMIT_NUMBER",
+      "OMIT_ONE_CHAR",
+      "SUBSTITUTE_ONE_CHAR",
+      "TRUNCATE_TAIL"
+    ]
+  }
+}

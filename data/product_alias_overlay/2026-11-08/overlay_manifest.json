@@ -1,0 +1,140 @@
+{
+  "builder_version": "1.0",
+  "candidate_counts": {
+    "brand_rows": 51,
+    "review_decisions": {
+      "ACCEPT": 23,
+      "NEEDS_REVIEW": 25,
+      "REJECT": 3
+    }
+  },
+  "classification_counts": {
+    "zh_evidence_classes": {
+      "CLEAN_BRAND_PAIR": 29,
+      "INCONSISTENT_PAIR": 9,
+      "NOISY_PREFIX": 6,
+      "NO_CLEAR_CHINESE_BRAND": 7
+    }
+  },
+  "created_at": "2026-11-08T00:00:00+00:00",
+  "files": {
+    "brand_review_decisions.csv": {
+      "rows": 51,
+      "sha256": "088f481b1112791a0ff520f70fb91a2235125c686ce26ea5f17ccdcda4d11e97"
+    },
+    "reviewed_brand_aliases.csv": {
+      "rows": 51,
+      "sha256": "6d43bd19a2fec024194f703198ab485a3720b0f81f4971188661f1ebbc6cbc2e"
+    }
+  },
+  "inputs": {
+    "brand_candidates.csv": {
+      "path": "data/product_alias_overlay/2026-10-27/brand_candidates.csv",
+      "sha256": "5e70acb1f8d597628b5052a5a950ff92e6357660950502d3fdff00043f14b5ad"
+    }
+  },
+  "overlay_version": "1.1",
+  "policies": {
+    "ACCEPT_MEANS": "已審核的品牌別名關係；不是品牌所有權、不是產品身份",
+    "BRAND": "CANDIDATE_ONLY（ACCEPT 也是）",
+    "accept_gate": "CLEAN_BRAND_PAIR + conflict_check=NONE + 單一申請商 + support>=5 + descriptor_flag=NONE",
+    "runtime_active_alias_file": "none（沒有 runtime loader、沒有資料庫匯入）"
+  },
+  "review_summary": {
+    "decisions": {
+      "ACCEPT": 23,
+      "NEEDS_REVIEW": 25,
+      "REJECT": 3
+    },
+    "needs_review_reasons": {
+      "AMBIGUOUS_TERM": 1,
+      "INCONSISTENT_CHINESE_PAIR": 8,
+      "NOISY_CHINESE_PREFIX": 6,
+      "NO_CLEAR_CHINESE_BRAND": 5,
+      "TOKEN_USED_BY_MULTIPLE_APPLICANTS": 3,
+      "ZH_PREFIX_SHARED_WITH_OTHER_APPLICANT": 2
+    },
+    "reject_reasons": {
+      "GENERIC_ENGLISH_WORD": 3
+    },
+    "top_accepted": [
+      {
+        "brand": "LAC",
+        "support_count": 135
+      },
+      {
+        "brand": "DHC",
+        "support_count": 65
+      },
+      {
+        "brand": "NUTRILITE",
+        "support_count": 63
+      },
+      {
+        "brand": "BESTVITE",
+        "support_count": 39
+      },
+      {
+        "brand": "BLACKMORES",
+        "support_count": 33
+      },
+      {
+        "brand": "C.C.Y",
+        "support_count": 27
+      },
+      {
+        "brand": "KIRKLAND",
+        "support_count": 24
+      },
+      {
+        "brand": "DOPPELHERZ",
+        "support_count": 21
+      },
+      {
+        "brand": "MKLAB",
+        "support_count": 17
+      },
+      {
+        "brand": "FANCL",
+        "support_count": 15
+      }
+    ],
+    "total_reviewed": 51,
+    "zh_evidence_classes": {
+      "CLEAN_BRAND_PAIR": 29,
+      "INCONSISTENT_PAIR": 9,
+      "NOISY_PREFIX": 6,
+      "NO_CLEAR_CHINESE_BRAND": 7
+    }
+  },
+  "scope": "Taiwan Phase 1 only（TW）；品牌候選審核，離線資料",
+  "source_datasets": [
+    {
+      "dataset_title": "國產維生素類錠狀膠囊狀食品資料集",
+      "normalized_file": "03_tfda_domestic_vitamin_normalized.csv",
+      "normalized_sha256": "c1c2d7ccdf31ad3dccde9c0a84b3d7276de0b1853e4c40335b737757372dfafe",
+      "raw_file": "01_tfda_domestic_vitamin_raw.csv",
+      "raw_sha256": "bd4c9a7d235fd0e94fcdd86d57bb2091f1ce4032e836372b94c0872fe2eeda5b",
+      "retrieved_at": "2026-10-04T03:13:44.070804+00:00",
+      "rows": 1705,
+      "source_dataset_id": "9046",
+      "source_id": "SRC_DOMESTIC_CSV",
+      "source_info_id": "24",
+      "source_url": "https://data.fda.gov.tw/data/opendata/export/24/csv"
+    },
+    {
+      "dataset_title": "輸入錠狀膠囊狀食品查驗登記資料集",
+      "normalized_file": "04_tfda_imported_tablet_capsule_normalized.csv",
+      "normalized_sha256": "52c43fb1f27cfb66060cb189533057af4f613d21d63414e5d1542b95efc10ed8",
+      "raw_file": "02_tfda_imported_tablet_capsule_raw.csv",
+      "raw_sha256": "1e82a272ac87dfd4e6122a3989e8eace181aee591a064921d691f0fbe588a5be",
+      "retrieved_at": "2026-10-04T03:13:51.254225+00:00",
+      "rows": 7407,
+      "source_dataset_id": "9047",
+      "source_id": "SRC_IMPORTED_CSV",
+      "source_info_id": "23",
+      "source_url": "https://data.fda.gov.tw/data/opendata/export/23/csv"
+    }
+  ],
+  "validator_version": "1.0"
+}

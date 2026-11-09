@@ -75,6 +75,13 @@ BRAND_MIN_TOKEN_LEN = 3
 ZH_PREFIX_MIN_LEN = 2
 ZH_PREFIX_MAX_LEN = 12
 ZH_PREFIX_MIN_SHARE = 0.6
+# D4 品牌審核：中文品牌證據分類、泛用詞旗標
+ZH_CLEAN_BRAND_PAIR = "CLEAN_BRAND_PAIR"
+ZH_NOISY_PREFIX = "NOISY_PREFIX"
+ZH_INCONSISTENT_PAIR = "INCONSISTENT_PAIR"
+ZH_NO_CLEAR_BRAND = "NO_CLEAR_CHINESE_BRAND"
+ZH_EVIDENCE_CLASSES = (ZH_CLEAN_BRAND_PAIR, ZH_NOISY_PREFIX, ZH_INCONSISTENT_PAIR, ZH_NO_CLEAR_BRAND)
+DESCRIPTOR_FLAGS = ("NONE", "GENERIC_ENGLISH_WORD", "FUNCTIONAL_DESCRIPTOR", "PRODUCT_SERIES")
 GENERIC_TOKEN_MIN_APPLICANTS = 10  # 資料推導：同一英文詞被 >= 這麼多申請商使用 → 泛用詞（eval 用）
 
 _NULL_MARKERS = frozenset({"", "null", "none", "n/a", "na", "-"})
@@ -568,6 +575,37 @@ def _is_official_url(url: str) -> bool:
     return any(host == d or host.endswith("." + d) for d in OFFICIAL_DOMAINS)
 
 
+def _int_field(row: dict[str, str], name: str) -> int | None:
+    try:
+        return int(row.get(name) or "")
+    except ValueError:
+        return None
+
+
+def brand_accept_gate_failures(row: dict[str, str]) -> list[tuple[str, str]]:
+    """品牌 ACCEPT 的必要條件（D4）。只看列上已記錄的審核欄位；缺欄位視為不通過。
+
+    ACCEPT 只代表「已審核的品牌別名關係」，不是品牌所有權、不是產品身份。
+    """
+    failures: list[tuple[str, str]] = []
+    if not (row.get("zh_evidence_class") or "").strip():
+        return [("BRAND_ACCEPT_MISSING_AUDIT", "ACCEPT 需要 D4 審核欄位（zh_evidence_class / 衝突統計）")]
+    if row.get("zh_evidence_class") != ZH_CLEAN_BRAND_PAIR:
+        failures.append(("BRAND_ACCEPT_ZH_NOT_CLEAN",
+                         f"中文品牌證據必須是 {ZH_CLEAN_BRAND_PAIR}（目前 {row.get('zh_evidence_class')!r}）"))
+    if (row.get("conflict_check") or "NONE").strip() != "NONE":
+        failures.append(("BRAND_ACCEPT_WITH_CONFLICT", f"存在未解決衝突：{row.get('conflict_check')}"))
+    if (row.get("descriptor_flag") or "NONE").strip() != "NONE":
+        failures.append(("BRAND_ACCEPT_DESCRIPTOR", f"泛用詞 / 功能描述 / 系列名不得 ACCEPT（{row.get('descriptor_flag')}）"))
+    for name in ("applicant_count", "token_applicant_count"):
+        if _int_field(row, name) != 1:
+            failures.append(("BRAND_ACCEPT_MULTI_APPLICANT", f"{name} 必須為 1（目前 {row.get(name)!r}）"))
+    support = _int_field(row, "support_count")
+    if support is None or support < BRAND_MIN_RECORDS:
+        failures.append(("BRAND_ACCEPT_INSUFFICIENT_SUPPORT", f"support_count 必須 >= {BRAND_MIN_RECORDS}"))
+    return failures
+
+
 def validate_rows(rows: list[dict[str, str]], *, official_names: dict[str, set[str]] | None = None,
                   existing_review_ids: Iterable[str] = ()) -> ValidationReport:
     """檢查審核列。official_names：正規化後的官方產品名稱 → 對應 target_id 集合（用來擋「別名 = 他品官方名稱」）。"""
@@ -613,14 +651,21 @@ def validate_rows(rows: list[dict[str, str]], *, official_names: dict[str, set[s
             pending = decision == "NEEDS_REVIEW" and (r.get("decision_reason") or "").startswith("MISSING_SOURCE_METADATA")
             (warn if pending else err)("MISSING_PROVENANCE", r, "缺少來源欄位：" + ",".join(missing))
 
-        official = (r.get("evidence_tier") in OFFICIAL_EVIDENCE_TIERS
-                    and r.get("source_type") in OFFICIAL_SOURCE_TYPES and _is_official_url(r.get("source_url", ""))
-                    and (r.get("evidence_quote") or "").strip() and not missing)
         try:
             support = int(r.get("support_count") or 0)
         except ValueError:
             support = 0
             err("INVALID_SUPPORT_COUNT", r, f"support_count={r.get('support_count')!r}")
+        # 品牌關係是由多筆官方紀錄推導（OFFICIAL_RECORD_INFERENCE）；只有支撐筆數達品牌門檻才算官方證據。
+        tier_ok = (r.get("evidence_tier") in OFFICIAL_EVIDENCE_TIERS
+                   or (kind == "BRAND" and r.get("evidence_tier") == "OFFICIAL_RECORD_INFERENCE"
+                       and support >= BRAND_MIN_RECORDS))
+        official = (tier_ok and r.get("source_type") in OFFICIAL_SOURCE_TYPES
+                    and _is_official_url(r.get("source_url", ""))
+                    and (r.get("evidence_quote") or "").strip() and not missing)
+        if decision in ("ACCEPT", "REJECT") and (
+                not (r.get("reviewer") or "").strip() or not (r.get("reviewed_at") or "").strip()):
+            err("REVIEW_DECISION_WITHOUT_REVIEWER", r, f"{decision} 需要 reviewer 與 reviewed_at")
         if decision == "ACCEPT":
             if not official or support < 1:
                 err("ACCEPT_WITHOUT_OFFICIAL_EVIDENCE", r, "ACCEPT 需要台灣官方來源、官方證據層級、引文與 support_count >= 1")
@@ -659,6 +704,9 @@ def validate_rows(rows: list[dict[str, str]], *, official_names: dict[str, set[s
                 err("BRAND_NOT_CANDIDATE_ONLY", r, f"品牌 match_policy 必須是 CANDIDATE_ONLY（目前 {policy!r}）")
             if (r.get("relation") or "").upper() in ("OWNS_BRAND", "OFFICIAL_BRAND", "BRAND_OF"):
                 err("BRAND_OWNERSHIP_RELATION", r, "品牌只能是候選關係（BRAND_CANDIDATE_OF），不得標示所有權 / 官方品牌")
+            if decision == "ACCEPT":
+                for code, message in brand_accept_gate_failures(r):
+                    err(code, r, message)
 
         sup = r.get("supersedes_review_id") or ""
         if sup and sup not in known_ids:

@@ -151,6 +151,13 @@ class SupabaseOfficialDataRepository:
             return [], True
         return self._db.select(self._db.table("product_details").select("*").in_("product_id", ids)), True
 
+    def search_products_by_applicant(self, applicant_name: str, limit: int) -> tuple[list[dict[str, Any]], bool]:
+        """同一官方申請商（company_name 完全相同）的產品列；D5 品牌輔助候選集合用（只讀 product_details，單一查詢）。
+        回傳 (列, complete)；超過 limit 列代表看不完整個候選集合（complete=False），呼叫端不得據此輔助。"""
+        rows = self._db.select(self._db.table("product_details").select("*")
+                               .eq("company_name", applicant_name).order("product_id").limit(limit + 1))
+        return rows[:limit], len(rows) <= limit
+
     def search_ingredients(self, terms: list[str], limit: int) -> list[dict[str, Any]]:
         rows = self._db.rpc("search_ingredients", {"p_terms": terms, "p_limit": limit})
         return [self._with_source(r["ingredient"]) for r in rows]

@@ -165,6 +165,11 @@ class CatalogRepo:
     def get_identity_generic_terms(self) -> list[str]:
         return []
 
+    def search_products_by_applicant(self, applicant_name: str, limit: int) -> tuple[list[dict[str, Any]], bool]:
+        """與 SupabaseOfficialDataRepository 相同契約：同一申請商（完全相同）的產品列；超過 limit → complete=False。"""
+        rows = [e.to_row() for e in sorted(self._entries, key=lambda e: e.product_id) if e.company_name == applicant_name]
+        return rows[:limit], len(rows) <= limit
+
     def search_products_by_english_name(self, query: str) -> tuple[list[dict[str, Any]], bool]:
         """與 SupabaseOfficialDataRepository 相同的縮小範圍（ilike 子序列 ＋ 非 ASCII 列）與 key 比對。"""
         pattern = narrowing_pattern(query)
@@ -266,14 +271,15 @@ def _request(case: EvalCase) -> NormalizedUserRequest:
     return req
 
 
-def resolve_case(repo: Any, case: EvalCase, generic_terms: list[str] | None = None) -> CaseResult:
+def resolve_case(repo: Any, case: EvalCase, generic_terms: list[str] | None = None, **lookup_kwargs: Any) -> CaseResult:
+    """lookup_kwargs 會原樣傳給 lookup_product（例如 D5 的 brand_overlay）；不傳 = 與既有行為相同。"""
     req = _request(case)
     name_matches: dict[str, ProductCandidateMatch] = {}
     permit_matches: list[ProductCandidateMatch] = []
     if case.is_permit_query:
         permit_matches = lookup_permit(repo, case.query).candidates
     else:
-        for c in lookup_product(repo, [case.query]).candidates:
+        for c in lookup_product(repo, [case.query], **lookup_kwargs).candidates:
             name_matches[c.product.product_id] = c
     generic = generic_terms if generic_terms is not None else identity_generic_terms(repo)
     match = resolve_product_match(req, list(name_matches.values()), permit_matches, [], [case.query], True,
